@@ -1,0 +1,15 @@
+{
+  "permissions": [
+    "CreateBook",
+    "DeleteBook"
+  ],
+  "usergroups": [
+    "admin","default"
+  ],
+  "groupPermissions": {
+    "admin": [
+      "CreateBook",
+      "DeleteBook"
+    ]
+  }
+}
