@@ -185,7 +185,7 @@ type CreateModelView struct {
 func (v *CreateModelView) Run() {
 	var err error
 	DecodeJsonBody(v.Context, v.RequestBody)
-	claims, err := auth.ParseAuthHeader(*v.Context)
+	claims, err := auth.ParseAuthHeader(v.Context)
 	if err != nil {
 		err = nil
 	} else {

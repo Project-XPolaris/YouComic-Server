@@ -1,6 +1,7 @@
 {
   "permissions": [
     "CreateBook",
+    "UpdateBook",
     "DeleteBook"
   ],
   "usergroups": [
@@ -9,7 +10,8 @@
   "groupPermissions": {
     "admin": [
       "CreateBook",
-      "DeleteBook"
+      "DeleteBook",
+      "UpdateBook"
     ]
   }
 }

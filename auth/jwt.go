@@ -13,7 +13,7 @@ type UserClaims struct {
 	UserId uint `json:"user_id"`
 }
 
-func ParseAuthHeader(c gin.Context) (*UserClaims, error) {
+func ParseAuthHeader(c *gin.Context) (*UserClaims, error) {
 	jwtToken := c.GetHeader("Authorization")
 	if len(jwtToken) == 0 {
 		return nil, errors.New("jwt token error")

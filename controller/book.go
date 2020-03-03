@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
@@ -33,6 +35,20 @@ type CreateBookRequestBody struct {
 var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody CreateBookRequestBody
 	DecodeJsonBody(context, &requestBody)
+
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	createBookPermissionChecker := permission.StandardPermissionChecker{UserId: claims.UserId,PermissionName: permission.CreateBookPermissionName}
+	hasPermission := createBookPermissionChecker.CheckPermission(nil)
+	if !hasPermission {
+		ApiError.RaiseApiError(context, errors.New("no permission"), nil)
+		return
+	}
+
 	err, book := services.CreateBook(requestBody.Name)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -52,11 +68,25 @@ type UpdateBookRequestBody struct {
 
 //update
 var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
+
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	err, hasPermission := permission.CheckUserHasPermission(claims.UserId, permission.UpdateBookPermissionName)
+	if !hasPermission {
+		ApiError.RaiseApiError(context, errors.New("no permission"), nil)
+		return
+	}
+
 	requestBody := UpdateBookRequestBody{}
 	DecodeJsonBody(context, &requestBody)
 
@@ -308,7 +338,7 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, errors.New("form not found"), nil)
 		return
 	}
-	if _,isFileExistInForm := form.File["image"];!isFileExistInForm {
+	if _, isFileExistInForm := form.File["image"]; !isFileExistInForm {
 		ApiError.RaiseApiError(context, errors.New("no such file in form"), nil)
 		return
 	}
@@ -320,7 +350,7 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	fileHeader := form.File["image"][0]
-	err,coverImageFilePath,_ := SaveCover(context,id,fileHeader)
+	err, coverImageFilePath, _ := SaveCover(context, id, fileHeader)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
@@ -512,14 +542,14 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	for _, file := range files {
 		if file.Filename == requestBody.Cover {
 			//save cover
-			err,coverPath,_ := SaveCover(context, int(book.ID),file)
+			err, coverPath, _ := SaveCover(context, int(book.ID), file)
 			if err != nil {
 				logrus.Error(err)
 				ApiError.RaiseApiError(context, err, nil)
 				return
 			}
 			book.Cover = filepath.Base(coverPath)
-			err = services.UpdateBook(book,"Cover")
+			err = services.UpdateBook(book, "Cover")
 			if err != nil {
 				logrus.Error(err)
 				ApiError.RaiseApiError(context, err, nil)
