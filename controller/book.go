@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
+	ApplicationError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
+	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/jinzhu/gorm"
@@ -32,22 +34,28 @@ type CreateBookRequestBody struct {
 	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
 }
 
+// create book handler
+//
+// path: /books
+//
+// method: post
 var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody CreateBookRequestBody
 	DecodeJsonBody(context, &requestBody)
 
 	claims, err := auth.ParseAuthHeader(context)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApplicationError.UserAuthFailError, nil)
 		return
 	}
 
-	createBookPermissionChecker := permission.StandardPermissionChecker{UserId: claims.UserId,PermissionName: permission.CreateBookPermissionName}
-	hasPermission := createBookPermissionChecker.CheckPermission(nil)
-	if !hasPermission {
-		ApiError.RaiseApiError(context, errors.New("no permission"), nil)
-		return
-	}
+	permission.ChePermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.CreateBookPermissionName, UserId: claims.UserId},
+	)
+
+	validate.RunValidatorsAndRaiseApiError(context,
+		&validate.UniqBookNameValidator{Value: requestBody.Name},
+	)
 
 	err, book := services.CreateBook(requestBody.Name)
 	if err != nil {
@@ -66,29 +74,37 @@ type UpdateBookRequestBody struct {
 	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
 }
 
-//update
+// update book handler
+//
+// path: /book/:id
+//
+// method: patch
 var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
 
 	claims, err := auth.ParseAuthHeader(context)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
 
-	err, hasPermission := permission.CheckUserHasPermission(claims.UserId, permission.UpdateBookPermissionName)
-	if !hasPermission {
-		ApiError.RaiseApiError(context, errors.New("no permission"), nil)
-		return
-	}
+	//check permission
+	permission.ChePermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.UserId},
+	)
 
 	requestBody := UpdateBookRequestBody{}
 	DecodeJsonBody(context, &requestBody)
+
+	//validate
+	validate.RunValidatorsAndRaiseApiError(context,
+		&validate.StringLengthValidator{Value: requestBody.Name, LessThan: 256, GreaterThan: 0, FieldName: "BookName"},
+	)
 
 	book := &model.Book{}
 	err = AssignUpdateModel(&requestBody, book)
@@ -115,12 +131,16 @@ var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	context.JSON(http.StatusOK, template)
 }
 
+// get book list handler
+//
+// path: /books
+//
+// method: get
 var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 	//get page
 	pagination := DefaultPagination{}
 	pagination.Read(context)
 	//get filter
-	//allowFilterParam := []string{"id",""}
 	var books []model.Book
 	queryBuilder := services.BooksQueryBuilder{}
 	queryBuilder.SetPageFilter(pagination.Page, pagination.PageSize)
@@ -188,12 +208,29 @@ var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 	context.JSON(http.StatusOK, responseBody)
 }
 
+// delete book handler
+//
+// path: /book/:id
+//
+// method: delete
 var DeleteBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
+
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	//check permission
+	permission.ChePermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.DeleteBookPermissionName, UserId: claims.UserId},
+	)
+
 	book := &model.Book{}
 	book.ID = uint(id)
 	err = services.DeleteById(&book)
@@ -210,12 +247,26 @@ type BatchRequestBody struct {
 	Delete []int                    `json:"delete"`
 }
 
+// books action handler
+//
+// path: /books/batch
+//
+// method: post
 var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 	requestBody := BatchRequestBody{}
 	DecodeJsonBody(context, &requestBody)
 
+	//create action
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	permission.ChePermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.CreateBookPermissionName, UserId: claims.UserId},
+	)
 	booksToCreate := make([]model.Book, 0)
-	var err error
 	for _, requestBook := range requestBody.Create {
 		book := model.Book{}
 		err = copier.Copy(&book, &requestBook)
@@ -231,6 +282,10 @@ var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
+	//update
+	permission.ChePermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.UserId},
+	)
 	booksToUpdate := make([]model.Book, 0)
 	for _, updateBook := range requestBody.Update {
 		book := model.Book{}
@@ -248,6 +303,10 @@ var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
+	//delete
+	permission.ChePermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.DeleteBookPermissionName, UserId: claims.UserId},
+	)
 	err = services.DeleteBooks(requestBody.Delete...)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)

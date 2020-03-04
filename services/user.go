@@ -46,6 +46,7 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 type UserQueryBuilder struct {
 	IdQueryFilter
 	DefaultPageFilter
+	NameQueryFilter
 }
 
 func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {

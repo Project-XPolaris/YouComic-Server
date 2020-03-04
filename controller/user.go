@@ -5,6 +5,7 @@ import (
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
+	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -15,15 +16,28 @@ type RegisterUserResponseBody struct {
 	Email    string `json:"email"`
 }
 
+// register user handler
+//
+// path: /user/register
+//
+// method: post
 var RegisterUserHandler gin.HandlerFunc = func(context *gin.Context) {
 	var err error
-	responseBody := RegisterUserResponseBody{}
-	err = context.ShouldBindJSON(&responseBody)
+	requestBody := RegisterUserResponseBody{}
+	err = context.ShouldBindJSON(&requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
-	user := model.User{Username: responseBody.Username, Password: responseBody.Password, Email: responseBody.Email}
+	// check validate
+	validate.RunValidatorsAndRaiseApiError(context,
+		&validate.UniqUserNameValidator{Value: requestBody.Username},
+		&validate.StringLengthValidator{Value: requestBody.Username,FieldName:"username",LessThan: 16,GreaterThan: 4},
+		&validate.StringLengthValidator{Value: requestBody.Password,FieldName:"password",LessThan: 16,GreaterThan: 4},
+		&validate.EmailValidator{Value: requestBody.Email},
+	)
+
+	user := model.User{Username: requestBody.Username, Password: requestBody.Password, Email: requestBody.Email}
 	err = services.RegisterUser(&user)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -41,14 +55,26 @@ type UserAuthResponse struct {
 	Sign string `json:"sign"`
 }
 
+// login user handler
+//
+// path: /user/auth
+//
+// method: post
 var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 	var err error
 	requestBody := LoginUserRequestBody{}
 	err = context.ShouldBindJSON(&requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
+
+	//validate value
+	validate.RunValidatorsAndRaiseApiError(context,
+		&validate.StringLengthValidator{Value: requestBody.Username,FieldName:"username",LessThan: 16,GreaterThan: 4},
+		&validate.StringLengthValidator{Value: requestBody.Password,FieldName:"password",LessThan: 16,GreaterThan: 4},
+	)
+
 	user, sign, err := services.UserLogin(requestBody.Username, requestBody.Password)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -60,11 +86,16 @@ var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 	})
 }
 
+// get user handler
+//
+// path: /user/:id
+//
+// method: get
 var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
 	var user model.User
@@ -83,5 +114,3 @@ var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	context.JSON(http.StatusOK, template)
 }
-
-

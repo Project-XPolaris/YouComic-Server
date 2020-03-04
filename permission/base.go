@@ -2,7 +2,9 @@ package permission
 
 import (
 	"github.com/allentom/youcomic-api/database"
+	ApplicationError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/gin-gonic/gin"
 )
 
 func CheckUserHasPermission(userId uint, permissionName string) (error, bool) {
@@ -26,4 +28,14 @@ func CheckUserHasPermission(userId uint, permissionName string) (error, bool) {
 		return err, false
 	}
 	return nil, permission.ID != 0
+}
+
+func ChePermissionAndServerError(context *gin.Context, permissions ...PermissionChecker) {
+	for _, permission := range permissions {
+		isValidate := permission.CheckPermission()
+		if !isValidate {
+			ApplicationError.RaiseApiError(context, ApplicationError.PermissionError, nil)
+			return
+		}
+	}
 }

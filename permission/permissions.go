@@ -2,7 +2,7 @@ package permission
 
 
 type PermissionChecker interface {
-	CheckPermission(context map[string]interface{}) bool
+	CheckPermission() bool
 }
 
 
@@ -11,10 +11,12 @@ type StandardPermissionChecker struct {
 	UserId         uint
 }
 
-func (c *StandardPermissionChecker) CheckPermission(context map[string]interface{}) bool {
+func (c *StandardPermissionChecker) CheckPermission() bool {
 	err, hasPermission := CheckUserHasPermission(c.UserId, CreateBookPermissionName)
 	if err != nil {
 		return false
 	}
 	return hasPermission
 }
+
+
