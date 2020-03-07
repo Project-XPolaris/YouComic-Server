@@ -3,8 +3,10 @@ package controller
 import (
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
+	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +25,17 @@ var CreateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		OnBeforeCreate: func(v *CreateModelView, modelToCreate interface{}) {
 			dataModel := modelToCreate.(*model.Collection)
 			dataModel.Owner = int(v.Claims.UserId)
+		},
+		GetValidators: func(v *CreateModelView) []validate.Validator {
+			responseBody := v.RequestBody.(*CreateCollectionRequestBody)
+			return []validate.Validator{
+				&validate.StringLengthValidator{Value: responseBody.Name,FieldName: "Name",GreaterThan: 0,LessThan: 256},
+			}
+		},
+		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
+			return []permission.PermissionChecker{
+				&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.CreateCollectionPermissionName},
+			}
 		},
 	}
 	view.Run()
@@ -85,7 +98,10 @@ type AddToCollectionRequestBody struct {
 
 var AddToCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody AddToCollectionRequestBody
-	DecodeJsonBody(context, &requestBody)
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -106,7 +122,10 @@ type RemoveFromCollectionRequestBody struct {
 
 var DeleteFromCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody RemoveFromCollectionRequestBody
-	DecodeJsonBody(context, &requestBody)
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -127,7 +146,10 @@ type AddUsersToCollectionRequestBody struct {
 
 var AddUsersToCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody AddUsersToCollectionRequestBody
-	DecodeJsonBody(context, &requestBody)
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -148,7 +170,10 @@ type RemoveUsersFromCollectionRequestBody struct {
 
 var DeleteUsersFromCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody RemoveUsersFromCollectionRequestBody
-	DecodeJsonBody(context, &requestBody)
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)

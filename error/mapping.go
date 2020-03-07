@@ -26,7 +26,7 @@ func RaiseApiError(ctx *gin.Context, err error, context map[string]interface{}) 
 		apiError = defaultApiError
 	}
 	reason := apiError.Render(err, context)
-	ctx.JSON(apiError.Status, ErrorResponseBody{
+	ctx.AbortWithStatusJSON(apiError.Status,ErrorResponseBody{
 		Success: false,
 		Reason:  reason,
 		Code:    apiError.Code,
@@ -35,7 +35,7 @@ func RaiseApiError(ctx *gin.Context, err error, context map[string]interface{}) 
 
 func SendApiError(ctx *gin.Context, err error, apiError ApiError, context map[string]interface{}) {
 	reason := apiError.Render(err, context)
-	ctx.JSON(apiError.Status, ErrorResponseBody{
+	ctx.AbortWithStatusJSON(apiError.Status,ErrorResponseBody{
 		Success: false,
 		Reason:  reason,
 		Code:    apiError.Code,

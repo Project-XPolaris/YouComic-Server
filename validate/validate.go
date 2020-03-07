@@ -11,7 +11,10 @@ type Validator interface {
 }
 
 // run validators and raise api error if invalidate (first error of these)
-func RunValidatorsAndRaiseApiError(context *gin.Context, validators ...Validator) {
+// return false if is invalidate
+//
+// [validator] => error => response
+func RunValidatorsAndRaiseApiError(context *gin.Context, validators ...Validator) bool{
 	for _, validator := range validators {
 		info, isValidate := validator.Check()
 		if !isValidate {
@@ -23,7 +26,8 @@ func RunValidatorsAndRaiseApiError(context *gin.Context, validators ...Validator
 				},
 			}
 			ApplicationError.SendApiError(context, nil, validateError, nil)
-			return
+			return false
 		}
 	}
+	return true
 }

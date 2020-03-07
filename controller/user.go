@@ -30,12 +30,14 @@ var RegisterUserHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	// check validate
-	validate.RunValidatorsAndRaiseApiError(context,
+	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
 		&validate.UniqUserNameValidator{Value: requestBody.Username},
-		&validate.StringLengthValidator{Value: requestBody.Username,FieldName:"username",LessThan: 16,GreaterThan: 4},
-		&validate.StringLengthValidator{Value: requestBody.Password,FieldName:"password",LessThan: 16,GreaterThan: 4},
+		&validate.StringLengthValidator{Value: requestBody.Username, FieldName: "username", LessThan: 16, GreaterThan: 4},
+		&validate.StringLengthValidator{Value: requestBody.Password, FieldName: "password", LessThan: 16, GreaterThan: 4},
 		&validate.EmailValidator{Value: requestBody.Email},
-	)
+	); isValidate {
+		return
+	}
 
 	user := model.User{Username: requestBody.Username, Password: requestBody.Password, Email: requestBody.Email}
 	err = services.RegisterUser(&user)
@@ -70,10 +72,12 @@ var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	//validate value
-	validate.RunValidatorsAndRaiseApiError(context,
-		&validate.StringLengthValidator{Value: requestBody.Username,FieldName:"username",LessThan: 16,GreaterThan: 4},
-		&validate.StringLengthValidator{Value: requestBody.Password,FieldName:"password",LessThan: 16,GreaterThan: 4},
-	)
+	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
+		&validate.StringLengthValidator{Value: requestBody.Username, FieldName: "username", LessThan: 16, GreaterThan: 4},
+		&validate.StringLengthValidator{Value: requestBody.Password, FieldName: "password", LessThan: 16, GreaterThan: 4},
+	); !isValidate {
+		return
+	}
 
 	user, sign, err := services.UserLogin(requestBody.Username, requestBody.Password)
 	if err != nil {

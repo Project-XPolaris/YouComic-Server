@@ -30,12 +30,16 @@ func CheckUserHasPermission(userId uint, permissionName string) (error, bool) {
 	return nil, permission.ID != 0
 }
 
-func ChePermissionAndServerError(context *gin.Context, permissions ...PermissionChecker) {
+//run all permission checker,abort first permission which it isn't accessible
+//
+//[permission checker] => error? => response
+func CheckPermissionAndServerError(context *gin.Context, permissions ...PermissionChecker) bool{
 	for _, permission := range permissions {
 		isValidate := permission.CheckPermission()
 		if !isValidate {
 			ApplicationError.RaiseApiError(context, ApplicationError.PermissionError, nil)
-			return
+			return false
 		}
 	}
+	return true
 }

@@ -67,7 +67,7 @@ var PageUploadHandler gin.HandlerFunc = func(context *gin.Context) {
 func SavePageFile(ctx *gin.Context, file *multipart.FileHeader, bookId int, order int) (string, error) {
 	var err error
 
-	storePath := filepath.Join(config.Config.Store.Books,strconv.Itoa(bookId))
+	storePath := filepath.Join(config.Config.Store.Books, strconv.Itoa(bookId))
 	if _, err = os.Stat(storePath); os.IsNotExist(err) {
 		err = os.MkdirAll(storePath, os.ModePerm)
 		if err != nil {
@@ -86,8 +86,10 @@ type UpdatePageRequestBody struct {
 var UpdatePageHandler gin.HandlerFunc = func(context *gin.Context) {
 	var err error
 	requestBody := UpdatePageRequestBody{}
-	DecodeJsonBody(context, &requestBody)
-
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -176,7 +178,7 @@ var PageListHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	result := serializer.SerializeMultipleTemplate(pages, &serializer.BasePageTemplate{},nil)
+	result := serializer.SerializeMultipleTemplate(pages, &serializer.BasePageTemplate{}, nil)
 	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
@@ -197,7 +199,7 @@ var BatchPageHandler gin.HandlerFunc = func(context *gin.Context) {
 			"order",
 		},
 		AllowOperations: []BatchOperation{
-			Update,Delete,
+			Update, Delete,
 		},
 		OperationFunc: map[BatchOperation]func(v *ModelsBatchView) error{
 			Delete: func(v *ModelsBatchView) error {

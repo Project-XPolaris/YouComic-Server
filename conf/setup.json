@@ -2,16 +2,31 @@
   "permissions": [
     "CreateBook",
     "UpdateBook",
-    "DeleteBook"
+    "DeleteBook",
+    "CreateTag",
+    "UpdateTag",
+    "DeleteTag",
+    "AddTagToBook",
+    "CreateCollection",
+    "UpdateCollection",
+    "DeleteCollection",
   ],
   "usergroups": [
-    "admin","default"
+    "admin",
+    "default"
   ],
   "groupPermissions": {
     "admin": [
       "CreateBook",
       "DeleteBook",
-      "UpdateBook"
+      "UpdateBook",
+      "CreateTag",
+      "UpdateTag",
+      "DeleteTag",
+      "AddTagToBook",
+      "CreateCollection",
+      "UpdateCollection",
+      "DeleteCollection"
     ]
   }
 }

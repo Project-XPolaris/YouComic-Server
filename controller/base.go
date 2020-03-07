@@ -3,9 +3,11 @@ package controller
 import (
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
+	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
+	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/mitchellh/mapstructure"
@@ -14,12 +16,15 @@ import (
 	"strconv"
 )
 
-func DecodeJsonBody(context *gin.Context, requestBody interface{}) {
+// decode json body(with error abort)
+//
+// response body => interface
+func DecodeJsonBody(context *gin.Context, requestBody interface{}) error{
 	err := context.ShouldBindJSON(&requestBody)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
-		context.Done()
 	}
+	return err
 }
 
 func RenderTemplate(context *gin.Context, template serializer.TemplateSerializer, model interface{}) {
@@ -91,6 +96,9 @@ type ModelsBatchView struct {
 	AllowOperations  []BatchOperation
 	OperationFunc    map[BatchOperation]func(v *ModelsBatchView) error
 	RequestBody      ModelBatchRequestBody
+	Permissions      map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker
+	Validators       map[BatchOperation]func(v *ModelsBatchView) []validate.Validator
+	Claims           *auth.UserClaims
 }
 
 type BatchOperation string
@@ -148,9 +156,29 @@ var DefaultBatchFunctionMap = map[BatchOperation]func(v *ModelsBatchView) error{
 func (v *ModelsBatchView) Run() {
 	var err error
 	var requestBody ModelBatchRequestBody
-	DecodeJsonBody(v.Context, &requestBody)
+	err = DecodeJsonBody(v.Context, &requestBody)
+	if err != nil {
+		return
+	}
 	v.RequestBody = requestBody
 	for _, operationKey := range v.AllowOperations {
+		//check permission
+		if v.Permissions != nil {
+			if permissionCheckersFunc, isExist := v.Permissions[operationKey]; isExist {
+				if hasPermission := permission.CheckPermissionAndServerError(v.Context, permissionCheckersFunc(v)...); !hasPermission {
+					return
+				}
+			}
+		}
+
+		//validate
+		if v.Validators != nil {
+			if validatorFunc, isExist := v.Validators[operationKey]; isExist {
+				if isValidate := validate.RunValidatorsAndRaiseApiError(v.Context, validatorFunc(v)...); !isValidate {
+					return
+				}
+			}
+		}
 		operation, exist := v.OperationFunc[operationKey]
 		if exist {
 			err = operation(v)
@@ -172,6 +200,7 @@ func (v *ModelsBatchView) Run() {
 	ServerSuccessResponse(v.Context)
 }
 
+//create model view
 type CreateModelView struct {
 	Context          *gin.Context
 	onAuthUser       func(v *CreateModelView) error
@@ -179,18 +208,40 @@ type CreateModelView struct {
 	ResponseTemplate serializer.TemplateSerializer
 	RequestBody      interface{}
 	Claims           *auth.UserClaims
-	OnBeforeCreate   func(v *CreateModelView,modelToCreate interface{})
+	OnBeforeCreate   func(v *CreateModelView, modelToCreate interface{})
+	GetPermissions   func(v *CreateModelView) []permission.PermissionChecker
+	GetValidators    func(v *CreateModelView) []validate.Validator
 }
 
 func (v *CreateModelView) Run() {
 	var err error
-	DecodeJsonBody(v.Context, v.RequestBody)
+	err = DecodeJsonBody(v.Context, v.RequestBody)
+	if err != nil {
+		return
+	}
 	claims, err := auth.ParseAuthHeader(v.Context)
 	if err != nil {
 		err = nil
 	} else {
 		v.Claims = claims
 	}
+
+	//check permission
+	if v.GetPermissions != nil {
+		permissions := v.GetPermissions(v)
+		if hasPermission := permission.CheckPermissionAndServerError(v.Context, permissions...); !hasPermission {
+			return
+		}
+	}
+
+	//validate check
+	if v.GetValidators != nil {
+		validators := v.GetValidators(v)
+		if isValidate := validate.RunValidatorsAndRaiseApiError(v.Context, validators...); !isValidate {
+			return
+		}
+	}
+
 	createModel := v.CreateModel()
 	err = copier.Copy(createModel, v.RequestBody)
 	if err != nil {
@@ -198,7 +249,7 @@ func (v *CreateModelView) Run() {
 		return
 	}
 	if v.OnBeforeCreate != nil {
-		v.OnBeforeCreate(v,createModel)
+		v.OnBeforeCreate(v, createModel)
 	}
 	err = services.CreateModel(createModel)
 	if err != nil {

@@ -3,8 +3,10 @@ package controller
 import (
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
+	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -14,6 +16,11 @@ type CreateTagRequestBody struct {
 	Type string `json:"type"`
 }
 
+// create book handler
+//
+// path: /tags
+//
+// method: post
 var CreateTagHandler gin.HandlerFunc = func(context *gin.Context) {
 	view := CreateModelView{
 		Context: context,
@@ -22,11 +29,27 @@ var CreateTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		},
 		ResponseTemplate: &serializer.BaseTagTemplate{},
 		RequestBody:      &CreateTagRequestBody{},
+		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
+			return []permission.PermissionChecker{
+				&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateTagPermissionName},
+			}
+		},
+		GetValidators: func(v *CreateModelView) []validate.Validator {
+			requestBody := v.RequestBody.(*CreateTagRequestBody)
+			return []validate.Validator{
+				&validate.StringLengthValidator{Value: requestBody.Name, FieldName: "Name", GreaterThan: 0, LessThan: 256},
+				&validate.StringLengthValidator{Value: requestBody.Type, FieldName: "Type", GreaterThan: 0, LessThan: 256},
+			}
+		},
 	}
-
 	view.Run()
 }
 
+// tag batch handler
+//
+// path: /tags/batch
+//
+// method: post
 var BatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
 	view := ModelsBatchView{
 		Context: context,
@@ -38,6 +61,23 @@ var BatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		},
 		AllowUpdateField: []string{
 			"name",
+		},
+		Permissions: map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker{
+			Create: func(v *ModelsBatchView) []permission.PermissionChecker {
+				return []permission.PermissionChecker{
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.CreateTagPermissionName},
+				}
+			},
+			Update: func(v *ModelsBatchView) []permission.PermissionChecker {
+				return []permission.PermissionChecker{
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.UpdateTagPermissionName},
+				}
+			},
+			Delete: func(v *ModelsBatchView) []permission.PermissionChecker {
+				return []permission.PermissionChecker{
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.DeleteTagPermissionName},
+				}
+			},
 		},
 	}
 	view.Run()
@@ -129,14 +169,13 @@ var AddBooksToTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	err = services.AddBooksToTag(id,requestBody.Books)
+	err = services.AddBooksToTag(id, requestBody.Books)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	ServerSuccessResponse(context)
 }
-
 
 type RemoveBookFromTagRequestBody struct {
 	Books []int `json:"books"`
@@ -155,7 +194,7 @@ var RemoveBooksFromTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	err = services.RemoveBooksFromTag(id,requestBody.Books)
+	err = services.RemoveBooksFromTag(id, requestBody.Books)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
