@@ -118,3 +118,34 @@ var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	context.JSON(http.StatusOK, template)
 }
+
+
+// get user groups handler
+//
+// path: /user/:id/groups
+//
+// method: get
+var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	queryBuilder := services.UserGroupQueryBuilder{}
+	queryBuilder.SetUserGroupUser(id)
+	count,usergroups,err := queryBuilder.ReadModels()
+	if err != nil {
+		ApiError.RaiseApiError(context,err,nil)
+		return
+	}
+	result := serializer.SerializeMultipleTemplate(usergroups, &serializer.BaseUserGroupTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
+	responseBody.SerializeList(result, map[string]interface{}{
+		"page":     1,
+		"pageSize": 10,
+		"count":    count,
+		"url":      context.Request.URL,
+	})
+	context.JSON(http.StatusOK, responseBody)
+}

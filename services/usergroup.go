@@ -3,9 +3,11 @@ package services
 import (
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/jinzhu/gorm"
 )
 
 type UserGroupQueryBuilder struct {
+	UserGroupUserFilter
 	NameQueryFilter
 }
 
@@ -24,4 +26,23 @@ func AddPermissionsToUserGroup(userGroup *model.UserGroup, permissions ...*model
 		permissionInterfaces = append(permissionInterfaces, permission)
 	}
 	return database.DB.Model(userGroup).Association("Permissions").Append(permissionInterfaces...).Error
+}
+
+type UserGroupUserFilter struct {
+	UserId interface{}
+}
+
+func (f *UserGroupUserFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if f.UserId != nil {
+		return db.Joins(
+			"inner join usergroup_users on usergroup_users.user_group_id = user_groups.id",
+		).Where("usergroup_users.user_id = ?", f.UserId)
+	}
+	return db
+}
+
+func (f *UserGroupUserFilter) SetUserGroupUser(userId interface{})  {
+	if f.UserId != nil {
+		f.UserId = userId
+	}
 }

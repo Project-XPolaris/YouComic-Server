@@ -31,6 +31,7 @@ func SetRouter(engine *gin.Engine) {
 	engine.POST("/user/register", controller.RegisterUserHandler)
 	engine.POST("/user/auth", controller.LoginUserHandler)
 	engine.GET("/user/:id", controller.GetUserHandler)
+	engine.GET("/user/:id/groups", controller.GetUserUserGroupsHandler)
 	engine.POST("/collections", controller.CreateCollectionHandler)
 	engine.GET("/collections", controller.CollectionsListHandler)
 	engine.PUT("/collection/:id/books", controller.AddToCollectionHandler)

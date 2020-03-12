@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
@@ -135,6 +136,10 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int, error) {
 	query = ApplyFilters(b, query)
 	var count = 0
 	err := query.Limit(b.PageSize).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
+
+	if err == sql.ErrNoRows {
+		return 0,nil
+	}
 	return count, err
 }
 
