@@ -1,10 +1,13 @@
 package controller
 
 import (
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
+	"github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -144,6 +147,59 @@ var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     1,
 		"pageSize": 10,
+		"count":    count,
+		"url":      context.Request.URL,
+	})
+	context.JSON(http.StatusOK, responseBody)
+}
+
+// get user list handler
+//
+// path: /users
+//
+// method: get
+var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	if hasPermission := permission.CheckPermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.GetUserListPermissionName, UserId: claims.UserId},
+	); !hasPermission {
+		return
+	}
+	userQueryBuilder := services.UserQueryBuilder{}
+	//get page
+	pagination := DefaultPagination{}
+	pagination.Read(context)
+	userQueryBuilder.SetPageFilter(pagination.Page,pagination.PageSize)
+
+	//query filter
+	filterMapping := []FilterMapping{
+		{
+			Lookup: "id",
+			Method: "InId",
+			Many:   true,
+		},
+		{
+			Lookup: "name",
+			Method: "SetNameFilter",
+			Many:   true,
+		},
+	}
+	for _, filter := range filterMapping {
+		utils.FilterByParam(context, filter.Lookup, &userQueryBuilder, filter.Method, filter.Many)
+	}
+
+	count,users,err := userQueryBuilder.ReadModels()
+
+	result := serializer.SerializeMultipleTemplate(users, &serializer.BaseUserTemplate{},nil)
+	responseBody := serializer.DefaultListContainer{}
+	responseBody.SerializeList(result, map[string]interface{}{
+		"page":     pagination.Page,
+		"pageSize": pagination.PageSize,
 		"count":    count,
 		"url":      context.Request.URL,
 	})

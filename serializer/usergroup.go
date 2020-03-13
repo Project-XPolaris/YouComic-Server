@@ -3,7 +3,7 @@ package serializer
 import "github.com/jinzhu/copier"
 
 type BaseUserGroupTemplate struct {
-	Id   uint   `json:"id"`
+	ID   uint   `json:"id"`
 	Name string `json:"name"`
 }
 

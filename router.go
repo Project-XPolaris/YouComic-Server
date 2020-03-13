@@ -32,6 +32,7 @@ func SetRouter(engine *gin.Engine) {
 	engine.POST("/user/auth", controller.LoginUserHandler)
 	engine.GET("/user/:id", controller.GetUserHandler)
 	engine.GET("/user/:id/groups", controller.GetUserUserGroupsHandler)
+	engine.GET("/users", controller.GetUserUserListHandler)
 	engine.POST("/collections", controller.CreateCollectionHandler)
 	engine.GET("/collections", controller.CollectionsListHandler)
 	engine.PUT("/collection/:id/books", controller.AddToCollectionHandler)
@@ -39,4 +40,6 @@ func SetRouter(engine *gin.Engine) {
 	engine.PUT("/collection/:id/users", controller.AddUsersToCollectionHandler)
 	engine.DELETE("/collection/:id/users", controller.DeleteUsersFromCollectionHandler)
 	engine.DELETE("/collection/:id", controller.DeleteCollectionHandler)
+	engine.GET("/permissions", controller.GetPermissionListHandler)
+	engine.GET("/usergroups", controller.GetUserGroupListHandler)
 }

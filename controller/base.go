@@ -19,7 +19,7 @@ import (
 // decode json body(with error abort)
 //
 // response body => interface
-func DecodeJsonBody(context *gin.Context, requestBody interface{}) error{
+func DecodeJsonBody(context *gin.Context, requestBody interface{}) error {
 	err := context.ShouldBindJSON(&requestBody)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
@@ -274,15 +274,32 @@ func (r *DefaultRequestBodyReader) Deserializer(source interface{}) error {
 }
 
 type ListView struct {
-	Context       *gin.Context
-	Pagination    PageReader
-	QueryBuilder  interface{}
-	FilterMapping []FilterMapping
-	GetTemplate   func() serializer.TemplateSerializer
-	GetContainer  func() serializer.ListContainerSerializer
+	Context        *gin.Context
+	Pagination     PageReader
+	QueryBuilder   interface{}
+	FilterMapping  []FilterMapping
+	GetTemplate    func() serializer.TemplateSerializer
+	GetContainer   func() serializer.ListContainerSerializer
+	GetPermissions func(v *ListView) []permission.PermissionChecker
+	Claims         *auth.UserClaims
 }
 
 func (v *ListView) Run() {
+
+	claims, err := auth.ParseAuthHeader(v.Context)
+	if err != nil {
+		err = nil
+	} else {
+		v.Claims = claims
+	}
+
+	//check permission
+	if v.GetPermissions != nil {
+		permissions := v.GetPermissions(v)
+		if hasPermission := permission.CheckPermissionAndServerError(v.Context, permissions...); !hasPermission {
+			return
+		}
+	}
 
 	if v.Pagination == nil {
 		v.Pagination = &DefaultPagination{}

@@ -10,6 +10,9 @@
     "CreateCollection",
     "UpdateCollection",
     "DeleteCollection",
+    "GetUserList",
+    "GetPermissionList",
+    "GetUserGroupList"
   ],
   "usergroups": [
     "admin",
@@ -26,7 +29,10 @@
       "AddTagToBook",
       "CreateCollection",
       "UpdateCollection",
-      "DeleteCollection"
+      "DeleteCollection",
+      "GetUserList",
+      "GetPermissionList",
+      "GetUserGroupList"
     ]
   }
 }

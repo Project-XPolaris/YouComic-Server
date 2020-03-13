@@ -10,5 +10,7 @@ const (
 	UpdateTagPermissionName = "UpdateTag"
 	CreateCollectionPermissionName = "CreateCollection"
 	UpdateCollectionPermissionName = "UpdateCollection"
-	DeleteCollectionPermissionName = "DeleteCollection"
+	GetUserListPermissionName = "GetUserList"
+	GetPermissionListPermissionName = "GetPermissionList"
+	GetUserGroupListPermissionName = "GetUserGroupList"
 )
