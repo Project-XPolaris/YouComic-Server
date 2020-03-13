@@ -187,9 +187,15 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 			Lookup: "name",
 			Method: "SetNameFilter",
 			Many:   true,
-		},{
-			Lookup: "usergroup",
-			Method: "SetUserGroupQueryFilter",
+		},
+		{
+			Lookup: "nameSearch",
+			Method: "SetNameSearchQueryFilter",
+			Many:   true,
+		},
+		{
+			Lookup: "nicknameSearch",
+			Method: "SetNicknameSearchQueryFilter",
 			Many:   true,
 		},
 	}
@@ -199,7 +205,7 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 
 	count,users,err := userQueryBuilder.ReadModels()
 
-	result := serializer.SerializeMultipleTemplate(users, &serializer.BaseUserTemplate{},nil)
+	result := serializer.SerializeMultipleTemplate(users, &serializer.ManagerUserTemplate{},nil)
 	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,

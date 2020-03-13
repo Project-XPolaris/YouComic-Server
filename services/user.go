@@ -49,6 +49,8 @@ type UserQueryBuilder struct {
 	DefaultPageFilter
 	NameQueryFilter
 	UserToUserGroupQueryFilter
+	UserNameSearchQueryFilter
+	NicknameSearchQueryFilter
 }
 
 func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {
@@ -79,3 +81,36 @@ func (f UserToUserGroupQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 	return db
 }
 
+type UserNameSearchQueryFilter struct {
+	nameSearch interface{}
+}
+
+func (f UserNameSearchQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if f.nameSearch != nil && len(f.nameSearch.(string)) != 0 {
+		return db.Where("username like ?", fmt.Sprintf("%%%s%%", f.nameSearch))
+	}
+	return db
+}
+
+func (f *UserNameSearchQueryFilter) SetNameSearchQueryFilter(nameSearch interface{}) {
+	if len(nameSearch.(string)) > 0 {
+		f.nameSearch = nameSearch
+	}
+}
+
+type NicknameSearchQueryFilter struct {
+	nicknameSearch interface{}
+}
+
+func (f NicknameSearchQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if f.nicknameSearch != nil && len(f.nicknameSearch.(string)) != 0 {
+		return db.Where("nickname like ?", fmt.Sprintf("%%%s%%", f.nicknameSearch))
+	}
+	return db
+}
+
+func (f *NicknameSearchQueryFilter) SetNicknameSearchQueryFilter(nameSearch interface{}) {
+	if len(nameSearch.(string)) > 0 {
+		f.nicknameSearch = nameSearch
+	}
+}
