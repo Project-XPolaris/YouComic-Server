@@ -12,7 +12,7 @@ type StandardPermissionChecker struct {
 }
 
 func (c *StandardPermissionChecker) CheckPermission() bool {
-	err, hasPermission := CheckUserHasPermission(c.UserId, CreateBookPermissionName)
+	err, hasPermission := CheckUserHasPermission(c.UserId, c.PermissionName)
 	if err != nil {
 		return false
 	}

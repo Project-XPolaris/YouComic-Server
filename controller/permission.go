@@ -41,6 +41,14 @@ var GetPermissionListHandler gin.HandlerFunc = func(context *gin.Context) {
 			Lookup: "name",
 			Method: "SetNameFilter",
 			Many:   true,
+		},{
+			Lookup: "usergroup",
+			Method: "SetUserGroupQueryFilter",
+			Many:   true,
+		},{
+			Lookup: "nameSearch",
+			Method: "SetNameSearchQueryFilter",
+			Many:   false,
 		},
 	}
 	for _, filter := range filterMapping {

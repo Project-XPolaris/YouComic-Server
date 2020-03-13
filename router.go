@@ -42,4 +42,5 @@ func SetRouter(engine *gin.Engine) {
 	engine.DELETE("/collection/:id", controller.DeleteCollectionHandler)
 	engine.GET("/permissions", controller.GetPermissionListHandler)
 	engine.GET("/usergroups", controller.GetUserGroupListHandler)
+	engine.POST("/usergroups", controller.CreateUserGroupHandler)
 }

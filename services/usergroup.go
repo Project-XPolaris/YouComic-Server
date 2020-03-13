@@ -7,6 +7,7 @@ import (
 )
 
 type UserGroupQueryBuilder struct {
+	IdQueryFilter
 	UserGroupUserFilter
 	NameQueryFilter
 	DefaultPageFilter

@@ -187,6 +187,10 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 			Lookup: "name",
 			Method: "SetNameFilter",
 			Many:   true,
+		},{
+			Lookup: "usergroup",
+			Method: "SetUserGroupQueryFilter",
+			Many:   true,
 		},
 	}
 	for _, filter := range filterMapping {
