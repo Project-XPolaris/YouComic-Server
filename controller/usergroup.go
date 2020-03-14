@@ -76,14 +76,14 @@ var CreateUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
 }
 
 type AddUserToUserGroupRequestBody struct {
-	userIds []uint
+	UserIds []uint `json:"userIds"`
 }
 
 // add user to usergroup handler
 //
 // put: /usergroup/:id/users
 //
-// method: post
+// method: put
 var AddUserToUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	id, err := GetLookUpId(context, "id")
@@ -112,7 +112,7 @@ var AddUserToUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	users := make([]*model.User, 0)
-	for _, userId := range requestBody.userIds {
+	for _, userId := range requestBody.UserIds {
 		users = append(users, &model.User{Model: gorm.Model{ID: userId}})
 	}
 	err = services.AddUsersToUserGroup(&model.UserGroup{Model: gorm.Model{ID: uint(id)}}, users...)
@@ -122,3 +122,51 @@ var AddUserToUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	ServerSuccessResponse(context)
 }
+
+type AddPermissionToUserGroupRequestBody struct {
+	PermissionIds []uint `json:"permissionIds"`
+}
+// add user to usergroup handler
+//
+// put: /usergroup/:id/permissions
+//
+// method: put
+var AddPermissionToUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	//check permission
+	if hasPermission := permission.CheckPermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.AddPermissionToUserGroupPermissionName, UserId: claims.UserId},
+	); !hasPermission {
+		return
+	}
+
+	requestBody := AddPermissionToUserGroupRequestBody{}
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+
+	permissions := make([]*model.Permission, 0)
+	for _, permissionId := range requestBody.PermissionIds {
+		permissions = append(permissions, &model.Permission{Model: gorm.Model{ID: permissionId}})
+	}
+	err = services.AddPermissionsToUserGroup(&model.UserGroup{Model: gorm.Model{ID: uint(id)}}, permissions...)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}
+

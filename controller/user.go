@@ -38,7 +38,7 @@ var RegisterUserHandler gin.HandlerFunc = func(context *gin.Context) {
 		&validate.StringLengthValidator{Value: requestBody.Username, FieldName: "username", LessThan: 16, GreaterThan: 4},
 		&validate.StringLengthValidator{Value: requestBody.Password, FieldName: "password", LessThan: 16, GreaterThan: 4},
 		&validate.EmailValidator{Value: requestBody.Email},
-	); isValidate {
+	); !isValidate {
 		return
 	}
 
@@ -196,6 +196,11 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 		{
 			Lookup: "nicknameSearch",
 			Method: "SetNicknameSearchQueryFilter",
+			Many:   true,
+		},
+		{
+			Lookup: "usergroup",
+			Method: "SetUserGroupQueryFilter",
 			Many:   true,
 		},
 	}

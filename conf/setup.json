@@ -14,7 +14,8 @@
     "GetPermissionList",
     "GetUserGroupList",
     "CreateUserGroup",
-    "AddUserToUserGroup"
+    "AddUserToUserGroup",
+    "AddPermissionToUserGroup"
   ],
   "usergroups": [
     "admin",
@@ -36,7 +37,8 @@
       "GetPermissionList",
       "GetUserGroupList",
       "CreateUserGroup",
-      "AddUserToUserGroup"
+      "AddUserToUserGroup",
+      "AddPermissionToUserGroup"
     ]
   }
 }

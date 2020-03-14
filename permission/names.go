@@ -15,4 +15,5 @@ const (
 	GetUserGroupListPermissionName = "GetUserGroupList"
 	CreateUserGroupPermissionName = "CreateUserGroup"
 	AddUserToUserGroupPermissionName = "AddUserToUserGroup"
+	AddPermissionToUserGroupPermissionName = "AddPermissionToUserGroup"
 )
