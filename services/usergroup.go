@@ -56,3 +56,11 @@ func AddUsersToUserGroup(userGroup *model.UserGroup, users ...*model.User) error
 	}
 	return database.DB.Model(userGroup).Association("Users").Append(userInterfaces...).Error
 }
+
+func RemoveUsersFromUserGroup(userGroup *model.UserGroup, users ...*model.User) error {
+	userInterfaces := make([]interface{}, 0)
+	for _, user := range users {
+		userInterfaces = append(userInterfaces, user)
+	}
+	return database.DB.Model(userGroup).Association("Users").Delete(userInterfaces...).Error
+}

@@ -170,3 +170,51 @@ var AddPermissionToUserGroupHandler gin.HandlerFunc = func(context *gin.Context)
 	ServerSuccessResponse(context)
 }
 
+type RemoveUserToUserGroupRequestBody struct {
+	UserIds []uint `json:"userIds"`
+}
+
+// remove user from usergroup handler
+//
+// put: /usergroup/:id/users
+//
+// method: delete
+var RemoveUserFromUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	//check permission
+	if hasPermission := permission.CheckPermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.RemoveUserFromUserGroupPermissionName, UserId: claims.UserId},
+	); !hasPermission {
+		return
+	}
+
+	requestBody := RemoveUserToUserGroupRequestBody{}
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+
+	users := make([]*model.User, 0)
+	for _, userId := range requestBody.UserIds {
+		users = append(users, &model.User{Model: gorm.Model{ID: userId}})
+	}
+	err = services.RemoveUsersFromUserGroup(&model.UserGroup{Model: gorm.Model{ID: uint(id)}}, users...)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}
+

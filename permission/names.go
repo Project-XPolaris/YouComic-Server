@@ -16,4 +16,5 @@ const (
 	CreateUserGroupPermissionName = "CreateUserGroup"
 	AddUserToUserGroupPermissionName = "AddUserToUserGroup"
 	AddPermissionToUserGroupPermissionName = "AddPermissionToUserGroup"
+	RemoveUserFromUserGroupPermissionName = "RemoveUserFromUserGroup"
 )

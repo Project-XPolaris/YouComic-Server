@@ -15,7 +15,8 @@
     "GetUserGroupList",
     "CreateUserGroup",
     "AddUserToUserGroup",
-    "AddPermissionToUserGroup"
+    "AddPermissionToUserGroup",
+    "RemoveUserFromUserGroup"
   ],
   "usergroups": [
     "admin",
@@ -38,7 +39,8 @@
       "GetUserGroupList",
       "CreateUserGroup",
       "AddUserToUserGroup",
-      "AddPermissionToUserGroup"
+      "AddPermissionToUserGroup",
+      "RemoveUserFromUserGroup"
     ]
   }
 }
