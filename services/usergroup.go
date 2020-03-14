@@ -48,3 +48,11 @@ func (f *UserGroupUserFilter) SetUserGroupUser(userId interface{})  {
 		f.UserId = userId
 	}
 }
+
+func AddUsersToUserGroup(userGroup *model.UserGroup, users ...*model.User) error {
+	userInterfaces := make([]interface{}, 0)
+	for _, user := range users {
+		userInterfaces = append(userInterfaces, user)
+	}
+	return database.DB.Model(userGroup).Association("Users").Append(userInterfaces...).Error
+}

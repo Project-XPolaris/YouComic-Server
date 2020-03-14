@@ -1,12 +1,15 @@
 package controller
 
 import (
+	"github.com/allentom/youcomic-api/auth"
+	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 )
 
 var GetUserGroupListHandler gin.HandlerFunc = func(context *gin.Context) {
@@ -70,4 +73,52 @@ var CreateUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
 		},
 	}
 	view.Run()
+}
+
+type AddUserToUserGroupRequestBody struct {
+	userIds []uint
+}
+
+// add user to usergroup handler
+//
+// put: /usergroup/:id/users
+//
+// method: post
+var AddUserToUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	//check permission
+	if hasPermission := permission.CheckPermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.AddUserToUserGroupPermissionName, UserId: claims.UserId},
+	); !hasPermission {
+		return
+	}
+
+	requestBody := AddUserToUserGroupRequestBody{}
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+
+	users := make([]*model.User, 0)
+	for _, userId := range requestBody.userIds {
+		users = append(users, &model.User{Model: gorm.Model{ID: userId}})
+	}
+	err = services.AddUsersToUserGroup(&model.UserGroup{Model: gorm.Model{ID: uint(id)}}, users...)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
 }
