@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/allentom/youcomic-api/config"
-	"path"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -17,5 +16,5 @@ func EncodeFileName(fileName string) string {
 }
 
 func GetBookStorePath(bookId uint) string {
-	return path.Join(config.Config.Store.Books, strconv.Itoa(int(bookId)))
+	return filepath.Join(config.Config.Store.Books, strconv.Itoa(int(bookId)))
 }
