@@ -5,6 +5,7 @@ import (
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	applogger "github.com/allentom/youcomic-api/log"
+	"github.com/allentom/youcomic-api/router"
 	"github.com/allentom/youcomic-api/setup"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
@@ -33,7 +34,7 @@ func main() {
 	}
 	r.Use(cors.New(corsConfig))
 	r.Static("/assets", config.Config.Store.Root)
-	SetRouter(r)
+	router.SetRouter(r)
 	setup.SetupApplication()
 	r.Run(fmt.Sprintf("%s:%s", config.Config.Application.Host, config.Config.Application.Port))
 }
