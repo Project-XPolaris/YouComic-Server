@@ -64,3 +64,11 @@ func RemoveUsersFromUserGroup(userGroup *model.UserGroup, users ...*model.User) 
 	}
 	return database.DB.Model(userGroup).Association("Users").Delete(userInterfaces...).Error
 }
+
+func RemovePermissionsFromUserGroup(userGroup *model.UserGroup, permissions ...*model.Permission) error {
+	permissionInterfaces := make([]interface{}, 0)
+	for _, permission := range permissions {
+		permissionInterfaces = append(permissionInterfaces, permission)
+	}
+	return database.DB.Model(userGroup).Association("Permissions").Delete(permissionInterfaces...).Error
+}
