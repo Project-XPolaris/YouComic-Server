@@ -246,12 +246,29 @@ var DeleteBookHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
+	//permanently delete permission check
+	permanently := context.GetBool("permanently")
+	if permanently{
+		if hasPermission := permission.CheckPermissionAndServerError(context,
+			&permission.StandardPermissionChecker{PermissionName: permission.PermanentlyDeleteBookPermissionName, UserId: claims.UserId},
+		); !hasPermission {
+			return
+		}
+	}
+
 	book := &model.Book{}
 	book.ID = uint(id)
 	err = services.DeleteById(&book)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
+	}
+	if permanently {
+		err = services.DeleteBookFile(uint(id))
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
 	}
 	ServerSuccessResponse(context)
 }

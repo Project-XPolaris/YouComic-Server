@@ -17,4 +17,5 @@ const (
 	AddUserToUserGroupPermissionName = "AddUserToUserGroup"
 	AddPermissionToUserGroupPermissionName = "AddPermissionToUserGroup"
 	RemoveUserFromUserGroupPermissionName = "RemoveUserFromUserGroup"
+	PermanentlyDeleteBookPermissionName = "PermanentlyDeleteBook"
 )

@@ -51,6 +51,7 @@ type UserQueryBuilder struct {
 	UserToUserGroupQueryFilter
 	UserNameSearchQueryFilter
 	NicknameSearchQueryFilter
+	UserNameQueryFilter
 }
 
 func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {
@@ -113,4 +114,23 @@ func (f *NicknameSearchQueryFilter) SetNicknameSearchQueryFilter(nameSearch inte
 	if len(nameSearch.(string)) > 0 {
 		f.nicknameSearch = nameSearch
 	}
+}
+
+type UserNameQueryFilter struct {
+	Names []interface{}
+}
+
+func (f *UserNameQueryFilter) SetUserNameFilter(names ...interface{}) {
+	for _, name := range names {
+		if len(name.(string)) != 0 {
+			f.Names = append(f.Names, name)
+		}
+	}
+
+}
+func (f UserNameQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if f.Names != nil && len(f.Names) != 0 {
+		return db.Where("username in (?)", f.Names)
+	}
+	return db
 }

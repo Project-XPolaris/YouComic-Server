@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/utils"
 	"github.com/jinzhu/gorm"
+	"os"
 	"reflect"
 )
 
@@ -215,4 +217,10 @@ func CreateModel(modelToCreate interface{}) error {
 
 func RemoveTagFromBook(bookId uint, tagId uint) error {
 	return database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Delete(model.Tag{Model: gorm.Model{ID: tagId}}).Error
+}
+
+func DeleteBookFile(bookId uint) (err error) {
+	path := utils.GetBookStorePath(bookId)
+	err = os.RemoveAll(path)
+	return
 }

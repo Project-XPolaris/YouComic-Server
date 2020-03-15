@@ -1,0 +1,9 @@
+{
+  "adminaccount": {
+    "password": "admin",
+    "username": "admin"
+  },
+  "defaultusergroupname": "default",
+  "init": false,
+  "superusergroupname": "admin"
+}

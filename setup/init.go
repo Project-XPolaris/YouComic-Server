@@ -1,93 +1,75 @@
 package setup
 
 import (
+	appconfig "github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/services"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
-func InitApplication() error {
-	logrus.Info("init service,please wait")
-	config := viper.New()
-	config.SetConfigType("json")
-	config.AddConfigPath("./conf")
-	config.SetConfigName("setup")
-	err := config.ReadInConfig()
+func InitApplication() (err error) {
+	config, err := appconfig.ReadConfig("init")
 	if err != nil {
 		return err
 	}
-	err = initPermissions(config)
+	needInit := config.GetBool("init")
+	if !needInit {
+		return
+	}
+	LogField.Info("initial...")
+	superUserGroupName := config.GetString("superUserGroupName")
+	defaultUserGroupName := config.GetString("defaultUserGroupName")
+	superUserUsername := config.GetString("adminAccount.username")
+	superUserPassword := config.GetString("adminAccount.password")
+
+	// create user group
+	err = CreateUserGroupIfNotExist(superUserGroupName)
+	if err != nil {
+		return
+	}
+
+	// create default user group
+	err = CreateUserGroupIfNotExist(defaultUserGroupName)
 	if err != nil {
 		return err
 	}
-	err = initUserGroups(config)
+
+	// create superuser account
+	userQueryBuilder := services.UserQueryBuilder{}
+	userQueryBuilder.SetPageFilter(1, 1)
+	userQueryBuilder.SetUserNameFilter(superUserUsername)
+	count, _, err := userQueryBuilder.ReadModels()
 	if err != nil {
-		return err
+		return
 	}
-	return nil
+	if count == 0 {
+		err = services.RegisterUser(&model.User{Username: superUserUsername, Password: superUserPassword})
+		if err != nil {
+			return
+		}
+	}
+
+	//init done close
+	config.Set("init", false)
+	err = config.WriteConfig()
+	if err != nil {
+		return
+	}
+	return
 }
 
-func initPermissions(config *viper.Viper) error {
-	logrus.Info("init permissions")
-	permissionNames := config.GetStringSlice("permissions")
-	for _, permissionName := range permissionNames {
-		builder := services.PermissionQueryBuilder{}
-		builder.SetNameFilter(permissionName)
-		count, _, err := builder.ReadModels()
-		if err != nil {
-			return err
-		}
-		if count == 0 {
-			err = services.CreateModel(&model.Permission{Name: permissionName})
-			if err != nil {
-				return err
-			}
-		}
+func CreateUserGroupIfNotExist(userGroupName string) (err error) {
+	userGroupQueryBuilder := services.UserGroupQueryBuilder{}
+	userGroupQueryBuilder.SetPageFilter(1, 1)
+	userGroupQueryBuilder.SetNameFilter(userGroupName)
+	count, _, err := userGroupQueryBuilder.ReadModels()
+	if err != nil {
+		return
 	}
-	return nil
-}
-
-func initUserGroups(config *viper.Viper) error {
-	logrus.Info("init user group")
-	userGroupNames := config.GetStringSlice("usergroups")
-	groupPermissionNames := config.GetStringMapStringSlice("groupPermissions")
-	for _, userGroupName := range userGroupNames {
-		userGroupQueryBuilder := services.UserGroupQueryBuilder{}
-		userGroupQueryBuilder.SetNameFilter(userGroupName)
-		count, _, err := userGroupQueryBuilder.ReadModels()
+	if count != 0 {
+		err = services.CreateModel(&model.UserGroup{Name: userGroupName})
 		if err != nil {
-			return err
+			return
 		}
-		userGroup := &model.UserGroup{Name: userGroupName}
-		if count == 0 {
-			err = services.CreateModel(userGroup)
-			if err != nil {
-				return err
-			}
-		} else {
-			// already exist skip
-			return nil
-		}
-		if permissionNames, isUserPermissionConfigExist := groupPermissionNames[userGroupName]; isUserPermissionConfigExist {
-			permissionQueryBuilder := services.PermissionQueryBuilder{}
-			for _, permissionName := range permissionNames {
-				permissionQueryBuilder.SetNameFilter(permissionName)
-			}
-			_, queryPermissionResult, err := permissionQueryBuilder.ReadModels()
-			if err != nil {
-				return err
-			}
-			permissions := queryPermissionResult.([]model.Permission)
-			for _, permission := range permissions {
-				err = services.AddPermissionsToUserGroup(userGroup, &permission)
-				if err != nil {
-					return err
-				}
-			}
-
-		}
-
 	}
 	return nil
 }

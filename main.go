@@ -4,19 +4,24 @@ import (
 	"fmt"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
+	applogger "github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/setup"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	ginlogrus "github.com/toorop/gin-logrus"
 	"time"
 )
 
 func main() {
 	initConfig()
 	database.ConnectDatabase()
-	r := gin.Default()
+	r := gin.New()
 	r.Use(location.Default())
+	r.Use(gin.Recovery())
+	gin.SetMode(gin.ReleaseMode)
+	r.Use(ginlogrus.Logger(applogger.Logger), gin.Recovery())
 	corsConfig := cors.Config{
 		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "PATCH", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type","Access-Control-Allow-Origin"},
@@ -29,7 +34,7 @@ func main() {
 	r.Use(cors.New(corsConfig))
 	r.Static("/assets", config.Config.Store.Root)
 	SetRouter(r)
-	setup.InitApplication()
+	setup.SetupApplication()
 	r.Run(fmt.Sprintf("%s:%s", config.Config.Application.Host, config.Config.Application.Port))
 }
 

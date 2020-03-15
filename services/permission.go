@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/gorm"
@@ -20,6 +21,9 @@ func (b *PermissionQueryBuilder) ReadModels() (int, interface{}, error) {
 	var count = 0
 	md := make([]model.Permission, 0)
 	err := query.Limit(b.PageSize).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
+	if err == sql.ErrNoRows {
+		return 0,md,nil
+	}
 	return count, md, err
 }
 

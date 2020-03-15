@@ -16,31 +16,7 @@
     "CreateUserGroup",
     "AddUserToUserGroup",
     "AddPermissionToUserGroup",
-    "RemoveUserFromUserGroup"
-  ],
-  "usergroups": [
-    "admin",
-    "default"
-  ],
-  "groupPermissions": {
-    "admin": [
-      "CreateBook",
-      "DeleteBook",
-      "UpdateBook",
-      "CreateTag",
-      "UpdateTag",
-      "DeleteTag",
-      "AddTagToBook",
-      "CreateCollection",
-      "UpdateCollection",
-      "DeleteCollection",
-      "GetUserList",
-      "GetPermissionList",
-      "GetUserGroupList",
-      "CreateUserGroup",
-      "AddUserToUserGroup",
-      "AddPermissionToUserGroup",
-      "RemoveUserFromUserGroup"
-    ]
-  }
+    "RemoveUserFromUserGroup",
+    "PermanentlyDeleteBook"
+  ]
 }
