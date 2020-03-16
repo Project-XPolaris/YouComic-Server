@@ -155,6 +155,12 @@ var DefaultBatchFunctionMap = map[BatchOperation]func(v *ModelsBatchView) error{
 
 func (v *ModelsBatchView) Run() {
 	var err error
+	claims, err := auth.ParseAuthHeader(v.Context)
+	if err != nil {
+		err = nil
+	} else {
+		v.Claims = claims
+	}
 	var requestBody ModelBatchRequestBody
 	err = DecodeJsonBody(v.Context, &requestBody)
 	if err != nil {
