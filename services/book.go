@@ -135,7 +135,7 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
 	var count = 0
-	err := query.Limit(b.PageSize).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
 		return 0,nil

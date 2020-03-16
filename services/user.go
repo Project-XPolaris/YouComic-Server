@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/allentom/youcomic-api/auth"
 	"github.com/allentom/youcomic-api/database"
@@ -59,7 +60,10 @@ func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {
 	query = ApplyFilters(b, query)
 	var count = 0
 	md := make([]model.User, 0)
-	err := query.Limit(b.PageSize).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
+	if err == sql.ErrNoRows {
+		return 0,query,nil
+	}
 	return count, md, err
 }
 

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/gorm"
@@ -22,7 +23,10 @@ func (b *CollectionQueryBuilder) ReadModels() (int, interface{}, error) {
 	query = ApplyFilters(b, query)
 	var collections []model.Collection
 	var count = 0
-	err := query.Limit(b.PageSize).Offset(b.getOffset()).Find(&collections).Offset(-1).Count(&count).Error
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&collections).Offset(-1).Count(&count).Error
+	if err == sql.ErrNoRows {
+		return 0,query,nil
+	}
 	return count, collections, err
 }
 

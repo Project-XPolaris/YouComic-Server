@@ -11,7 +11,7 @@ type UniqUserNameValidator struct {
 
 func (v *UniqUserNameValidator) Check() (string,bool) {
 	userQueryBuilder := services.UserQueryBuilder{}
-	userQueryBuilder.SetNameFilter(v.Value)
+	userQueryBuilder.SetUserNameFilter(v.Value)
 	count, _, err := userQueryBuilder.ReadModels()
 	if err != nil {
 		return "",false

@@ -14,6 +14,7 @@ import (
 type PageFilter interface {
 	SetPageFilter(page int, pageSize int)
 	getOffset() int
+	getLimit() int
 }
 type DefaultPageFilter struct {
 	Page     int
@@ -27,6 +28,14 @@ func (b *DefaultPageFilter) SetPageFilter(page int, pageSize int) {
 
 func (b *DefaultPageFilter) getOffset() int {
 	return b.PageSize * (b.Page - 1)
+}
+
+func (b *DefaultPageFilter) getLimit() int {
+	if b.PageSize == 0 {
+		return 1
+	}else{
+		return b.PageSize
+	}
 }
 
 //order filter
