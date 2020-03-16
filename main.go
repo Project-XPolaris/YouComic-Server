@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+var MainLogger = applogger.Logger.WithField("scope", "main")
+
 func main() {
 	initConfig()
 	database.ConnectDatabase()
@@ -25,8 +27,8 @@ func main() {
 	r.Use(ginlogrus.Logger(applogger.Logger), gin.Recovery())
 	corsConfig := cors.Config{
 		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "PATCH", "DELETE"},
-		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type","Access-Control-Allow-Origin"},
-		ExposeHeaders:    []string{"Content-Length", "Authorization", "Content-Type","Access-Control-Allow-Origin"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
 		AllowAllOrigins:  true,
 		AllowCredentials: true,
 		AllowFiles:       true,
@@ -35,8 +37,15 @@ func main() {
 	r.Use(cors.New(corsConfig))
 	r.Static("/assets", config.Config.Store.Root)
 	router.SetRouter(r)
-	setup.SetupApplication()
-	r.Run(fmt.Sprintf("%s:%s", config.Config.Application.Host, config.Config.Application.Port))
+	err := setup.SetupApplication()
+	if err != nil {
+		MainLogger.Fatalf("setup application with error of %s", err.Error())
+	}
+	MainLogger.Info("Service start success!")
+	err = r.Run(fmt.Sprintf("%s:%s", config.Config.Application.Host, config.Config.Application.Port))
+	if err != nil {
+		MainLogger.Fatalf("start gin service with error of %s", err.Error())
+	}
 }
 
 func initConfig() {

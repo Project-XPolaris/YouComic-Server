@@ -6,7 +6,6 @@ import (
 	"github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/services"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -40,7 +39,7 @@ func SetupApplication() error {
 
 // init permission
 func initPermissions(config *viper.Viper) error {
-	logrus.Info("init permissions")
+	LogField.Info("init permissions")
 	permissionNames := config.GetStringSlice("permissions")
 	//create permission if is NOT exist
 	for _, permissionName := range permissionNames {
@@ -66,7 +65,7 @@ func initPermissions(config *viper.Viper) error {
 //
 // superuser group will granted all permission
 func initSuperuserPermission()  error{
-	logrus.Info("init super user permission")
+	LogField.Info("init super user permission")
 	initConfig,err := appconfig.ReadConfig("init")
 	if err != nil {
 		return err

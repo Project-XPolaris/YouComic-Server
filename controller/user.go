@@ -185,7 +185,7 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 		},
 		{
 			Lookup: "name",
-			Method: "SetNameFilter",
+			Method: "SetUserNameFilter",
 			Many:   true,
 		},
 		{
