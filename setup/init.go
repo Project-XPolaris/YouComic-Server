@@ -22,13 +22,13 @@ func InitApplication() (err error) {
 	superUserPassword := config.GetString("adminAccount.password")
 
 	// create user group
-	err = CreateUserGroupIfNotExist(superUserGroupName)
+	superUserGroup, err := CreateUserGroupIfNotExist(superUserGroupName)
 	if err != nil {
 		return
 	}
 
 	// create default user group
-	err = CreateUserGroupIfNotExist(defaultUserGroupName)
+	_, err = CreateUserGroupIfNotExist(defaultUserGroupName)
 	if err != nil {
 		return err
 	}
@@ -41,11 +41,16 @@ func InitApplication() (err error) {
 	if err != nil {
 		return
 	}
+	superuser := &model.User{Username: superUserUsername, Password: superUserPassword}
 	if count == 0 {
-		err = services.RegisterUser(&model.User{Username: superUserUsername, Password: superUserPassword})
+		err = services.RegisterUser(superuser)
 		if err != nil {
 			return
 		}
+	}
+	err = services.AddUsersToUserGroup(superUserGroup, superuser)
+	if err != nil {
+		return err
 	}
 
 	//init done close
@@ -57,7 +62,7 @@ func InitApplication() (err error) {
 	return
 }
 
-func CreateUserGroupIfNotExist(userGroupName string) (err error) {
+func CreateUserGroupIfNotExist(userGroupName string) (userGroup *model.UserGroup, err error) {
 	userGroupQueryBuilder := services.UserGroupQueryBuilder{}
 	userGroupQueryBuilder.SetPageFilter(1, 1)
 	userGroupQueryBuilder.SetNameFilter(userGroupName)
@@ -65,11 +70,12 @@ func CreateUserGroupIfNotExist(userGroupName string) (err error) {
 	if err != nil {
 		return
 	}
-	if count != 0 {
-		err = services.CreateModel(&model.UserGroup{Name: userGroupName})
+	userGroup = &model.UserGroup{Name: userGroupName}
+	if count == 0 {
+		err = services.CreateModel(userGroup)
 		if err != nil {
 			return
 		}
 	}
-	return nil
+	return userGroup, nil
 }
