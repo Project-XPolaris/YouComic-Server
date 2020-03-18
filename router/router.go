@@ -48,4 +48,5 @@ func SetRouter(engine *gin.Engine) {
 	engine.DELETE("/usergroup/:id/users", controller.RemoveUserFromUserGroupHandler)
 	engine.DELETE("/usergroup/:id/permissions", controller.RemovePermissionFromUserGroupHandler)
 	engine.PUT("/user/password", controller.ChangeUserPasswordHandler)
+	engine.PUT("/user/nickname", controller.ChangeUserNicknameHandler)
 }

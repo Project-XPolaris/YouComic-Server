@@ -264,3 +264,47 @@ var ChangeUserPasswordHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	ServerSuccessResponse(context)
 }
+
+
+type ChangeUserNicknameRequestBody struct {
+	Nickname string `json:"nickname"`
+}
+
+// change nickname handler
+//
+// path: /user/nickname
+//
+// method: put
+var ChangeUserNicknameHandler gin.HandlerFunc = func(context *gin.Context) {
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	requestBody := ChangeUserNicknameRequestBody{}
+	err = context.ShouldBindJSON(&requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
+		return
+	}
+
+	isValidate := validate.RunValidatorsAndRaiseApiError(
+		context,
+		&validate.StringLengthValidator{Value: requestBody.Nickname, GreaterThan: 4, LessThan: 256, FieldName: "nickname"},
+	)
+	if !isValidate {
+		return
+	}
+
+	err = services.ChangeUserNickname(claims.UserId, requestBody.Nickname)
+	if err != nil {
+		if err == services.UserNotFoundError {
+			ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+			return
+		}
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}

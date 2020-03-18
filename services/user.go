@@ -13,6 +13,7 @@ import (
 
 var (
 	UserPasswordInvalidate = errors.New("invalidate user password")
+	UserNotFoundError = errors.New("user not found")
 )
 
 func RegisterUser(user *model.User) error {
@@ -155,5 +156,16 @@ func ChangeUserPassword(userId uint, oldRawPassword string, newRawPassword strin
 	}
 	newPassword, err := utils.EncryptSha1WithSalt(newRawPassword)
 	err = database.DB.Model(&user).Update("password", newPassword).Error
+	return err
+}
+
+//change user nickname
+func ChangeUserNickname(userId uint, nickname string) error {
+	var user model.User
+	err := database.DB.Where(&model.User{Model: gorm.Model{ID: userId}}).Find(&user).Error
+	if err == gorm.ErrRecordNotFound {
+		return UserNotFoundError
+	}
+	err = database.DB.Model(&user).Update("nickname", nickname).Error
 	return err
 }
