@@ -2,12 +2,17 @@ package services
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/allentom/youcomic-api/auth"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/jinzhu/gorm"
+)
+
+var (
+	UserPasswordInvalidate = errors.New("invalidate user password")
 )
 
 func RegisterUser(user *model.User) error {
@@ -62,7 +67,7 @@ func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {
 	md := make([]model.User, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {
-		return 0,query,nil
+		return 0, query, nil
 	}
 	return count, md, err
 }
@@ -70,6 +75,7 @@ func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {
 type UserToUserGroupQueryFilter struct {
 	userGroups []interface{}
 }
+
 func (f *UserToUserGroupQueryFilter) SetUserGroupQueryFilter(userGroups ...interface{}) {
 	for _, userGroupId := range userGroups {
 		if len(userGroupId.(string)) > 0 {
@@ -137,4 +143,17 @@ func (f UserNameQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 		return db.Where("username in (?)", f.Names)
 	}
 	return db
+}
+
+//change user password
+func ChangeUserPassword(userId uint, oldRawPassword string, newRawPassword string) error {
+	oldPassword, err := utils.EncryptSha1WithSalt(oldRawPassword)
+	var user model.User
+	err = database.DB.Where(&model.User{Model: gorm.Model{ID: userId}, Password: oldPassword}).Find(&user).Error
+	if err == gorm.ErrRecordNotFound {
+		return UserPasswordInvalidate
+	}
+	newPassword, err := utils.EncryptSha1WithSalt(newRawPassword)
+	err = database.DB.Model(&user).Update("password", newPassword).Error
+	return err
 }

@@ -122,7 +122,6 @@ var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
 	context.JSON(http.StatusOK, template)
 }
 
-
 // get user groups handler
 //
 // path: /user/:id/groups
@@ -137,9 +136,9 @@ var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	queryBuilder := services.UserGroupQueryBuilder{}
 	queryBuilder.SetUserGroupUser(id)
-	count,usergroups,err := queryBuilder.ReadModels()
+	count, usergroups, err := queryBuilder.ReadModels()
 	if err != nil {
-		ApiError.RaiseApiError(context,err,nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	result := serializer.SerializeMultipleTemplate(usergroups, &serializer.BaseUserGroupTemplate{}, nil)
@@ -158,7 +157,7 @@ var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /users
 //
 // method: get
-var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
+var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context) {
 	claims, err := auth.ParseAuthHeader(context)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -174,7 +173,7 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 	//get page
 	pagination := DefaultPagination{}
 	pagination.Read(context)
-	userQueryBuilder.SetPageFilter(pagination.Page,pagination.PageSize)
+	userQueryBuilder.SetPageFilter(pagination.Page, pagination.PageSize)
 
 	//query filter
 	filterMapping := []FilterMapping{
@@ -208,9 +207,9 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 		utils.FilterByParam(context, filter.Lookup, &userQueryBuilder, filter.Method, filter.Many)
 	}
 
-	count,users,err := userQueryBuilder.ReadModels()
+	count, users, err := userQueryBuilder.ReadModels()
 
-	result := serializer.SerializeMultipleTemplate(users, &serializer.ManagerUserTemplate{},nil)
+	result := serializer.SerializeMultipleTemplate(users, &serializer.ManagerUserTemplate{}, nil)
 	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
@@ -219,4 +218,49 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context){
 		"url":      context.Request.URL,
 	})
 	context.JSON(http.StatusOK, responseBody)
+}
+
+type ChangeUserPasswordRequestBody struct {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+// change password handler
+//
+// path: /user/password
+//
+// method: put
+var ChangeUserPasswordHandler gin.HandlerFunc = func(context *gin.Context) {
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+	requestBody := ChangeUserPasswordRequestBody{}
+	err = context.ShouldBindJSON(&requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
+		return
+	}
+
+	isValidate := validate.RunValidatorsAndRaiseApiError(
+		context,
+		&validate.StringLengthValidator{Value: requestBody.OldPassword, GreaterThan: 4, LessThan: 256, FieldName: "oldPassword"},
+		&validate.StringLengthValidator{Value: requestBody.NewPassword, GreaterThan: 4, LessThan: 256, FieldName: "newPassword"},
+	)
+	if !isValidate {
+		return
+	}
+
+	err = services.ChangeUserPassword(claims.UserId, requestBody.OldPassword, requestBody.NewPassword)
+	if err != nil {
+		if err == services.UserPasswordInvalidate {
+			ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+			return
+		}
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
 }
