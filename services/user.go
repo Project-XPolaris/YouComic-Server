@@ -59,6 +59,7 @@ type UserQueryBuilder struct {
 	UserNameSearchQueryFilter
 	NicknameSearchQueryFilter
 	UserNameQueryFilter
+	OrderQueryFilter
 }
 
 func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {
