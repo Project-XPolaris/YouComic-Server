@@ -104,8 +104,8 @@ func initSuperuserPermission()  error{
 		}
 		permissionPtrs := make([]*model.Permission,0)
 		permissions := permissionResult.([]model.Permission)
-		for _, permission := range permissions {
-			permissionPtrs = append(permissionPtrs, &permission)
+		for idx := range permissions {
+			permissionPtrs = append(permissionPtrs, &permissions[idx])
 		}
 		err = services.AddPermissionsToUserGroup(&userGroup,permissionPtrs...)
 		if err != nil {
