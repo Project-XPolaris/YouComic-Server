@@ -1,11 +1,13 @@
 package setup
 
 import (
+	"database/sql"
 	"fmt"
 	appconfig "github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/services"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
 )
 
@@ -17,7 +19,6 @@ func SetupApplication() error {
 	if err != nil {
 		return err
 	}
-
 	// setup service
 	LogField.Info("init service,please wait")
 	LogField.Info("read setup file")
@@ -35,6 +36,25 @@ func SetupApplication() error {
 		return err
 	}
 	return nil
+}
+
+// create database if not exist
+func CheckDatabase() {
+	LogField.Info("check database")
+	db, err := sql.Open("mysql", fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/",
+		appconfig.Config.Mysql.Username,
+		appconfig.Config.Mysql.Password,
+		appconfig.Config.Mysql.Host,
+		appconfig.Config.Mysql.Port,
+	))
+	if err != nil {
+		panic(err)
+	}
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + appconfig.Config.Mysql.Database)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // init permission
@@ -64,14 +84,14 @@ func initPermissions(config *viper.Viper) error {
 // init superuser group permission
 //
 // superuser group will granted all permission
-func initSuperuserPermission()  error{
+func initSuperuserPermission() error {
 	LogField.Info("init super user permission")
-	initConfig,err := appconfig.ReadConfig("init")
+	initConfig, err := appconfig.ReadConfig("init")
 	if err != nil {
 		return err
 	}
 
-	setupConfig,err := appconfig.ReadConfig("setup")
+	setupConfig, err := appconfig.ReadConfig("setup")
 	if err != nil {
 		return err
 	}
@@ -80,9 +100,9 @@ func initSuperuserPermission()  error{
 	superUserGroupName := initConfig.GetString("superusergroupname")
 	if len(superUserGroupName) > 0 {
 		userGroupQueryBuilder := services.UserGroupQueryBuilder{}
-		userGroupQueryBuilder.SetPageFilter(1,1)
+		userGroupQueryBuilder.SetPageFilter(1, 1)
 		userGroupQueryBuilder.SetNameFilter(superUserGroupName)
-		count,userResult,err := userGroupQueryBuilder.ReadModels()
+		count, userResult, err := userGroupQueryBuilder.ReadModels()
 		if err != nil {
 			return err
 		}
@@ -94,20 +114,20 @@ func initSuperuserPermission()  error{
 
 		//queryPermission
 		permissionQueryBuilder := services.PermissionQueryBuilder{}
-		permissionQueryBuilder.SetPageFilter(1,len(permissionNames))
+		permissionQueryBuilder.SetPageFilter(1, len(permissionNames))
 		for _, permissionName := range permissionNames {
 			permissionQueryBuilder.SetNameFilter(permissionName)
 		}
-		count,permissionResult,err := permissionQueryBuilder.ReadModels()
+		count, permissionResult, err := permissionQueryBuilder.ReadModels()
 		if err != nil {
 			return err
 		}
-		permissionPtrs := make([]*model.Permission,0)
+		permissionPtrs := make([]*model.Permission, 0)
 		permissions := permissionResult.([]model.Permission)
 		for idx := range permissions {
 			permissionPtrs = append(permissionPtrs, &permissions[idx])
 		}
-		err = services.AddPermissionsToUserGroup(&userGroup,permissionPtrs...)
+		err = services.AddPermissionsToUserGroup(&userGroup, permissionPtrs...)
 		if err != nil {
 			return err
 		}

@@ -30,3 +30,14 @@ func InitApplicationConfig() error {
 	err := viper.Unmarshal(&Config)
 	return err
 }
+
+
+type InitConfig struct {
+	AdminAccount struct{
+		Username string `json:"username"`
+		Password string `json:"password"`
+	} `json:"adminaccount"`
+	DefaultUserGroupName string `json:"defaultusergroupname"`
+	Init bool `json:"init"`
+	SuperuserGroupName string `json:"superusergroupname"`
+}

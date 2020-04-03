@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
+	"github.com/allentom/youcomic-api/install"
 	applogger "github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/router"
 	"github.com/allentom/youcomic-api/setup"
@@ -18,8 +19,22 @@ import (
 var MainLogger = applogger.Logger.WithField("scope", "main")
 
 func main() {
+	// run installer
+	install.RunInstallServer()
+	//load global application config
 	initConfig()
+	//prepare database
+	setup.CheckDatabase()
+	//connect to database
 	database.ConnectDatabase()
+
+	// set up application
+	err := setup.SetupApplication()
+	if err != nil {
+		MainLogger.Fatalf("setup application with error of %s", err.Error())
+	}
+
+	//init gin
 	r := gin.New()
 	r.Use(location.Default())
 	r.Use(gin.Recovery())
@@ -37,10 +52,7 @@ func main() {
 	r.Use(cors.New(corsConfig))
 	r.Static("/assets", config.Config.Store.Root)
 	router.SetRouter(r)
-	err := setup.SetupApplication()
-	if err != nil {
-		MainLogger.Fatalf("setup application with error of %s", err.Error())
-	}
+
 	MainLogger.Info("Service start success!")
 	err = r.Run(fmt.Sprintf("%s:%s", config.Config.Application.Host, config.Config.Application.Port))
 	if err != nil {
@@ -50,7 +62,7 @@ func main() {
 
 func initConfig() {
 	viper.AutomaticEnv()
-	viper.SetDefault("APPLICATION_DEVELOP", true)
+	viper.SetDefault("APPLICATION_DEVELOP", false)
 	developMode := viper.GetBool("APPLICATION_DEVELOP")
 	if developMode {
 		viper.SetConfigName("config.develop")
