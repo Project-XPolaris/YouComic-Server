@@ -1,0 +1,24 @@
+{{template "header" .}}
+<div class="main-content">
+    <div class="title-container">
+        <h2 class="ui icon header">
+            <i class="database icon"></i>
+            <div class="content">
+                Sqlite
+                <div class="sub header">配置与Sqlite相关</div>
+            </div>
+        </h2>
+    </div>
+    <div class="ui segment">
+        <form class="ui form" method="post" action="/sqlite">
+            <div class="field">
+                <label>数据库文件储存路径</label>
+                <input type="text" name="path" placeholder="数据库文件储存路径" value="./database.db">
+            </div>
+            <button class="ui green button" type="submit">确认</button>
+        </form>
+    </div>
+
+</div>
+
+{{template "footer" .}}

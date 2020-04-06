@@ -17,6 +17,12 @@ type ApplicationConfig struct {
 		Root  string `json:"root"`
 		Books string `json:"books"`
 	} `json:"store"`
+	Database struct {
+		Type string `json:"type"`
+	} `json:"database"`
+	Sqlite struct{
+		Path string `json:"path"`
+	}`json:"sqlite"`
 	Mysql struct {
 		Host     string `json:"host"`
 		Port     string `json:"port"`
@@ -31,13 +37,12 @@ func InitApplicationConfig() error {
 	return err
 }
 
-
 type InitConfig struct {
-	AdminAccount struct{
+	AdminAccount struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	} `json:"adminaccount"`
 	DefaultUserGroupName string `json:"defaultusergroupname"`
-	Init bool `json:"init"`
-	SuperuserGroupName string `json:"superusergroupname"`
+	Init                 bool   `json:"init"`
+	SuperuserGroupName   string `json:"superusergroupname"`
 }

@@ -41,6 +41,9 @@ func SetupApplication() error {
 // create database if not exist
 func CheckDatabase() {
 	LogField.Info("check database")
+	if appconfig.Config.Database.Type == "sqlite"{
+		return
+	}
 	db, err := sql.Open("mysql", fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/",
 		appconfig.Config.Mysql.Username,

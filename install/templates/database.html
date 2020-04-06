@@ -1,0 +1,42 @@
+{{template "header" .}}
+
+<div class="main-content">
+    <div class="title-container">
+        <h2 class="ui icon header">
+            <i class="database icon"></i>
+            <div class="content">
+                选择数据库
+                <div class="sub header">YouComic 基于数据库管理系统，必须配置相应的设置使得服务正常使用</div>
+            </div>
+        </h2>
+    </div>
+    <div class="ui cards">
+
+        <div class="card">
+            <div class="content">
+                <div class="header">Sqlite（推荐）</div>
+                <div class="description">
+                    最简单的数据库，不需要太多的配置即可使用
+
+                </div>
+            </div>
+            <div class="extra content">
+                <a class="ui button blue" href="/sqlite">使用</a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="content">
+                <div class="header">MySQL</div>
+                <div class="description">
+                    MySQL数据库，提供更好的性能和高级特性。
+                </div>
+            </div>
+            <div class="extra content">
+                <a class="ui button blue" href="/mysql">使用</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{{template "footer" .}}

@@ -34,7 +34,10 @@ func RunInstallServer() {
 	r.LoadHTMLGlob("install/templates/*")
 	r.GET("/", IndexController)
 	r.GET("/database", SettingDatabaseController)
-	r.POST("/database", SettingDatabaseSubmitController)
+	r.GET("/mysql", SettingMysqlController)
+	r.GET("/sqlite", SettingSqliteController)
+	r.POST("/sqlite", SettingSqliteSubmitController)
+	r.POST("/mysql", SettingMysqlSubmitController)
 	r.GET("/store", SettingStoreController)
 	r.POST("/store", SettingStoreSubmitController)
 	r.GET("/security", SettingSecurityController)
@@ -42,7 +45,7 @@ func RunInstallServer() {
 	r.GET("/application", SettingApplicationController)
 	r.POST("/application", SettingApplicationSubmitController)
 	r.GET("/complete", SettingCompleteController)
-	r.Run(":3004")
+	r.Run(":8880")
 }
 
 func generateSettingFile() {

@@ -6,15 +6,14 @@ import (
 	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"log"
 )
 
 var DB *gorm.DB
 
-func ConnectDatabase() {
-	var err error
+func MysqlConnector() (err error) {
 	mysqlConfig := config.Config.Mysql
-	log.Println(mysqlConfig)
 	connectString := fmt.Sprintf("%s:%s@(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		mysqlConfig.Username,
 		mysqlConfig.Password,
@@ -24,8 +23,27 @@ func ConnectDatabase() {
 	)
 	DB, err = gorm.Open("mysql", connectString)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+func SqliteConnector() (err error) {
+	DB, err = gorm.Open("sqlite3", config.Config.Sqlite.Path)
+	return
+}
+func ConnectDatabase() {
+	var err error
+	databaseType := config.Config.Database.Type
+	if databaseType == "mysql" {
+		err = MysqlConnector()
+	} else if databaseType == "sqlite" {
+		err = SqliteConnector()
+	}
+
+	if err != nil {
 		log.Fatal(err)
 	}
+
 	DB.AutoMigrate(
 		&model.Book{},
 		&model.Tag{},

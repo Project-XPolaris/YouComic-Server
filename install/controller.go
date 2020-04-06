@@ -10,18 +10,38 @@ var IndexController gin.HandlerFunc = func(context *gin.Context) {
 }
 
 var SettingDatabaseController gin.HandlerFunc = func(context *gin.Context) {
+	context.HTML(http.StatusOK, "database.html", gin.H{})
+}
+var SettingMysqlController gin.HandlerFunc = func(context *gin.Context) {
 	context.HTML(http.StatusOK, "mysql.html", gin.H{})
 }
+var SettingSqliteController gin.HandlerFunc = func(context *gin.Context) {
+	context.HTML(http.StatusOK, "sqlite.html", gin.H{})
+}
 
-type DatabaseSettingForm struct {
+type SqliteDatabaseSettingForm struct {
+	Path string `form:"path"`
+}
+var SettingSqliteSubmitController gin.HandlerFunc = func(context *gin.Context) {
+	var form SqliteDatabaseSettingForm
+	err := context.ShouldBind(&form)
+	if err != nil {
+		panic(err)
+	}
+	PreinstallConfig.Sqlite.Path = form.Path
+	PreinstallConfig.Database.Type = "sqlite"
+	context.Redirect(http.StatusFound,"/store")
+}
+
+type MysqlDatabaseSettingForm struct {
 	Host string `form:"host"`
 	Port string `form:"port"`
 	Database string `form:"database"`
 	Username string `form:"username"`
 	Password string `form:"password"`
 }
-var SettingDatabaseSubmitController gin.HandlerFunc = func(context *gin.Context) {
-	var form DatabaseSettingForm
+var SettingMysqlSubmitController gin.HandlerFunc = func(context *gin.Context) {
+	var form MysqlDatabaseSettingForm
 	err := context.ShouldBind(&form)
 	if err != nil {
 		panic(err)
@@ -51,7 +71,6 @@ var SettingStoreSubmitController gin.HandlerFunc = func(context *gin.Context) {
 	PreinstallConfig.Store.Root = form.Root
 	PreinstallConfig.Store.Books = form.Books
 	context.Redirect(http.StatusFound,"/security")
-
 }
 
 var SettingSecurityController gin.HandlerFunc = func(context *gin.Context) {
