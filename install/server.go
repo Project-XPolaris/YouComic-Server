@@ -30,8 +30,8 @@ func RunInstallServer() {
 	}
 	createNewConfig()
 	r := gin.New()
-	r.Static("/assets", "install/static")
-	r.LoadHTMLGlob("install/templates/*")
+	r.Static("/assets", "assets/install/static")
+	r.LoadHTMLGlob("assets/install/templates/*")
 	r.GET("/", IndexController)
 	r.GET("/database", SettingDatabaseController)
 	r.GET("/mysql", SettingMysqlController)

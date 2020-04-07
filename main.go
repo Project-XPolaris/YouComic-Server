@@ -62,7 +62,7 @@ func main() {
 
 func initConfig() {
 	viper.AutomaticEnv()
-	viper.SetDefault("APPLICATION_DEVELOP", false)
+	viper.SetDefault("APPLICATION_DEVELOP", true)
 	developMode := viper.GetBool("APPLICATION_DEVELOP")
 	if developMode {
 		viper.SetConfigName("config.develop")

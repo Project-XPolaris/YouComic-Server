@@ -1,0 +1,9 @@
+version: '2.0'
+services:
+  server:
+    build:
+      context: .
+    ports:
+      - "8880:8880"
+
+    
