@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
@@ -8,6 +9,7 @@ import (
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type CreateCollectionRequestBody struct {
@@ -200,4 +202,70 @@ var DeleteCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	ServerSuccessResponse(context)
+}
+
+type UpdateCollectionRequestBody struct {
+	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
+}
+// update collection handler
+//
+// path: /collection/:id
+//
+// method: patch
+var UpdateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	claims, err := auth.ParseAuthHeader(context)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+
+
+
+	requestBody := UpdateCollectionRequestBody{}
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+
+	//validate
+	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
+		&validate.StringLengthValidator{Value: requestBody.Name, LessThan: 256, GreaterThan: 0, FieldName: "CollectionName"},
+	); !isValidate {
+		return
+	}
+
+	err,collection := services.GetCollectionById(uint(id))
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	if collection.Owner != int(claims.UserId) {
+		ApiError.RaiseApiError(context, ApiError.PermissionError, nil)
+		return
+	}
+
+	err = AssignUpdateModel(&requestBody, collection)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	err = services.UpdateModel(collection,"Name")
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+
+	template := &serializer.BaseCollectionTemplate{}
+	RenderTemplate(context, template, *collection)
+	context.JSON(http.StatusOK, template)
 }

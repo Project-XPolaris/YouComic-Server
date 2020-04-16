@@ -25,7 +25,7 @@ func (b *CollectionQueryBuilder) ReadModels() (int, interface{}, error) {
 	var count = 0
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&collections).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {
-		return 0,query,nil
+		return 0, query, nil
 	}
 	return count, collections, err
 }
@@ -120,3 +120,11 @@ func RemoveUsersFromCollection(collectionId uint, userIds ...int) error {
 	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Delete(users).Error
 	return err
 }
+
+func GetCollectionById(collectionId uint) (error, *model.Collection) {
+	collection := model.Collection{Model: gorm.Model{ID: collectionId}}
+	err := database.DB.First(&collection).Error
+	return err, &collection
+}
+
+
