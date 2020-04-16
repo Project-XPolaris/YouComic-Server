@@ -27,6 +27,7 @@ var (
 	PermissionErrorCode = "1003"
 	RequestDataInvalidateErrorCode = "1004"
 	RequestPathInvalidateErrorCode = "1005"
+	InvalidatePasswordErrorCode = "1006"
 )
 
 type ApiError struct {
@@ -70,5 +71,12 @@ var (
 			return err.Error()
 		},
 		Code: RequestPathInvalidateErrorCode,
+	}
+	invalidatePasswordApiError = ApiError{
+		Status: http.StatusUnauthorized,
+		Render: func(err error, context map[string]interface{}) string {
+			return "username or password invalidate"
+		},
+		Code: InvalidatePasswordErrorCode,
 	}
 )

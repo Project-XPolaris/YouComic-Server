@@ -41,6 +41,9 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 	}
 	var user model.User
 	err = database.DB.Where(&model.User{Username: username, Password: password}).Find(&user).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil,"",UserPasswordInvalidate
+	}
 	if err != nil {
 		return nil, "", err
 	}

@@ -177,8 +177,15 @@ var PageListHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-
-	result := serializer.SerializeMultipleTemplate(pages, &serializer.BasePageTemplate{}, nil)
+	var template serializer.TemplateSerializer
+	template = &serializer.BasePageTemplate{}
+	templateQueryParam := context.Query("template")
+	if len(templateQueryParam) != 0 {
+		if templateQueryParam == "withSize" {
+			template = &serializer.PageTemplateWithSize{}
+		}
+	}
+	result := serializer.SerializeMultipleTemplate(pages, template, nil)
 	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,

@@ -54,6 +54,7 @@ func main() {
 	router.SetRouter(r)
 
 	MainLogger.Info("Service start success!")
+	MainLogger.Info(fmt.Sprintf("running in %s:%s", config.Config.Application.Host, config.Config.Application.Port))
 	err = r.Run(fmt.Sprintf("%s:%s", config.Config.Application.Host, config.Config.Application.Port))
 	if err != nil {
 		MainLogger.Fatalf("start gin service with error of %s", err.Error())
@@ -62,7 +63,7 @@ func main() {
 
 func initConfig() {
 	viper.AutomaticEnv()
-	viper.SetDefault("APPLICATION_DEVELOP", true)
+	viper.SetDefault("APPLICATION_DEVELOP", false)
 	developMode := viper.GetBool("APPLICATION_DEVELOP")
 	if developMode {
 		viper.SetConfigName("config.develop")

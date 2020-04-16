@@ -17,7 +17,7 @@ func (v *StringLengthValidator) Check() (string,bool) {
 		return fmt.Sprintf("[%s] length must less than %d",v.FieldName,v.LessThan),false
 	}
 	if len(v.Value) < v.GreaterThan {
-		return fmt.Sprintf("[%s] length must less than %d",v.FieldName,v.LessThan),false
+		return fmt.Sprintf("[%s] length must greater than %d",v.FieldName,v.GreaterThan),false
 	}
 	return "",true
 }

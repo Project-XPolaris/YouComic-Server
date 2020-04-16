@@ -38,7 +38,7 @@ type UserGroupUserFilter struct {
 	UserId interface{}
 }
 
-func (f *UserGroupUserFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+func (f UserGroupUserFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 	if f.UserId != nil {
 		return db.Joins(
 			"inner join usergroup_users on usergroup_users.user_group_id = user_groups.id",
@@ -48,7 +48,7 @@ func (f *UserGroupUserFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 }
 
 func (f *UserGroupUserFilter) SetUserGroupUser(userId interface{})  {
-	if f.UserId != nil {
+	if userId != nil {
 		f.UserId = userId
 	}
 }

@@ -1,6 +1,7 @@
 package error
 
 import (
+	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,6 +11,7 @@ var errorMapping = map[error]ApiError{
 	UserAuthFailError: userAuthFailedApiError,
 	PermissionError:   permissionDeniedApiError,
 	RequestPathError:  requestPathApiError,
+	services.UserPasswordInvalidate:invalidatePasswordApiError,
 }
 
 //add error => ApiError mapping
