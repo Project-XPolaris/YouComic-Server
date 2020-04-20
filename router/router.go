@@ -9,6 +9,7 @@ func SetRouter(engine *gin.Engine) {
 	engine.POST("/books", controller.CreateBookHandler)
 	engine.POST("/books/upload", controller.CreateBook)
 	engine.PATCH("/book/:id", controller.UpdateBookHandler)
+	engine.GET("/book/:id", controller.GetBook)
 	engine.PUT("/book/:id/tags", controller.BookTagBatch)
 	engine.PUT("/book/:id/cover", controller.AddBookCover)
 	engine.PUT("/book/:id/pages", controller.AddBookPages)

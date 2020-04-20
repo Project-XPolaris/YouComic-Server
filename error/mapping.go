@@ -12,6 +12,7 @@ var errorMapping = map[error]ApiError{
 	PermissionError:   permissionDeniedApiError,
 	RequestPathError:  requestPathApiError,
 	services.UserPasswordInvalidate:invalidatePasswordApiError,
+	services.RecordNotFoundError: recordNotFoundApiError,
 }
 
 //add error => ApiError mapping

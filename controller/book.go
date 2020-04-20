@@ -662,3 +662,25 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
 }
+
+
+var GetBook gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	book := &model.Book{Model:gorm.Model{ID: uint(id)}}
+	err  = services.GetBook(book)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	template := &serializer.BaseBookTemplate{}
+	RenderTemplate(context, template, *book)
+	context.JSON(http.StatusOK, template)
+}

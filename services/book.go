@@ -25,6 +25,9 @@ func CreateBook(name string) (error, *model.Book) {
 
 func GetBook(book *model.Book) error {
 	err := database.DB.First(book, book.ID).Error
+	if err == gorm.ErrRecordNotFound{
+		return RecordNotFoundError
+	}
 	if err != nil {
 		return err
 	}

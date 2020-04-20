@@ -6,6 +6,7 @@ import (
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/install"
 	applogger "github.com/allentom/youcomic-api/log"
+	"github.com/allentom/youcomic-api/middleware"
 	"github.com/allentom/youcomic-api/router"
 	"github.com/allentom/youcomic-api/setup"
 	"github.com/gin-contrib/cors"
@@ -41,15 +42,19 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r.Use(ginlogrus.Logger(applogger.Logger), gin.Recovery())
 	corsConfig := cors.Config{
-		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "PATCH", "DELETE"},
+		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "PATCH", "DELETE","OPTION"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
 		ExposeHeaders:    []string{"Content-Length", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
 		AllowAllOrigins:  true,
 		AllowCredentials: true,
+		AllowWebSockets: true,
+		AllowBrowserExtensions: true,
+		AllowWildcard: true,
 		AllowFiles:       true,
 		MaxAge:           12 * time.Hour,
 	}
 	r.Use(cors.New(corsConfig))
+	r.Use(middleware.JWTAuth())
 	r.Static("/assets", config.Config.Store.Root)
 	router.SetRouter(r)
 

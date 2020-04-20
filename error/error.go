@@ -28,6 +28,7 @@ var (
 	RequestDataInvalidateErrorCode = "1004"
 	RequestPathInvalidateErrorCode = "1005"
 	InvalidatePasswordErrorCode = "1006"
+	RecordNotFoundErrorCode = "1007"
 )
 
 type ApiError struct {
@@ -79,4 +80,12 @@ var (
 		},
 		Code: InvalidatePasswordErrorCode,
 	}
+	recordNotFoundApiError = ApiError{
+		Status: http.StatusNotFound,
+		Render: func(err error, context map[string]interface{}) string {
+			return "record not found"
+		},
+		Code: InvalidatePasswordErrorCode,
+	}
+
 )
