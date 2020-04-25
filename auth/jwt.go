@@ -48,3 +48,9 @@ func GenerateJWTSign(user *model.User) (string, error) {
 	}
 	return tokenString, nil
 }
+
+func GetUserClaimsFromContext(context *gin.Context) *UserClaims {
+	contextClaims,_ := context.Get("claim")
+	claims := contextClaims.(*UserClaims)
+	return claims
+}

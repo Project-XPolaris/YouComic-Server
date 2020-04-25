@@ -11,4 +11,5 @@ type User struct {
 	Avatar        string
 	UserGroups     UserGroup    `gorm:"many2many:usergroup_users;"`
 	OwnCollection []Collection `gorm:"foreignkey:Owner"`
+	SubscriptionTags []*Tag `gorm:"many2many:user_subscriptions;"`
 }

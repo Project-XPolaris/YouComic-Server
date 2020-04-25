@@ -14,6 +14,7 @@ type TagQueryBuilder struct {
 	NameSearchQueryFilter
 	DefaultPageFilter
 	TagTypeQueryFilter
+	TagSubscriptionQueryFilter
 }
 
 type TagTypeQueryFilter struct {
@@ -35,6 +36,25 @@ func (f *TagTypeQueryFilter) SetTagTypeQueryFilter(types ...interface{}) {
 	}
 }
 
+type TagSubscriptionQueryFilter struct {
+	subscriptions []interface{}
+}
+
+func (f TagSubscriptionQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if f.subscriptions != nil && len(f.subscriptions) != 0 {
+		return db.Joins("inner join user_subscriptions on user_subscriptions.tag_id = tags.id").Where("user_subscriptions.user_id in (?)", f.subscriptions)
+	}
+	return db
+}
+
+func (f *TagSubscriptionQueryFilter) SetTagSubscriptionQueryFilter(subscriptions ...interface{}) {
+	for _, subscriptionId := range subscriptions {
+		if len(subscriptionId.(string)) > 0 {
+			f.subscriptions = append(f.subscriptions, subscriptionId)
+		}
+	}
+}
+
 func (b *TagQueryBuilder) ReadModels() (int, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
@@ -42,7 +62,7 @@ func (b *TagQueryBuilder) ReadModels() (int, interface{}, error) {
 	md := make([]model.Tag, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {
-		return 0,query,nil
+		return 0, query, nil
 	}
 	return count, md, err
 }
@@ -101,4 +121,18 @@ func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag) (err error) {
 		}
 	}()
 	return nil
+}
+
+// add users to tag
+func AddTagSubscription(tagId uint, users ...interface{}) error {
+	tag := &model.Tag{Model: gorm.Model{ID: tagId}}
+	err := database.DB.Model(tag).Association("Subscriptions").Append(users...).Error
+	return err
+}
+
+// remove users from tag
+func RemoveTagSubscription(tagId uint, users ...interface{}) error {
+	tag := &model.Tag{Model: gorm.Model{ID: tagId}}
+	err := database.DB.Model(tag).Association("Subscriptions").Delete(users...).Error
+	return err
 }

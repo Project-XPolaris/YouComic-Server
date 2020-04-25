@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
@@ -8,6 +9,8 @@ import (
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -114,6 +117,11 @@ var TagListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Method: "SetTagTypeQueryFilter",
 				Many:   true,
 			},
+			{
+				Lookup: "subscription",
+				Method: "SetTagSubscriptionQueryFilter",
+				Many:   true,
+			},
 		},
 		GetContainer: func() serializer.ListContainerSerializer {
 			return &serializer.DefaultListContainer{}
@@ -196,6 +204,59 @@ var RemoveBooksFromTagHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	err = services.RemoveBooksFromTag(id, requestBody.Books)
 	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}
+
+type AddSubscriptionRequestBody struct {
+
+}
+// add user to tag handler
+//
+// path: /tag/:id/subscription
+//
+// method: put
+var AddSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	claims := auth.GetUserClaimsFromContext(context)
+
+	user := &model.User{Model:gorm.Model{ID: claims.UserId}}
+	err = services.AddTagSubscription(uint(id),user)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}
+
+// remove user from tag handler
+//
+// path: /tag/:id/subscription
+//
+// method: delete
+var RemoveSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	claims := auth.GetUserClaimsFromContext(context)
+
+	user := &model.User{Model:gorm.Model{ID: claims.UserId}}
+	err = services.RemoveTagSubscription(uint(id),user)
+	if err != nil {
+		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
