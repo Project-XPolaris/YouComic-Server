@@ -3,11 +3,15 @@ package install
 import (
 	"encoding/json"
 	"github.com/allentom/youcomic-api/config"
+	"github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 )
+
+var LogField = log.Logger.WithField("scope", "install")
 
 var PreinstallConfig config.ApplicationConfig
 var InitUsername string
@@ -30,6 +34,8 @@ func RunInstallServer() {
 	}
 	createNewConfig()
 	r := gin.New()
+	r.Use(gin.Recovery())
+	gin.SetMode(gin.ReleaseMode)
 	r.Static("/assets", "assets/install/static")
 	r.LoadHTMLGlob("assets/install/templates/*")
 	r.GET("/", IndexController)
@@ -45,6 +51,10 @@ func RunInstallServer() {
 	r.GET("/application", SettingApplicationController)
 	r.POST("/application", SettingApplicationSubmitController)
 	r.GET("/complete", SettingCompleteController)
+	LogField.WithFields(logrus.Fields{
+		"signal": "need_install",
+		"port":8880,
+	}).Info("need install")
 	r.Run(":8880")
 }
 
