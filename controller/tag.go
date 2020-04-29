@@ -262,3 +262,28 @@ var RemoveSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
 	}
 	ServerSuccessResponse(context)
 }
+
+// get tag handler
+//
+// path: /tag/:id
+//
+// method: get
+var GetTag gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	tag,err  := services.GetTagById(uint(id))
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	template := &serializer.BaseTagTemplate{}
+	RenderTemplate(context, template, tag)
+	context.JSON(http.StatusOK, template)
+}

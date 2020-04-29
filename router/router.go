@@ -31,6 +31,7 @@ func SetRouter(engine *gin.Engine) {
 	engine.PUT("/tag/:id/subscription", controller.AddSubscriptionUser)
 	engine.DELETE("/tag/:id/subscription", controller.RemoveSubscriptionUser)
 	engine.DELETE("/tag/:id/books", controller.RemoveBooksFromTagHandler)
+	engine.GET("/tag/:id", controller.GetTag)
 	engine.POST("/user/register", controller.RegisterUserHandler)
 	engine.POST("/user/auth", controller.LoginUserHandler)
 	engine.GET("/user/:id", controller.GetUserHandler)

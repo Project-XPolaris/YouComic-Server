@@ -136,3 +136,10 @@ func RemoveTagSubscription(tagId uint, users ...interface{}) error {
 	err := database.DB.Model(tag).Association("Subscriptions").Delete(users...).Error
 	return err
 }
+
+//get tag with tag id
+func GetTagById(id uint) (*model.Tag, error) {
+	tag := &model.Tag{Model:gorm.Model{ID: id}}
+	err := database.DB.Find(tag).Error
+	return tag,err
+}
