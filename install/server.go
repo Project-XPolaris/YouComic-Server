@@ -55,6 +55,7 @@ func RunInstallServer() {
 		"signal": "need_install",
 		"port":8880,
 	}).Info("need install")
+	utils.OpenBrowserWithURL("http://localhost:8880")
 	r.Run(":8880")
 }
 
