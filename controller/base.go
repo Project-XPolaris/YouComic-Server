@@ -287,6 +287,7 @@ type ListView struct {
 	GetTemplate    func() serializer.TemplateSerializer
 	GetContainer   func() serializer.ListContainerSerializer
 	GetPermissions func(v *ListView) []permission.PermissionChecker
+	OnApplyQuery   func()
 	Claims         *auth.UserClaims
 }
 
@@ -318,6 +319,9 @@ func (v *ListView) Run() {
 
 	for _, filter := range v.FilterMapping {
 		utils.FilterByParam(v.Context, filter.Lookup, v.QueryBuilder, filter.Method, filter.Many)
+	}
+	if v.OnApplyQuery != nil{
+		v.OnApplyQuery()
 	}
 	modelsReader := (v.QueryBuilder).(services.ModelsReader)
 	count, modelList, err := modelsReader.ReadModels()

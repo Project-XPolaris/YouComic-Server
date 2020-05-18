@@ -248,7 +248,7 @@ var DeleteBookHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	//permanently delete permission check
 	permanently := context.Query("permanently") == "true"
-	if permanently{
+	if permanently {
 		if hasPermission := permission.CheckPermissionAndServerError(context,
 			&permission.StandardPermissionChecker{PermissionName: permission.PermanentlyDeleteBookPermissionName, UserId: claims.UserId},
 		); !hasPermission {
@@ -663,7 +663,6 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	context.JSON(http.StatusOK, template)
 }
 
-
 var GetBook gin.HandlerFunc = func(context *gin.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
@@ -672,12 +671,26 @@ var GetBook gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	book := &model.Book{Model:gorm.Model{ID: uint(id)}}
-	err  = services.GetBook(book)
+	book := &model.Book{Model: gorm.Model{ID: uint(id)}}
+	err = services.GetBook(book)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
 		return
+	}
+
+	// add query history
+	if context.Query("history") == "True" {
+		userClaimsInterface, exist := context.Get("claim")
+		if exist {
+			claims := userClaimsInterface.(*auth.UserClaims)
+			err = services.AddBookHistory(claims.UserId, uint(id))
+			if err != nil {
+				logrus.Error(err)
+				ApiError.RaiseApiError(context, err, nil)
+				return
+			}
+		}
 	}
 
 	template := &serializer.BaseBookTemplate{}

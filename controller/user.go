@@ -312,3 +312,58 @@ var ChangeUserNicknameHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	ServerSuccessResponse(context)
 }
+
+// get account histories
+//
+// path: /account/histories
+//
+// method: get
+var UserHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
+	queryBuilder := &services.HistoryQueryBuilder{}
+	userClaimsInterface, _ := context.Get("claim")
+	userClaim := userClaimsInterface.(*auth.UserClaims)
+	queryBuilder.SetUserIdFilter(userClaim.UserId)
+
+	view := ListView{
+		Context:      context,
+		Pagination:   &DefaultPagination{},
+		QueryBuilder: queryBuilder,
+		FilterMapping: []FilterMapping{
+			{
+				Lookup: "id",
+				Method: "InId",
+				Many:   true,
+			},
+			{
+				Lookup: "order",
+				Method: "SetOrderFilter",
+				Many:   false,
+			},
+		},
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
+		},
+		GetTemplate: func() serializer.TemplateSerializer {
+			return &serializer.BaseHistoryTemplate{}
+		},
+	}
+	view.Run()
+}
+
+// clear account histories
+//
+// path: /account/histories
+//
+// method: delete
+var DeleteHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
+	userClaimsInterface, _ := context.Get("claim")
+	userClaim := userClaimsInterface.(*auth.UserClaims)
+	queryBuilder := services.HistoryQueryBuilder{}
+	queryBuilder.SetUserIdFilter(userClaim.UserId)
+	err := queryBuilder.DeleteModels()
+	if err == services.UserNotFoundError {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}

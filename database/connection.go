@@ -52,5 +52,6 @@ func ConnectDatabase() {
 		&model.Collection{},
 		&model.UserGroup{},
 		&model.Permission{},
+		&model.History{},
 	)
 }
