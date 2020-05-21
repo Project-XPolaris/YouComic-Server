@@ -355,12 +355,12 @@ var UserHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /account/histories
 //
 // method: delete
-var DeleteHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeleteUserHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
 	userClaimsInterface, _ := context.Get("claim")
 	userClaim := userClaimsInterface.(*auth.UserClaims)
 	queryBuilder := services.HistoryQueryBuilder{}
 	queryBuilder.SetUserIdFilter(userClaim.UserId)
-	err := queryBuilder.DeleteModels()
+	err := queryBuilder.DeleteModels(true)
 	if err == services.UserNotFoundError {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return

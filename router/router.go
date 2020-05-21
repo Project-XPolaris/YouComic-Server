@@ -55,6 +55,7 @@ func SetRouter(engine *gin.Engine) {
 	engine.PUT("/user/password", controller.ChangeUserPasswordHandler)
 	engine.PUT("/user/nickname", controller.ChangeUserNicknameHandler)
 	engine.GET("/histories", controller.HistoryListHandler)
+	engine.DELETE("/history/:id", controller.DeleteHistoryHandler)
 	engine.GET("/account/histories", controller.UserHistoryHandler)
-	engine.DELETE("/account/histories", controller.DeleteHistoryHandler)
+	engine.DELETE("/account/histories", controller.DeleteUserHistoryHandler)
 }

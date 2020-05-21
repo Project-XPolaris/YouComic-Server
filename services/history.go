@@ -2,18 +2,28 @@ package services
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/gorm"
+	"time"
 )
 
 func AddBookHistory(userId uint, bookId uint) error {
-	return database.DB.Create(&model.History{UserId: userId, BookId: bookId}).Error
+	count := 0
+	database.DB.Model(&model.History{}).Where(&model.History{UserId: userId, BookId: bookId}).Count(&count)
+	fmt.Println(count)
+	if count > 0 {
+		return database.DB.Model(&model.History{}).Where(&model.History{UserId: userId, BookId: bookId}).Update("UpdatedAt", time.Now()).Error
+	} else {
+		return database.DB.Create(&model.History{UserId: userId, BookId: bookId}).Error
+	}
 }
 
 type HistoryQueryBuilder struct {
 	DefaultPageFilter
 	IdQueryFilter
+	OrderQueryFilter
 	UserIdFilter
 }
 
@@ -28,9 +38,12 @@ func (b *HistoryQueryBuilder) ReadModels() (int, interface{}, error) {
 	}
 	return count, md, err
 }
-func (b *HistoryQueryBuilder) DeleteModels() error {
+func (b *HistoryQueryBuilder) DeleteModels(permanently bool) error {
 	query := database.DB
 	query = ApplyFilters(b, query)
+	if permanently {
+		query = query.Unscoped()
+	}
 	err := query.Delete(model.History{}).Error
 	return err
 }

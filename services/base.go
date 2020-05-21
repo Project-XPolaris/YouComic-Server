@@ -111,7 +111,7 @@ func (f IdQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 
 func (f *IdQueryFilter) InId(ids ...interface{}) {
 	for _, id := range ids {
-		if len(id.(string)) != 0 {
+		if !utils.IsZeroVal(id) {
 			f.Ids = append(f.Ids, id)
 		}
 
