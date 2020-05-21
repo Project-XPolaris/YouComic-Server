@@ -83,6 +83,11 @@ var CollectionsListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Method: "SetNameSearchQueryFilter",
 				Many:   false,
 			},
+			{
+				Lookup: "hasBook",
+				Method: "SetHasBookQueryFilter",
+				Many:   true,
+			},
 		},
 		GetContainer: func() serializer.ListContainerSerializer {
 			return &serializer.DefaultListContainer{}

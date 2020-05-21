@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/utils"
 	"github.com/jinzhu/gorm"
 )
 
@@ -16,6 +17,7 @@ type CollectionQueryBuilder struct {
 	UsersQueryFilter
 	UsersAndOwnerQueryFilter
 	NameSearchQueryFilter
+	HasBookQueryFilter
 }
 
 func (b *CollectionQueryBuilder) ReadModels() (int, interface{}, error) {
@@ -63,6 +65,24 @@ func (b *UsersQueryFilter) SetUsersQueryFilter(users ...interface{}) {
 func (b UsersQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 	if b.Users != nil && len(b.Users) > 0 {
 		return db.Joins("inner join collection_users on collection_users.collection_id = collections.id").Where("collection_users.user_id in (?)", b.Users)
+	}
+	return db
+}
+
+type HasBookQueryFilter struct {
+	BookIds []interface{}
+}
+
+func (b *HasBookQueryFilter) SetHasBookQueryFilter(bookIds ...interface{}) {
+	for _, bookId := range bookIds {
+		if !utils.IsZeroVal(bookId) {
+			b.BookIds = append(b.BookIds, bookId)
+		}
+	}
+}
+func (b HasBookQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if b.BookIds != nil && len(b.BookIds) > 0 {
+		return db.Joins("inner join collection_books on collection_books.collection_id = collections.id").Where("collection_books.book_id in (?)", b.BookIds)
 	}
 	return db
 }
@@ -126,5 +146,3 @@ func GetCollectionById(collectionId uint) (error, *model.Collection) {
 	err := database.DB.First(&collection).Error
 	return err, &collection
 }
-
-
