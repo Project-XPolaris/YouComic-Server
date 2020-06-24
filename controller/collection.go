@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -31,12 +32,12 @@ var CreateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		GetValidators: func(v *CreateModelView) []validate.Validator {
 			responseBody := v.RequestBody.(*CreateCollectionRequestBody)
 			return []validate.Validator{
-				&validate.StringLengthValidator{Value: responseBody.Name,FieldName: "Name",GreaterThan: 0,LessThan: 256},
+				&validate.StringLengthValidator{Value: responseBody.Name, FieldName: "Name", GreaterThan: 0, LessThan: 256},
 			}
 		},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
-				&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.CreateCollectionPermissionName},
+				&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateCollectionPermissionName},
 			}
 		},
 	}
@@ -44,6 +45,36 @@ var CreateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 }
 
 var CollectionsListHandler gin.HandlerFunc = func(context *gin.Context) {
+	getSerializerContext := func(v *ListView, result interface{}) map[string]interface{} {
+		serializerContext := map[string]interface{}{}
+
+		withBookContain := context.Query("withBookContain")
+		if len(withBookContain) > 0 {
+			queryBuilder := services.CollectionQueryBuilder{}
+			containBookIdsQuery := context.QueryArray("withBookContain")
+			containBookIds := make([]interface{}, 0)
+			for _, bookId := range containBookIdsQuery {
+				containBookIds = append(containBookIds, bookId)
+			}
+			queryBuilder.SetHasBookQueryFilter(containBookIds...)
+
+
+			collections := result.([]model.Collection)
+			collectionIds := make([]interface{}, 0)
+			for _, collection := range collections {
+				collectionIds = append(collectionIds, collection.ID)
+			}
+			queryBuilder.InId(collectionIds...)
+			queryBuilder.SetPageFilter(1,len(collections))
+
+			_, bookInCollections, _ := queryBuilder.ReadModels()
+			fmt.Println(bookInCollections)
+			serializerContext["bookCollections"] = bookInCollections
+		}
+
+		return serializerContext
+
+	}
 	view := ListView{
 		Context:      context,
 		Pagination:   &DefaultPagination{},
@@ -93,8 +124,12 @@ var CollectionsListHandler gin.HandlerFunc = func(context *gin.Context) {
 			return &serializer.DefaultListContainer{}
 		},
 		GetTemplate: func() serializer.TemplateSerializer {
+			if _,exist := context.GetQuery("withBookContain");exist {
+				return &serializer.CollectionWithBookContainTemplate{}
+			}
 			return &serializer.BaseCollectionTemplate{}
 		},
+		GetSerializerContext: getSerializerContext,
 	}
 	view.Run()
 }
@@ -212,6 +247,7 @@ var DeleteCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 type UpdateCollectionRequestBody struct {
 	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
 }
+
 // update collection handler
 //
 // path: /collection/:id
@@ -231,8 +267,6 @@ var UpdateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-
-
 	requestBody := UpdateCollectionRequestBody{}
 	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -246,7 +280,7 @@ var UpdateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	err,collection := services.GetCollectionById(uint(id))
+	err, collection := services.GetCollectionById(uint(id))
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
@@ -263,12 +297,11 @@ var UpdateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	err = services.UpdateModel(collection,"Name")
+	err = services.UpdateModel(collection, "Name")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-
 
 	template := &serializer.BaseCollectionTemplate{}
 	RenderTemplate(context, template, *collection)

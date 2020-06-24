@@ -60,6 +60,7 @@ func main() {
 	}
 	r.Use(cors.New(corsConfig))
 	r.Use(middleware.JWTAuth())
+	r.Use(middleware.StaticRouter())
 	r.Static("/assets", config.Config.Store.Root)
 	router.SetRouter(r)
 

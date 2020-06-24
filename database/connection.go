@@ -53,5 +53,6 @@ func ConnectDatabase() {
 		&model.UserGroup{},
 		&model.Permission{},
 		&model.History{},
+		&model.Library{},
 	)
 }

@@ -2,30 +2,49 @@ package services
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/allentom/youcomic-api/config"
+	"github.com/allentom/youcomic-api/application"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/gorm"
 	"os"
+	"path"
 	"reflect"
 )
 
-func CreateBook(name string) (error, *model.Book) {
-	book := model.Book{
-		Name: name,
+var (
+	DefaultLibraryNotFound = errors.New("default library not found")
+)
+
+func CreateBook(name string, libraryId uint) (error, *model.Book) {
+	// use default library if it not specific
+	if libraryId == 0 {
+		var library model.Library
+		err := database.DB.Where("name = ", application.DEFAULT_LIBRARY_NAME).Find(&library).Error
+		if err != nil {
+			return DefaultLibraryNotFound, nil
+		}
+		libraryId = library.ID
 	}
+
+	book := model.Book{
+		Name:      name,
+		LibraryId: libraryId,
+	}
+
 	result := database.DB.Create(&book)
 	err := result.Error
 	if err != nil {
 		return err, nil
 	}
-	return nil, &book
+	err = database.DB.Model(&model.Book{}).Where("id = ?", book.ID).Update("path", fmt.Sprintf("/%d", book.ID)).Error
+	return err, &book
 }
 
 func GetBook(book *model.Book) error {
 	err := database.DB.First(book, book.ID).Error
-	if err == gorm.ErrRecordNotFound{
+	if err == gorm.ErrRecordNotFound {
 		return RecordNotFoundError
 	}
 	if err != nil {
@@ -57,7 +76,6 @@ type BooksQueryBuilder struct {
 	EndTimeQueryFilter
 	NameSearchQueryFilter
 }
-
 
 type EndTimeQueryFilter struct {
 	endTime interface{}
@@ -141,7 +159,7 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int, error) {
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
-		return 0,nil
+		return 0, nil
 	}
 	return count, err
 }
@@ -204,9 +222,13 @@ func AddTagToBook(bookId int, tagIds ...int) error {
 	return database.DB.Model(&model.Book{Model: gorm.Model{ID: uint(bookId)}}).Association("Tags").Append(tagsToAdd...).Error
 }
 
-func GetBookPath(bookId int) (error, string) {
+func GetBookPath(bookPath string, libraryId uint) (error, string) {
 	var err error
-	storePath := fmt.Sprintf("%s/%d", config.Config.Store.Books, bookId)
+	library, err := GetLibraryById(libraryId)
+	if err != nil {
+		return err, ""
+	}
+	storePath := path.Join(library.Path, bookPath)
 	err = os.MkdirAll(storePath, os.ModePerm)
 	return err, storePath
 }
@@ -243,4 +265,10 @@ func GetBookTag(bookId uint) ([]model.Tag, error) {
 	tags := make([]model.Tag, 0)
 	err := database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Find(&tags).Error
 	return tags, err
+}
+
+func GetBookById(bookId uint) (model.Book, error) {
+	var book model.Book
+	err := database.DB.Find(&book, bookId).Error
+	return book, err
 }

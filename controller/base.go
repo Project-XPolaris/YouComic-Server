@@ -280,15 +280,16 @@ func (r *DefaultRequestBodyReader) Deserializer(source interface{}) error {
 }
 
 type ListView struct {
-	Context        *gin.Context
-	Pagination     PageReader
-	QueryBuilder   interface{}
-	FilterMapping  []FilterMapping
-	GetTemplate    func() serializer.TemplateSerializer
-	GetContainer   func() serializer.ListContainerSerializer
-	GetPermissions func(v *ListView) []permission.PermissionChecker
-	OnApplyQuery   func()
-	Claims         *auth.UserClaims
+	Context              *gin.Context
+	Pagination           PageReader
+	QueryBuilder         interface{}
+	FilterMapping        []FilterMapping
+	GetSerializerContext func(v *ListView, result interface{}) map[string]interface{}
+	GetTemplate          func() serializer.TemplateSerializer
+	GetContainer         func() serializer.ListContainerSerializer
+	GetPermissions       func(v *ListView) []permission.PermissionChecker
+	OnApplyQuery         func()
+	Claims               *auth.UserClaims
 }
 
 func (v *ListView) Run() {
@@ -320,7 +321,7 @@ func (v *ListView) Run() {
 	for _, filter := range v.FilterMapping {
 		utils.FilterByParam(v.Context, filter.Lookup, v.QueryBuilder, filter.Method, filter.Many)
 	}
-	if v.OnApplyQuery != nil{
+	if v.OnApplyQuery != nil {
 		v.OnApplyQuery()
 	}
 	modelsReader := (v.QueryBuilder).(services.ModelsReader)
@@ -329,8 +330,12 @@ func (v *ListView) Run() {
 		ApiError.RaiseApiError(v.Context, err, nil)
 		return
 	}
+	serializerContext := map[string]interface{}{}
+	if v.GetSerializerContext != nil {
+		serializerContext = v.GetSerializerContext(v,modelList)
+	}
 
-	result := serializer.SerializeMultipleTemplate(modelList, v.GetTemplate(), nil)
+	result := serializer.SerializeMultipleTemplate(modelList, v.GetTemplate(), serializerContext)
 	responseBody := v.GetContainer()
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     page,

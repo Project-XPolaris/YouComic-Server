@@ -31,7 +31,8 @@ import (
 )
 
 type CreateBookRequestBody struct {
-	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
+	Name    string `form:"name" json:"name" xml:"name"  binding:"required"`
+	Library int    `form:"library" json:"library" xml:"library"`
 }
 
 // create book handler
@@ -63,7 +64,7 @@ var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	err, book := services.CreateBook(requestBody.Name)
+	err, book := services.CreateBook(requestBody.Name, uint(requestBody.Library))
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
@@ -381,8 +382,8 @@ var BookTagBatch gin.HandlerFunc = func(context *gin.Context) {
 	ServerSuccessResponse(context)
 }
 
-func SaveCover(context *gin.Context, bookId int, file *multipart.FileHeader) (error, string, string) {
-	err, storePath := services.GetBookPath(bookId)
+func SaveCover(context *gin.Context, book model.Book, file *multipart.FileHeader) (error, string, string) {
+	err, storePath := services.GetBookPath(book.Path, book.LibraryId)
 	if err != nil {
 		return err, "", ""
 	}
@@ -450,7 +451,7 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	fileHeader := form.File["image"][0]
-	err, coverImageFilePath, _ := SaveCover(context, id, fileHeader)
+	err, coverImageFilePath, _ := SaveCover(context, book, fileHeader)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
@@ -478,12 +479,20 @@ var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
 		context.JSON(http.StatusOK, "template")
 		return
 	}
+
 	re, err := regexp.Compile(`^page_(\d+)$`)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	err, storePath := services.GetBookPath(id)
+
+	book,err := services.GetBookById(uint(id))
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	err, storePath := services.GetBookPath(book.Path,book.LibraryId)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
@@ -573,10 +582,11 @@ var DeleteBookTag gin.HandlerFunc = func(context *gin.Context) {
 }
 
 type UploadBookRequestBody struct {
-	Name  string `form:"name"`
-	Tags  string `form:"tags"`
-	Pages string `form:"pages"`
-	Cover string `form:"cover"`
+	Name    string `form:"name"`
+	Library string `form:"library"`
+	Tags    string `form:"tags"`
+	Pages   string `form:"pages"`
+	Cover   string `form:"cover"`
 }
 
 var CreateBook gin.HandlerFunc = func(context *gin.Context) {
@@ -587,8 +597,13 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-
-	err, book := services.CreateBook(requestBody.Name)
+	libraryId, err := strconv.Atoi(requestBody.Library)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	err, book := services.CreateBook(requestBody.Name, uint(libraryId))
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -642,7 +657,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	for _, file := range files {
 		if file.Filename == requestBody.Cover {
 			//save cover
-			err, coverPath, _ := SaveCover(context, int(book.ID), file)
+			err, coverPath, _ := SaveCover(context, *book, file)
 			if err != nil {
 				logrus.Error(err)
 				ApiError.RaiseApiError(context, err, nil)
