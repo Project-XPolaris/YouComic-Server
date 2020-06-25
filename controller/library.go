@@ -31,3 +31,18 @@ var CreateLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	context.JSON(200,template)
 }
+
+var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context){
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	err = services.DeleteLibrary(uint(id))
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}

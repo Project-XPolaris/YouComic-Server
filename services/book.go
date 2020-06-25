@@ -218,6 +218,23 @@ func DeleteBooks(ids ...int) error {
 	tx.Commit()
 	return nil
 }
+func DeleteBooksPermanently(tx *gorm.DB, ids ...int) error {
+	var err error
+	deleteTx := tx
+	if tx == nil {
+		tx = database.DB.Begin()
+	}
+	for _, id := range ids {
+		book := model.Book{}
+		book.ID = uint(id)
+		err = deleteTx.Unscoped().Delete(&book).Error
+		if err != nil {
+			return err
+		}
+	}
+	deleteTx.Commit()
+	return nil
+}
 
 func AddTagToBook(bookId int, tagIds ...int) error {
 	tagsToAdd := make([]interface{}, 0)
@@ -279,12 +296,12 @@ func GetBookById(bookId uint) (model.Book, error) {
 }
 
 //generate thumbnail image
-func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string,error) {
+func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string, error) {
 	// setup image decoder
 	fileExt := filepath.Ext(coverImageFilePath)
 	thumbnailImageFile, err := os.Open(coverImageFilePath)
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	var thumbnailImage image.Image
 	if fileExt == ".png" {
@@ -294,23 +311,22 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 		thumbnailImage, err = jpeg.Decode(thumbnailImageFile)
 	}
 	if err != nil {
-		return "",err
+		return "", err
 	}
 
 	// make thumbnail
 	resizeImage := resize.Thumbnail(480, 480, thumbnailImage, resize.Lanczos3)
 
 	// mkdir
-	err = os.MkdirAll(storePath,os.ModePerm)
+	err = os.MkdirAll(storePath, os.ModePerm)
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	thumbnailImagePath := filepath.Join(storePath, fmt.Sprintf("cover_thumbnail%s", fileExt))
 	output, err := os.Create(thumbnailImagePath)
 	if err != nil {
-		return "",err
+		return "", err
 	}
-
 
 	defer thumbnailImageFile.Close()
 	defer output.Close()
@@ -318,7 +334,7 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 	// save result
 	err = jpeg.Encode(output, resizeImage, nil)
 	if err != nil {
-		return "",err
+		return "", err
 	}
-	return thumbnailImagePath,nil
+	return thumbnailImagePath, nil
 }

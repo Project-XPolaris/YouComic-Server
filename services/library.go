@@ -71,15 +71,15 @@ func ImportLibrary(libraryPath string) error {
 			return err
 		}
 		//generate cover thumbnail
-		coverAbsolutePath := path.Join(libraryPath,bookConfig.Path,bookConfig.Cover)
-		coverThumbnailStorePath := path.Join(appconfig.Config.Store.Root,"generate",fmt.Sprintf("%d",book.ID))
-		_,err = GenerateCoverThumbnail(coverAbsolutePath,coverThumbnailStorePath)
+		coverAbsolutePath := path.Join(libraryPath, bookConfig.Path, bookConfig.Cover)
+		coverThumbnailStorePath := path.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+		_, err = GenerateCoverThumbnail(coverAbsolutePath, coverThumbnailStorePath)
 		if err != nil {
 			return err
 		}
 		for _, tagConfig := range bookConfig.Tags {
 			tag := model.Tag{}
-			err = database.DB.FirstOrCreate(&tag,model.Tag{Name: tagConfig.Name,Type: tagConfig.Type}).Error
+			err = database.DB.FirstOrCreate(&tag, model.Tag{Name: tagConfig.Name, Type: tagConfig.Type}).Error
 			if err != nil {
 				return err
 			}
@@ -94,4 +94,40 @@ func ImportLibrary(libraryPath string) error {
 		}
 	}
 	return nil
+}
+
+func DeleteLibrary(libraryId uint) error {
+	library, err := GetLibraryById(libraryId)
+	if err != nil {
+		return err
+	}
+
+	tx := database.DB.Begin()
+	books := make([]model.Book, 0)
+	err = tx.Model(&library).Association("Books").Find(&books).Error
+	if err != nil {
+		return err
+	}
+	for _, book := range books {
+		err = tx.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	err = tx.Unscoped().Delete(model.Book{}, "library_id = ?", library.ID).Error
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Unscoped().Delete(&library).Error
+	if err != nil {
+		return err
+	}
+	err = tx.Commit().Error
+	if err != nil {
+		return err
+	}
+	return err
 }
