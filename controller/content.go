@@ -2,10 +2,12 @@ package controller
 
 import (
 	"fmt"
+	appconfig "github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
 	"path"
+	"strings"
 )
 
 var BookContentHandler gin.HandlerFunc = func(context *gin.Context) {
@@ -27,11 +29,16 @@ var BookContentHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	if fileName == book.Cover {
-		context.File(path.Join(library.Path, fmt.Sprintf("%d", book.ID), book.Cover))
+	// handle with cover thumbnail
+	if strings.Contains(fileName, "cover_thumbnail") {
+		thumbnailExt := path.Ext(book.Cover)
+		context.File(path.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID), fmt.Sprintf("cover_thumbnail%s", thumbnailExt)))
+	}
+	if fileName == path.Base(book.Cover) {
+		context.File(path.Join(library.Path, book.Path, book.Cover))
 		return
 	}
 
 	//handle with page
-	context.File(path.Join(library.Path, fmt.Sprintf("%d", book.ID), fileName))
+	context.File(path.Join(library.Path, book.Path, fileName))
 }

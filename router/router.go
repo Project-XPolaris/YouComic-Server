@@ -60,4 +60,5 @@ func SetRouter(engine *gin.Engine) {
 	engine.DELETE("/account/histories", controller.DeleteUserHistoryHandler)
 	engine.GET("/content/book/:id/:fileName", controller.BookContentHandler)
 	engine.POST("/libraries", controller.CreateLibraryHandler)
+	engine.POST("/library/import", controller.ImportLibraryHandler)
 }

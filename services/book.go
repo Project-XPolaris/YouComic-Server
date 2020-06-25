@@ -8,8 +8,13 @@ import (
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/gorm"
+	"github.com/nfnt/resize"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 )
 
@@ -271,4 +276,49 @@ func GetBookById(bookId uint) (model.Book, error) {
 	var book model.Book
 	err := database.DB.Find(&book, bookId).Error
 	return book, err
+}
+
+//generate thumbnail image
+func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string,error) {
+	// setup image decoder
+	fileExt := filepath.Ext(coverImageFilePath)
+	thumbnailImageFile, err := os.Open(coverImageFilePath)
+	if err != nil {
+		return "",err
+	}
+	var thumbnailImage image.Image
+	if fileExt == ".png" {
+		thumbnailImage, err = png.Decode(thumbnailImageFile)
+	}
+	if fileExt == ".jpg" {
+		thumbnailImage, err = jpeg.Decode(thumbnailImageFile)
+	}
+	if err != nil {
+		return "",err
+	}
+
+	// make thumbnail
+	resizeImage := resize.Thumbnail(480, 480, thumbnailImage, resize.Lanczos3)
+
+	// mkdir
+	err = os.MkdirAll(storePath,os.ModePerm)
+	if err != nil {
+		return "",err
+	}
+	thumbnailImagePath := filepath.Join(storePath, fmt.Sprintf("cover_thumbnail%s", fileExt))
+	output, err := os.Create(thumbnailImagePath)
+	if err != nil {
+		return "",err
+	}
+
+
+	defer thumbnailImageFile.Close()
+	defer output.Close()
+
+	// save result
+	err = jpeg.Encode(output, resizeImage, nil)
+	if err != nil {
+		return "",err
+	}
+	return thumbnailImagePath,nil
 }

@@ -712,3 +712,23 @@ var GetBook gin.HandlerFunc = func(context *gin.Context) {
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
 }
+
+type ImportLibraryRequestBody struct {
+	LibraryPath    string `form:"library_path" json:"library_path" xml:"library_path"  binding:"required"`
+}
+var ImportLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
+	var requestBody ImportLibraryRequestBody
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	err = services.ImportLibrary(requestBody.LibraryPath)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}
