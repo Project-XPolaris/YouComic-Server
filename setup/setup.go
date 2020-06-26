@@ -3,12 +3,15 @@ package setup
 import (
 	"database/sql"
 	"fmt"
+	"github.com/allentom/youcomic-api/application"
 	appconfig "github.com/allentom/youcomic-api/config"
+	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/services"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
+	"os"
 )
 
 var LogField = log.Logger.WithField("scope", "setup")
@@ -35,13 +38,21 @@ func SetupApplication() error {
 	if err != nil {
 		return err
 	}
+	err = initStorePath()
+	if err != nil {
+		return err
+	}
+	err = initDefaultLibrary()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // create database if not exist
 func CheckDatabase() {
 	LogField.Info("check database")
-	if appconfig.Config.Database.Type == "sqlite"{
+	if appconfig.Config.Database.Type == "sqlite" {
 		return
 	}
 	db, err := sql.Open("mysql", fmt.Sprintf(
@@ -131,6 +142,36 @@ func initSuperuserPermission() error {
 			permissionPtrs = append(permissionPtrs, &permissions[idx])
 		}
 		err = services.AddPermissionsToUserGroup(&userGroup, permissionPtrs...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func initStorePath() error {
+	// init app store
+	err := os.MkdirAll(appconfig.Config.Store.Root, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	// init default library path
+	err = os.MkdirAll(appconfig.Config.Store.Books, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func initDefaultLibrary() error {
+	count := 0
+	err := database.DB.Model(&model.Library{}).Where("name = ?", application.DEFAULT_LIBRARY_NAME).Count(&count).Error
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		err = database.DB.Create(&model.Library{Path: appconfig.Config.Store.Books, Name: application.DEFAULT_LIBRARY_NAME}).Error
 		if err != nil {
 			return err
 		}

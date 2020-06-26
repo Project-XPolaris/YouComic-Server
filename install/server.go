@@ -60,7 +60,7 @@ func RunInstallServer() {
 }
 
 func generateSettingFile() {
-	PreinstallConfig.Application.Host = "localhost"
+	PreinstallConfig.Application.Host = "0.0.0.0"
 	PreinstallConfig.Security.AppSecret = utils.RandomString(32)
 	PreinstallConfig.Security.Salt = utils.RandomString(32)
 	file, _ := json.MarshalIndent(PreinstallConfig, "", " ")
