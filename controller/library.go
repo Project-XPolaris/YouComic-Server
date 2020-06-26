@@ -11,6 +11,7 @@ type CreateLibraryRequestBody struct {
 	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
 	Path string `form:"path" json:"path" xml:"path"  binding:"required"`
 }
+
 var CreateLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody CreateLibraryRequestBody
 	err := DecodeJsonBody(context, &requestBody)
@@ -18,21 +19,21 @@ var CreateLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	library,err := services.CreateLibrary(requestBody.Name,requestBody.Path)
+	library, err := services.CreateLibrary(requestBody.Name, requestBody.Path)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	template := serializer.BaseLibraryTemplate{}
-	err = template.Serializer(*library,nil)
+	err = template.Serializer(*library, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSON(200,template)
+	context.JSON(200, template)
 }
 
-var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context){
+var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -45,4 +46,60 @@ var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context){
 		return
 	}
 	ServerSuccessResponse(context)
+}
+
+var LibraryObjectHandler gin.HandlerFunc = func(context *gin.Context) {
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	library, err := services.GetLibraryById(uint(id))
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+
+	template := serializer.BaseLibraryTemplate{}
+	err = template.Serializer(library, nil)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	context.JSON(200, template)
+}
+
+
+var LibraryListHandler gin.HandlerFunc = func(context *gin.Context){
+	queryBuilder := &services.LibraryQueryBuilder{}
+	view := ListView{
+		Context: context,
+		Pagination:   &DefaultPagination{},
+		QueryBuilder: queryBuilder,
+		FilterMapping: []FilterMapping{
+			{
+				Lookup: "id",
+				Method: "InId",
+				Many:   true,
+			},
+			{
+				Lookup: "order",
+				Method: "SetOrderFilter",
+				Many:   false,
+			},
+			{
+				Lookup: "name",
+				Method: "SetNameFilter",
+				Many:   true,
+			},
+		},
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
+		},
+		GetTemplate: func() serializer.TemplateSerializer {
+			return &serializer.BaseLibraryTemplate{}
+		},
+	}
+	view.Run()
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	appconfig "github.com/allentom/youcomic-api/config"
@@ -131,3 +132,24 @@ func DeleteLibrary(libraryId uint) error {
 	}
 	return err
 }
+
+type LibraryQueryBuilder struct {
+	DefaultPageFilter
+	IdQueryFilter
+	OrderQueryFilter
+	NameQueryFilter
+}
+
+func (b *LibraryQueryBuilder) ReadModels() (int, interface{}, error) {
+	query := database.DB
+	query = ApplyFilters(b, query)
+	var count = 0
+	md := make([]model.Library, 0)
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
+	if err == sql.ErrNoRows {
+		return 0, query, nil
+	}
+	return count, md, err
+}
+
+
