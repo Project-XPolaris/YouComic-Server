@@ -16,6 +16,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strings"
 )
 
 var (
@@ -304,10 +305,10 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 		return "", err
 	}
 	var thumbnailImage image.Image
-	if fileExt == ".png" {
+	if strings.ToLower(fileExt) == ".png" {
 		thumbnailImage, err = png.Decode(thumbnailImageFile)
 	}
-	if fileExt == ".jpg" {
+	if strings.ToLower(fileExt) == ".jpg" {
 		thumbnailImage, err = jpeg.Decode(thumbnailImageFile)
 	}
 	if err != nil {
