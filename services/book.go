@@ -27,7 +27,7 @@ func CreateBook(name string, libraryId uint) (error, *model.Book) {
 	// use default library if it not specific
 	if libraryId == 0 {
 		var library model.Library
-		err := database.DB.Where("name = ", application.DEFAULT_LIBRARY_NAME).Find(&library).Error
+		err := database.DB.Where("name = ?", application.DEFAULT_LIBRARY_NAME).Find(&library).Error
 		if err != nil {
 			return DefaultLibraryNotFound, nil
 		}
@@ -81,6 +81,7 @@ type BooksQueryBuilder struct {
 	StartTimeQueryFilter
 	EndTimeQueryFilter
 	NameSearchQueryFilter
+	LibraryQueryFilter
 }
 
 type EndTimeQueryFilter struct {
@@ -98,6 +99,26 @@ func (f *EndTimeQueryFilter) SetEndTimeQueryFilter(endTime interface{}) {
 
 	if len(endTime.(string)) > 0 {
 		f.endTime = endTime
+	}
+
+}
+
+type LibraryQueryFilter struct {
+	library []interface{}
+}
+
+func (f LibraryQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if f.library != nil && len(f.library) != 0 {
+		return db.Where("library_id in (?)", f.library)
+	}
+	return db
+}
+
+func (f *LibraryQueryFilter) SetLibraryQueryFilter(libraries ...interface{}) {
+	for _, libraryId := range libraries {
+		if len(libraryId.(string)) > 0 {
+			f.library = append(f.library, libraryId)
+		}
 	}
 
 }
