@@ -14,6 +14,7 @@ type BaseBookTemplate struct {
 	UpdatedAt time.Time   `json:"updated_at"`
 	Name      string      `json:"name"`
 	Cover     string      `json:"cover"`
+	LibraryId uint      `json:"library_id"`
 	Tags      interface{} `json:"tags"`
 }
 
