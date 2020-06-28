@@ -23,7 +23,9 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 	if err != nil {
 		return err
 	}
-	b.Cover = fmt.Sprintf("/content/book/%d%s?t=%d", serializerModel.ID, serializerModel.Cover, time.Now().Unix())
+	if len(b.Cover) != 0 {
+		b.Cover = fmt.Sprintf("/content/book/%d%s?t=%d", serializerModel.ID, serializerModel.Cover, time.Now().Unix())
+	}
 	tags, err := services.GetBookTagsByTypes(serializerModel.ID, "artist", "translator", "series", "theme")
 	if err != nil {
 		return err
