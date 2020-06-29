@@ -17,6 +17,9 @@
     "AddUserToUserGroup",
     "AddPermissionToUserGroup",
     "RemoveUserFromUserGroup",
-    "PermanentlyDeleteBook"
+    "PermanentlyDeleteBook",
+    "CreateLibrary",
+    "UpdateLibrary",
+    "DeleteLibrary"
   ]
 }

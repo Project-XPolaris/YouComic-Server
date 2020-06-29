@@ -61,6 +61,7 @@ func SetRouter(engine *gin.Engine) {
 	engine.GET("/content/book/:id/:fileName", controller.BookContentHandler)
 	engine.POST("/libraries", controller.CreateLibraryHandler)
 	engine.POST("/library/import", controller.ImportLibraryHandler)
+	engine.POST("/library/batch", controller.LibraryBatchHandler)
 	engine.DELETE("/library/:id", controller.DeleteLibraryHandler)
 	engine.GET("/library/:id", controller.LibraryObjectHandler)
 	engine.GET("/libraries", controller.LibraryListHandler)

@@ -140,6 +140,17 @@ type LibraryQueryBuilder struct {
 	NameQueryFilter
 }
 
+func (b *LibraryQueryBuilder) SetId(id interface{}) {
+	b.InId(id)
+}
+
+func (b *LibraryQueryBuilder) Update(valueMapping map[string]interface{}) error {
+	query := database.DB
+	query = ApplyFilters(b, query)
+	err := query.Table("libraries").Updates(valueMapping).Error
+	return err
+}
+
 func (b *LibraryQueryBuilder) ReadModels() (int, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
@@ -151,5 +162,3 @@ func (b *LibraryQueryBuilder) ReadModels() (int, interface{}, error) {
 	}
 	return count, md, err
 }
-
-

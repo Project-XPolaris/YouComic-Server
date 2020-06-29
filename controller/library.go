@@ -2,6 +2,8 @@ package controller
 
 import (
 	ApiError "github.com/allentom/youcomic-api/error"
+	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
@@ -70,11 +72,10 @@ var LibraryObjectHandler gin.HandlerFunc = func(context *gin.Context) {
 	context.JSON(200, template)
 }
 
-
-var LibraryListHandler gin.HandlerFunc = func(context *gin.Context){
+var LibraryListHandler gin.HandlerFunc = func(context *gin.Context) {
 	queryBuilder := &services.LibraryQueryBuilder{}
 	view := ListView{
-		Context: context,
+		Context:      context,
 		Pagination:   &DefaultPagination{},
 		QueryBuilder: queryBuilder,
 		FilterMapping: []FilterMapping{
@@ -99,6 +100,39 @@ var LibraryListHandler gin.HandlerFunc = func(context *gin.Context){
 		},
 		GetTemplate: func() serializer.TemplateSerializer {
 			return &serializer.BaseLibraryTemplate{}
+		},
+	}
+	view.Run()
+}
+
+var LibraryBatchHandler gin.HandlerFunc = func(context *gin.Context) {
+	view := ModelsBatchView{
+		Context: context,
+		AllowUpdateField: []string{
+			"path",
+		},
+		AllowOperations: []BatchOperation{
+			Create, Update,
+		},
+		CreateModel: func() interface{} {
+			return &model.Library{}
+		},
+		Permissions: map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker{
+			Create: func(v *ModelsBatchView) []permission.PermissionChecker {
+				return []permission.PermissionChecker{
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.CreateLibraryPermissionName},
+				}
+			},
+			Update: func(v *ModelsBatchView) []permission.PermissionChecker {
+				return []permission.PermissionChecker{
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.UpdateLibraryPermissionName},
+				}
+			},
+			Delete: func(v *ModelsBatchView) []permission.PermissionChecker {
+				return []permission.PermissionChecker{
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.DeleteLibraryPermissionName},
+				}
+			},
 		},
 	}
 	view.Run()

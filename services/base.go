@@ -33,7 +33,7 @@ func (b *DefaultPageFilter) getOffset() int {
 func (b *DefaultPageFilter) getLimit() int {
 	if b.PageSize == 0 {
 		return 1
-	}else{
+	} else {
 		return b.PageSize
 	}
 }
@@ -232,4 +232,9 @@ func DeleteBookFile(bookId uint) (err error) {
 	path := utils.GetBookStorePath(bookId)
 	err = os.RemoveAll(path)
 	return
+}
+
+type ModelUpdater interface {
+	SetId(id interface{})
+	Update(valueMapping map[string]interface{}) error
 }
