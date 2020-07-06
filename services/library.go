@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 func GetLibraryById(id uint) (model.Library, error) {
@@ -130,6 +131,10 @@ func DeleteLibrary(libraryId uint) error {
 	if err != nil {
 		return err
 	}
+	for _, book := range books {
+		os.RemoveAll(filepath.Join(appconfig.Config.Store.Root,"generate",fmt.Sprintf("%d",book.ID)))
+	}
+
 	return err
 }
 
