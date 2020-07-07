@@ -65,4 +65,5 @@ func SetRouter(engine *gin.Engine) {
 	engine.DELETE("/library/:id", controller.DeleteLibraryHandler)
 	engine.GET("/library/:id", controller.LibraryObjectHandler)
 	engine.GET("/libraries", controller.LibraryListHandler)
+	engine.GET("/dashboard/book/daily", controller.BookCountDailySummaryHandler)
 }

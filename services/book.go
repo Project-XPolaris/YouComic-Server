@@ -360,3 +360,42 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 	}
 	return thumbnailImagePath, nil
 }
+
+type BookDailyResult struct {
+	Date  string
+	Total int
+}
+
+func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int, error) {
+	query := database.DB
+	query = ApplyFilters(b, query)
+	var count = 0
+	rawRows, err := query.Model(
+		&model.Book{},
+	).Limit(
+		b.getLimit(),
+	).Offset(
+		b.getOffset(),
+	).Order(
+		b.Order,
+	).Select(
+		"date(created_at) as `date` ,count(*) as total",
+	).Group(
+		`date(created_at)`,
+	).Count(&count).Rows()
+
+	if err != nil {
+		return nil, 0, err
+	}
+	result := make([]BookDailyResult, 0)
+	for rawRows.Next() {
+		var dailyResult BookDailyResult
+		err = database.DB.ScanRows(rawRows, &dailyResult)
+		if err != nil {
+			return nil, count, err
+		}
+		result = append(result, dailyResult)
+	}
+
+	return result, count, err
+}

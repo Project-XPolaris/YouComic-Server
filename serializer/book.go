@@ -14,7 +14,7 @@ type BaseBookTemplate struct {
 	UpdatedAt time.Time   `json:"updated_at"`
 	Name      string      `json:"name"`
 	Cover     string      `json:"cover"`
-	LibraryId uint      `json:"library_id"`
+	LibraryId uint        `json:"library_id"`
 	Tags      interface{} `json:"tags"`
 }
 
@@ -34,4 +34,14 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 	serializedTags := SerializeMultipleTemplate(tags, &BaseTagTemplate{}, nil)
 	b.Tags = serializedTags
 	return nil
+}
+
+type BookDailySummaryTemplate struct {
+	Date  string `json:"date"`
+	Total int    `json:"total"`
+}
+
+func (b *BookDailySummaryTemplate) Serializer(dataModel interface{}, context map[string]interface{}) error {
+	err := copier.Copy(b, dataModel)
+	return err
 }
