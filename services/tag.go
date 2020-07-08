@@ -139,7 +139,64 @@ func RemoveTagSubscription(tagId uint, users ...interface{}) error {
 
 //get tag with tag id
 func GetTagById(id uint) (*model.Tag, error) {
-	tag := &model.Tag{Model:gorm.Model{ID: id}}
+	tag := &model.Tag{Model: gorm.Model{ID: id}}
 	err := database.DB.Find(tag).Error
-	return tag,err
+	return tag, err
+}
+
+type TagCount struct {
+	Name string `json:"name"`
+	Total int `json:"total"`
+}
+func (b *TagQueryBuilder) GetTagCount() (int, interface{}, error) {
+	query := database.DB
+	query = ApplyFilters(b, query)
+	var count = 0
+	rows, err := query.Model(&model.Tag{}).Select(
+		`name,count(book_tags.book_id) as total`,
+	).Joins(
+		`inner join book_tags on tags.id = book_tags.tag_id`,
+	).Group(
+		`name`,
+	).Limit(b.getLimit()).Offset(b.getOffset()).Count(&count).Rows()
+	if err == sql.ErrNoRows {
+		return 0, query, nil
+	}
+	result := make([]TagCount, 0)
+	for rows.Next() {
+		var tagCount TagCount
+		err = database.DB.ScanRows(rows, &tagCount)
+		if err != nil {
+			return 0, nil, err
+		}
+		result = append(result, tagCount)
+	}
+	return count, result, err
+}
+type TagTypeCount struct {
+	Name string `json:"name"`
+	Total int `json:"total"`
+}
+func (b *TagQueryBuilder) GetTagTypeCount() (int, []TagTypeCount, error) {
+	query := database.DB
+	query = ApplyFilters(b, query)
+	var count = 0
+	rows, err := query.Model(&model.Tag{}).Select(
+		`type as name,count(*) as total`,
+	).Group(
+		`type`,
+	).Limit(b.getLimit()).Offset(b.getOffset()).Count(&count).Rows()
+	if err == sql.ErrNoRows {
+		return 0, nil, nil
+	}
+	result := make([]TagTypeCount, 0)
+	for rows.Next() {
+		var tagCount TagTypeCount
+		err = database.DB.ScanRows(rows, &tagCount)
+		if err != nil {
+			return 0, nil, err
+		}
+		result = append(result, tagCount)
+	}
+	return count, result, err
 }
