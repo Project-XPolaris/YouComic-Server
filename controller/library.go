@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
@@ -16,6 +17,15 @@ type CreateLibraryRequestBody struct {
 
 var CreateLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody CreateLibraryRequestBody
+
+	rawUserClaims, _ := context.Get("claim")
+	createLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.CreateLibraryPermissionName,
+		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &createLibraryPermission); !hasPermission {
+		return
+	}
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -40,6 +50,14 @@ var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	rawUserClaims, _ := context.Get("claim")
+	deleteLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.DeleteLibraryPermissionName,
+		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &deleteLibraryPermission); !hasPermission {
 		return
 	}
 	err = services.DeleteLibrary(uint(id))
@@ -120,17 +138,17 @@ var LibraryBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 		Permissions: map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker{
 			Create: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.CreateLibraryPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateLibraryPermissionName},
 				}
 			},
 			Update: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.UpdateLibraryPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.UpdateLibraryPermissionName},
 				}
 			},
 			Delete: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.DeleteLibraryPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.DeleteLibraryPermissionName},
 				}
 			},
 		},
