@@ -5,6 +5,8 @@ import (
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/jinzhu/copier"
+	"path"
+	"strconv"
 	"time"
 )
 
@@ -25,7 +27,10 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 		return err
 	}
 	if len(b.Cover) != 0 {
-		b.Cover = fmt.Sprintf("/content/book/%d%s?t=%d", serializerModel.ID, serializerModel.Cover, time.Now().Unix())
+		b.Cover = fmt.Sprintf("%s?t=%d",
+			path.Join("/","content", "book", strconv.Itoa(int(serializerModel.ID)), serializerModel.Cover),
+			time.Now().Unix(),
+		)
 	}
 	tags, err := services.GetBookTagsByTypes(serializerModel.ID, "artist", "translator", "series", "theme")
 	if err != nil {

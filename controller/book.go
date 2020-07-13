@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/allentom/youcomic-api/auth"
+	appconfig "github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	ApplicationError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -16,14 +17,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/jinzhu/gorm"
-	"github.com/nfnt/resize"
 	"github.com/sirupsen/logrus"
-	"image"
-	"image/jpeg"
-	"image/png"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -387,49 +383,18 @@ var BookTagBatch gin.HandlerFunc = func(context *gin.Context) {
 	ServerSuccessResponse(context)
 }
 
-func SaveCover(context *gin.Context, book model.Book, file *multipart.FileHeader) (error, string, string) {
+func SaveCover(context *gin.Context, book model.Book, file *multipart.FileHeader) (error, string) {
 	err, storePath := services.GetBookPath(book.Path, book.LibraryId)
 	if err != nil {
-		return err, "", ""
+		return err, ""
 	}
 	fileExt := filepath.Ext(file.Filename)
 	coverImageFilePath := filepath.Join(storePath, fmt.Sprintf("cover%s", fileExt))
 	err = context.SaveUploadedFile(file, coverImageFilePath)
 	if err != nil {
-		return err, "", ""
+		return err, ""
 	}
-
-	//generate thumbnail image
-	thumbnailImageFile, err := os.Open(coverImageFilePath)
-	if err != nil {
-		return err, "", ""
-	}
-	var thumbnailImage image.Image
-	if fileExt == ".png" {
-		thumbnailImage, err = png.Decode(thumbnailImageFile)
-	}
-	if fileExt == ".jpg" {
-		thumbnailImage, err = jpeg.Decode(thumbnailImageFile)
-	}
-	if err != nil {
-		return err, "", ""
-	}
-	resizeImage := resize.Thumbnail(480, 480, thumbnailImage, resize.Lanczos3)
-	thumbnailImagePath := filepath.Join(storePath, fmt.Sprintf("cover_thumbnail%s", fileExt))
-	output, err := os.Create(thumbnailImagePath)
-	if err != nil {
-		return err, "", ""
-	}
-
-	defer thumbnailImageFile.Close()
-	defer output.Close()
-
-	err = jpeg.Encode(output, resizeImage, nil)
-	if err != nil {
-		return err, "", ""
-	}
-	return nil, coverImageFilePath, thumbnailImagePath
-
+	return nil,coverImageFilePath
 }
 
 var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
@@ -455,18 +420,27 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	//get file from form
 	fileHeader := form.File["image"][0]
-	err, coverImageFilePath, _ := SaveCover(context, book, fileHeader)
+
+	//save cover and generate thumbnail
+	err, coverImageFilePath := SaveCover(context, book, fileHeader)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	coverThumbnailStorePath := filepath.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+	_,err = services.GenerateCoverThumbnail(coverImageFilePath,coverThumbnailStorePath)
+
+	// update cover
 	book.Cover = filepath.Base(coverImageFilePath)
 	err = services.UpdateModel(&book, "Cover")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+
+	// render response
 	template := &serializer.BaseBookTemplate{}
 	RenderTemplate(context, template, book)
 	context.JSON(http.StatusOK, template)
@@ -662,7 +636,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	for _, file := range files {
 		if file.Filename == requestBody.Cover {
 			//save cover
-			err, coverPath, _ := SaveCover(context, *book, file)
+			err, coverPath:= SaveCover(context, *book, file)
 			if err != nil {
 				logrus.Error(err)
 				ApiError.RaiseApiError(context, err, nil)
