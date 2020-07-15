@@ -28,7 +28,7 @@ var GetPermissionListHandler gin.HandlerFunc = func(context *gin.Context) {
 	//get page
 	pagination := DefaultPagination{}
 	pagination.Read(context)
-	permissionQueryBuilder.SetPageFilter(pagination.Page,pagination.PageSize)
+	permissionQueryBuilder.SetPageFilter(pagination.Page, pagination.PageSize)
 
 	//query filter
 	filterMapping := []FilterMapping{
@@ -41,23 +41,27 @@ var GetPermissionListHandler gin.HandlerFunc = func(context *gin.Context) {
 			Lookup: "name",
 			Method: "SetNameFilter",
 			Many:   true,
-		},{
+		}, {
 			Lookup: "usergroup",
 			Method: "SetUserGroupQueryFilter",
 			Many:   true,
-		},{
+		}, {
 			Lookup: "nameSearch",
 			Method: "SetNameSearchQueryFilter",
 			Many:   false,
+		}, {
+			Lookup: "user",
+			Method: "SetUserFilter",
+			Many:   true,
 		},
 	}
 	for _, filter := range filterMapping {
 		utils.FilterByParam(context, filter.Lookup, &permissionQueryBuilder, filter.Method, filter.Many)
 	}
 
-	count, permissions,err := permissionQueryBuilder.ReadModels()
+	count, permissions, err := permissionQueryBuilder.ReadModels()
 
-	result := serializer.SerializeMultipleTemplate(permissions, &serializer.BasePermissionTemplate{},nil)
+	result := serializer.SerializeMultipleTemplate(permissions, &serializer.BasePermissionTemplate{}, nil)
 	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
