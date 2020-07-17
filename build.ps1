@@ -2,6 +2,7 @@
 # init 
 $Env:GO111MODULE = "on"
 $Env:GOPROXY = "https://goproxy.cn,direct"
+$Env:CGO_ENABLED = "1"
 Remove-Item -Path "./release" -Recurse -Force -ErrorAction Ignore | Out-Null
 New-Item -Path "./release" -Force -ItemType Directory | Out-Null
 function GetBinaryExtension {

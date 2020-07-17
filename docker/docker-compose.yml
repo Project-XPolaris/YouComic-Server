@@ -1,0 +1,11 @@
+version: "3.2"
+services:
+    youcomic-server:
+        container_name: youcomic-server-instance
+        build:
+            context: .
+        ports:
+            - "8880:8880"
+        volumes: 
+            - ./conf:/home/app/conf
+            - ./static:/home/app/static

@@ -26,22 +26,7 @@ YouComic Server 是整个YouComic的核心服务，提供了大量的内容管�
 ### 编译
 release中的版本不一定是最新版本，可以根据需要自行编译需要的版本。需要一起添加的资源文件有
 
-`./assets` 静态资源文件
-
-`./config/setup.json` 启动参数
-
-编译完成的程序目录大致为:
-```
-- assets
-- config
-    |
-    - setup.json
-- main.exe (主程序名称，会有不同)   
-```
-
-具体的编译方法详见[Go语言文档](https://golang.org/cmd/compile/)
-
-可以使用Powershell 运行写好的`build.ps1`进行编译
+具体详见[编译相关说明](./doc/compile.md)
 
 
 ### 🔗 链接
