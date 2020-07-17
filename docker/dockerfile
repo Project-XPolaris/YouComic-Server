@@ -3,6 +3,5 @@ FROM golang
 WORKDIR /home/app
 ADD ./assets ./assets
 ADD ./youcomic ./
-ADD ./start.sh ./
 
 ENTRYPOINT [ "./youcomic"]
