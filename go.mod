@@ -12,7 +12,6 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/gorm v1.9.11
 	github.com/json-iterator/go v1.1.9 // indirect
-	github.com/karalabe/xgo v0.0.0-20191115072854-c5ccff8648a7 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
