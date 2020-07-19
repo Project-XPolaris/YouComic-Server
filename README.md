@@ -1,10 +1,5 @@
 <div align="center" >
-    <p align="center" style="font-size:24px">
-        Project Polaris | You Comic
-    </p>
-    <p>
-        文件服务器中的漫画管理器部分，本仓库存放服务端API服务
-    </p>
+    <img src="./arts/youcomic-banner.png" />
 </div>
 
 ## YouComic Server
@@ -19,11 +14,11 @@ YouComic Server 是整个YouComic的核心服务，提供了大量的内容管�
 
 黑色的控制台不需要截图😂
 
-## 下载
+## 🌈下载
 项目对以下常用的平台提供相应的编译好的版本，不需要使用者手动编译。
 
 请在[release](https://github.com/Project-XPolaris/YouComic-Server/releases)中查看并下载
-## 开发
+## 🔨开发
 
 服务端主要由Golang + Gin组成。
 

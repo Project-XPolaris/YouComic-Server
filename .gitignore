@@ -1,3 +1,10 @@
 ./conf/confog.develop.json
 .idea
 /dist/
+release/
+init.json
+config.json
+config.develop.json
+scripts/
+*.db
+*.exe
