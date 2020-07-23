@@ -8,3 +8,4 @@ config.develop.json
 scripts/
 *.db
 *.exe
+release-linux/
