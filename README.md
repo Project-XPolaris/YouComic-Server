@@ -20,7 +20,7 @@ YouComic Server 是整个YouComic的核心服务，提供了大量的内容管�
 请在[release](https://github.com/Project-XPolaris/YouComic-Server/releases)中查看并下载
 
 ## 🔧安装
-详见[安装说明](./doc/compile.md)
+详见[安装说明](./doc/install.md)
 
 ## 🔨开发
 
