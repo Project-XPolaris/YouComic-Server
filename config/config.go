@@ -1,6 +1,9 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"fmt"
+	"github.com/spf13/viper"
+)
 
 var Config ApplicationConfig
 
@@ -45,4 +48,27 @@ type InitConfig struct {
 	DefaultUserGroupName string `json:"defaultusergroupname"`
 	Init                 bool   `json:"init"`
 	SuperuserGroupName   string `json:"superusergroupname"`
+}
+
+func LoadConfig() {
+	viper.AutomaticEnv()
+	viper.SetDefault("APPLICATION_DEVELOP", false)
+	developMode := viper.GetBool("APPLICATION_DEVELOP")
+	if developMode {
+		viper.SetConfigName("config.develop")
+	} else {
+		viper.SetConfigName("config")
+	}
+	viper.SetConfigType("json")
+	viper.AddConfigPath("./conf")
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+	err =InitApplicationConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+	viper.WatchConfig()
+
 }

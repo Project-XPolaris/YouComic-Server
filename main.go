@@ -13,7 +13,6 @@ import (
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	ginlogrus "github.com/toorop/gin-logrus"
 	"os"
 	"time"
@@ -27,7 +26,7 @@ func main() {
 	// run installer
 	install.RunInstallServer()
 	//load global application config
-	initConfig()
+	config.LoadConfig()
 	//prepare database
 	setup.CheckDatabase()
 	//connect to database
@@ -74,25 +73,4 @@ func main() {
 	}
 }
 
-func initConfig() {
-	viper.AutomaticEnv()
-	viper.SetDefault("APPLICATION_DEVELOP", false)
-	developMode := viper.GetBool("APPLICATION_DEVELOP")
-	if developMode {
-		viper.SetConfigName("config.develop")
-	} else {
-		viper.SetConfigName("config")
-	}
-	viper.SetConfigType("json")
-	viper.AddConfigPath("./conf")
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
-	}
-	err = config.InitApplicationConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
-	}
-	viper.WatchConfig()
 
-}
