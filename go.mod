@@ -12,6 +12,7 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/gorm v1.9.11
 	github.com/json-iterator/go v1.1.9 // indirect
+	github.com/kardianos/service v1.2.0
 	github.com/karrick/godirwalk v1.16.1
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
@@ -20,9 +21,8 @@ require (
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/viper v1.6.2
 	github.com/toorop/gin-logrus v0.0.0-20190701131413-6c374ad36b67
+	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20191219195013-becbf705a915 // indirect
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
-	golang.org/x/sys v0.0.0-20191224085550-c709ea063b76 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect

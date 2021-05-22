@@ -1,0 +1,7 @@
+{
+  "app_name": "YouComic Service",
+  "auto_start": false,
+  "type":"Service",
+  "service_name":"YouComicCoreService.service",
+  "icon":"icon.png"
+}

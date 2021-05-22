@@ -9,3 +9,4 @@ scripts/
 *.db
 *.exe
 release-linux/
+/pack-output

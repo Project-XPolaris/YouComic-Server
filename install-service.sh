@@ -1,0 +1,1 @@
+./youcomic service install

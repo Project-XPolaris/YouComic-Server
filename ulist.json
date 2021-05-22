@@ -1,0 +1,6 @@
+{
+    "installType":"service",
+    "name":"youcomiccore",
+    "installScript":"./install.sh",
+    "uninstallScript":"./uninstall.sh"
+}
