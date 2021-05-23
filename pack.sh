@@ -10,3 +10,4 @@ cp ./uninstall-service.sh ./pack-output/uninstall-service.sh
 cp ./install-service.sh ./pack-output/install-service.sh
 cp ./youplus.json ./pack-output/youplus.json
 cp ./ulist.json ./pack-output/ulist.json
+cp ./icon.png ./pack-output/icon.png

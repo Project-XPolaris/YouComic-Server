@@ -2,5 +2,6 @@
     "installType":"service",
     "name":"youcomiccore",
     "installScript":"./install.sh",
-    "uninstallScript":"./uninstall.sh"
+    "uninstallScript":"./uninstall.sh",
+
 }

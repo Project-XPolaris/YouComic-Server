@@ -16,6 +16,9 @@ type UserClaims struct {
 func ParseAuthHeader(c *gin.Context) (*UserClaims, error) {
 	jwtToken := c.GetHeader("Authorization")
 	if len(jwtToken) == 0 {
+		jwtToken, _ = c.GetQuery("a")
+	}
+	if len(jwtToken) == 0 {
 		return nil, errors.New("jwt token error")
 	}
 	var claims UserClaims
@@ -50,7 +53,7 @@ func GenerateJWTSign(user *model.User) (string, error) {
 }
 
 func GetUserClaimsFromContext(context *gin.Context) *UserClaims {
-	contextClaims,_ := context.Get("claim")
+	contextClaims, _ := context.Get("claim")
 	claims := contextClaims.(*UserClaims)
 	return claims
 }
