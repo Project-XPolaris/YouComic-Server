@@ -63,10 +63,12 @@ func SetRouter(engine *gin.Engine) {
 	engine.POST("/library/import", controller.ImportLibraryHandler)
 	engine.POST("/library/batch", controller.LibraryBatchHandler)
 	engine.DELETE("/library/:id", controller.DeleteLibraryHandler)
+	engine.PUT("/library/:id/scan", controller.ScanLibraryHandler)
 	engine.GET("/library/:id", controller.LibraryObjectHandler)
 	engine.GET("/libraries", controller.LibraryListHandler)
 	engine.GET("/dashboard/book/daily", controller.BookCountDailySummaryHandler)
 	engine.GET("/dashboard/tag/books", controller.TagBooksCountHandler)
 	engine.GET("/dashboard/tag/types", controller.TagTypeCountHandler)
 	engine.POST("/scan/tasks", controller.NewScannerHandler)
+	engine.GET("/ws", controller.WShandler)
 }

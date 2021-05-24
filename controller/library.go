@@ -155,3 +155,26 @@ var LibraryBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	view.Run()
 }
+
+var ScanLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	rawUserClaims, _ := context.Get("claim")
+	deleteLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.ScanLibraryPermissionName,
+		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &deleteLibraryPermission); !hasPermission {
+		return
+	}
+	task, err := services.ScanLibrary(uint(id))
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	context.JSON(200, task)
+}

@@ -5,32 +5,33 @@ import (
 	"io/ioutil"
 	"path/filepath"
 )
-var DefaultScanPageExt  = []string{
-	".jpg",".png",".jpeg",
+
+var DefaultScanPageExt = []string{
+	".jpg", ".png", ".jpeg",
 }
 
 type ScannerResult struct {
-	DirPath string
+	DirPath   string
 	CoverName string
-	Pages []string
+	Pages     []string
 }
 type Scanner struct {
-	TargetPath string
-	PageExt []string
+	TargetPath   string
+	PageExt      []string
 	MinPageCount int
-	Result []ScannerResult
+	Result       []ScannerResult
+	Total        int64
 }
 
-func (s *Scanner)Scan() error{
+func (s *Scanner) Scan() error {
 	s.Result = []ScannerResult{}
 	err := godirwalk.Walk(s.TargetPath, &godirwalk.Options{
 		AllowNonDirectory: false,
-
 		PostChildrenCallback: func(osPathname string, directoryEntry *godirwalk.Dirent) error {
-			fileNames,_ := ioutil.ReadDir(osPathname)
+			fileNames, _ := ioutil.ReadDir(osPathname)
 			targetCount := 0
 			coverName := ""
-			pages := make([]string,0)
+			pages := make([]string, 0)
 			for _, fileInfo := range fileNames {
 				if !fileInfo.IsDir() {
 					ext := filepath.Ext(fileInfo.Name())
@@ -50,8 +51,9 @@ func (s *Scanner)Scan() error{
 				s.Result = append(s.Result, ScannerResult{
 					DirPath:   osPathname,
 					CoverName: coverName,
-					Pages: pages,
+					Pages:     pages,
 				})
+				s.Total += 1
 			}
 			return nil
 		},

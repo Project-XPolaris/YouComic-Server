@@ -20,4 +20,5 @@ const (
 	CreateLibraryPermissionName            = "CreateLibrary"
 	DeleteLibraryPermissionName            = "DeleteLibrary"
 	UpdateLibraryPermissionName            = "UpdateLibrary"
+	ScanLibraryPermissionName              = "ScanLibrary"
 )

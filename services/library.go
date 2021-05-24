@@ -132,7 +132,7 @@ func DeleteLibrary(libraryId uint) error {
 		return err
 	}
 	for _, book := range books {
-		os.RemoveAll(filepath.Join(appconfig.Config.Store.Root,"generate",fmt.Sprintf("%d",book.ID)))
+		os.RemoveAll(filepath.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
 	}
 
 	return err
@@ -166,4 +166,12 @@ func (b *LibraryQueryBuilder) ReadModels() (int, interface{}, error) {
 		return 0, query, nil
 	}
 	return count, md, err
+}
+
+func ScanLibrary(id uint) (*ScanTask, error) {
+	library, err := GetLibraryById(id)
+	if err != nil {
+		return nil, err
+	}
+	return DefaultScanTaskPool.NewScanLibraryTask(&library)
 }

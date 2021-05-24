@@ -6,7 +6,21 @@ import (
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
+	"path/filepath"
+	"time"
 )
+
+func init() {
+	go func() {
+		for {
+			<-time.After(1 * time.Second)
+			DefaultNotificationManager.sendJSONToAll(map[string]interface{}{
+				"event": "ScanTaskUpdate",
+				"data":  services.DefaultScanTaskPool.Tasks,
+			})
+		}
+	}()
+}
 
 type NewScannerRequestBody struct {
 	DirPath string `json:"dir_path"`
@@ -32,6 +46,6 @@ var NewScannerHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
-	services.DefaultScanTaskPool.StartTask(requestBody.DirPath)
+	services.DefaultScanTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath))
 	ServerSuccessResponse(context)
 }
