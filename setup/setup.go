@@ -46,6 +46,7 @@ func SetupApplication() error {
 	if err != nil {
 		return err
 	}
+	// check thumbnails
 	return nil
 }
 

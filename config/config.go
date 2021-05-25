@@ -23,9 +23,9 @@ type ApplicationConfig struct {
 	Database struct {
 		Type string `json:"type"`
 	} `json:"database"`
-	Sqlite struct{
+	Sqlite struct {
 		Path string `json:"path"`
-	}`json:"sqlite"`
+	} `json:"sqlite"`
 	Mysql struct {
 		Host     string `json:"host"`
 		Port     string `json:"port"`
@@ -33,6 +33,10 @@ type ApplicationConfig struct {
 		Password string `json:"password"`
 		Database string `json:"database"`
 	} `json:"mysql"`
+	Thumbnail struct {
+		Type   string `json:"type"`
+		Target string `json:"target"`
+	} `json:"thumbnail"`
 }
 
 func InitApplicationConfig() error {
@@ -65,7 +69,7 @@ func LoadConfig() {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-	err =InitApplicationConfig()
+	err = InitApplicationConfig()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}

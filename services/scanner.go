@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 var DefaultScanTaskPool = ScanTaskPool{
@@ -29,13 +30,15 @@ type ScanTaskPool struct {
 }
 
 type ScanTask struct {
-	ID        string `json:"id"`
-	TargetDir string `json:"targetDir"`
-	LibraryId uint   `json:"libraryId"`
-	Name      string `json:"name"`
-	Total     int64  `json:"total"`
-	Current   int64  `json:"current"`
-	Status    string `json:"status"`
+	ID        string
+	TargetDir string
+	LibraryId uint
+	Name      string
+	Total     int64
+	Current   int64
+	Status    string
+	Created   time.Time
+	CurrentDir string
 }
 
 func (p *ScanTaskPool) AddTask(task *ScanTask) {
@@ -54,6 +57,7 @@ func (p *ScanTaskPool) NewLibraryAndScan(targetPath string, name string) (*ScanT
 		LibraryId: library.ID,
 		Name:      library.Name,
 		Status:    ScanStatusAnalyze,
+		Created:   time.Now(),
 	}
 	p.AddTask(task)
 	task.StartTask()
@@ -67,6 +71,7 @@ func (p *ScanTaskPool) NewScanLibraryTask(library *model.Library) (*ScanTask, er
 		LibraryId: library.ID,
 		Name:      library.Name,
 		Status:    ScanStatusAnalyze,
+		Created:   time.Now(),
 	}
 	p.AddTask(task)
 	task.StartTask()
@@ -99,6 +104,7 @@ func (t *ScanTask) ScannerDir() chan interface{} {
 		// create library
 		for _, item := range scanner.Result {
 			t.Current += 1
+			t.CurrentDir = filepath.Base(item.DirPath)
 			relativePath, _ := filepath.Rel(t.TargetDir, item.DirPath)
 			var book model.Book
 			database.DB.Model(&model.Book{}).Where("path = ?", relativePath).First(&book)

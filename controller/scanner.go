@@ -4,6 +4,7 @@ import (
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
+	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
@@ -14,9 +15,18 @@ func init() {
 	go func() {
 		for {
 			<-time.After(1 * time.Second)
+			data := make([]serializer.ScanTaskSerializer,0)
+			for _, task := range services.DefaultScanTaskPool.Tasks {
+				template := serializer.ScanTaskSerializer{}
+				err := template.Serializer(task,nil)
+				if err != nil {
+					continue
+				}
+				data = append(data, template)
+			}
 			DefaultNotificationManager.sendJSONToAll(map[string]interface{}{
 				"event": "ScanTaskUpdate",
-				"data":  services.DefaultScanTaskPool.Tasks,
+				"data":  data,
 			})
 		}
 	}()

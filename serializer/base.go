@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/copier"
 	"reflect"
 )
+const timeFormat = "2006-01-02 15:16:05"
 
 type TemplateSerializer interface {
 	Serializer(dataModel interface{},context map[string]interface{}) error
