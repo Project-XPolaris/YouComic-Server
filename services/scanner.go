@@ -30,14 +30,14 @@ type ScanTaskPool struct {
 }
 
 type ScanTask struct {
-	ID        string
-	TargetDir string
-	LibraryId uint
-	Name      string
-	Total     int64
-	Current   int64
-	Status    string
-	Created   time.Time
+	ID         string
+	TargetDir  string
+	LibraryId  uint
+	Name       string
+	Total      int64
+	Current    int64
+	Status     string
+	Created    time.Time
 	CurrentDir string
 }
 
@@ -109,7 +109,6 @@ func (t *ScanTask) ScannerDir() chan interface{} {
 			var book model.Book
 			database.DB.Model(&model.Book{}).Where("path = ?", relativePath).First(&book)
 			if len(book.Path) != 0 {
-				logrus.Info(fmt.Sprintf("ID = %d exist,skip", book.ID))
 				continue
 			}
 			book = model.Book{
@@ -130,10 +129,24 @@ func (t *ScanTask) ScannerDir() chan interface{} {
 				database.DB.Save(page)
 			}
 			coverThumbnailStorePath := path.Join(config.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
-			_, err = GenerateCoverThumbnail(
-				filepath.Join(t.TargetDir, book.Path, book.Cover),
-				coverThumbnailStorePath,
-			)
+			option := ThumbnailTaskOption{
+				Input:   filepath.Join(t.TargetDir, book.Path, book.Cover),
+				Output:  coverThumbnailStorePath,
+				ErrChan: make(chan error),
+			}
+			DefaultThumbnailService.Resource <- option
+			err = <-option.ErrChan
+			if err != nil {
+				// use page as cover
+				for _, page := range item.Pages {
+					option.Input = filepath.Join(t.TargetDir, book.Path, page)
+					DefaultThumbnailService.Resource <- option
+					err = <-option.ErrChan
+					if err == nil {
+						break
+					}
+				}
+			}
 			if err != nil {
 				logrus.Error(err)
 			}

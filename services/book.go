@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/allentom/youcomic-api/application"
-	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/gorm"
 	"os"
 	"path"
-	"path/filepath"
 	"reflect"
 )
 
@@ -311,30 +309,6 @@ func GetBookById(bookId uint) (model.Book, error) {
 	var book model.Book
 	err := database.DB.Find(&book, bookId).Error
 	return book, err
-}
-
-//generate thumbnail image
-func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string, error) {
-	// setup image decoder
-	fileExt := filepath.Ext(coverImageFilePath)
-	// mkdir
-	err := os.MkdirAll(storePath, os.ModePerm)
-	if err != nil {
-		return "", err
-	}
-	thumbnailImagePath := filepath.Join(storePath, fmt.Sprintf("cover_thumbnail%s", fileExt))
-
-	var generator ThumbnailEngine
-	if config.Config.Thumbnail.Type == "vips" {
-		generator = NewVipsThumbnailEngine(config.Config.Thumbnail.Target)
-	}else{
-		generator = &DefaultThumbnailsEngine{}
-	}
-	abs,err := filepath.Abs(thumbnailImagePath)
-	if err != nil {
-		return "", err
-	}
-	return generator.Generate(coverImageFilePath,abs,480)
 }
 
 type BookDailyResult struct {
