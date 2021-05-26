@@ -3,6 +3,7 @@ module github.com/allentom/youcomic-api
 go 1.12
 
 require (
+	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-contrib/location v0.0.1
@@ -19,7 +20,7 @@ require (
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/rs/xid v1.3.0
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/viper v1.6.2

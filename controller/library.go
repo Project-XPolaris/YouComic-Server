@@ -164,11 +164,11 @@ var ScanLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	rawUserClaims, _ := context.Get("claim")
-	deleteLibraryPermission := permission.StandardPermissionChecker{
+	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
 		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
 	}
-	if hasPermission := permission.CheckPermissionAndServerError(context, &deleteLibraryPermission); !hasPermission {
+	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
 	}
 	task, err := services.ScanLibrary(uint(id))
@@ -177,4 +177,18 @@ var ScanLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	context.JSON(200, task)
+}
+
+var StopLibraryScanHandler gin.HandlerFunc = func(context *gin.Context) {
+	id := context.Query("id")
+	rawUserClaims, _ := context.Get("claim")
+	scanLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.ScanLibraryPermissionName,
+		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
+		return
+	}
+	services.DefaultScanTaskPool.StopTask(id)
+	ServerSuccessResponse(context)
 }

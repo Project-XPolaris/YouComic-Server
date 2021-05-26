@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	linq "github.com/ahmetb/go-linq/v3"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
@@ -22,6 +23,7 @@ const (
 	ScanStatusAnalyze  = "Analyze"
 	ScanStatusAdd      = "Add"
 	ScanStatusComplete = "Complete"
+	ScanStatusStop     = "Stop"
 )
 
 type ScanTaskPool struct {
@@ -39,12 +41,19 @@ type ScanTask struct {
 	Status     string
 	Created    time.Time
 	CurrentDir string
+	stopFlag   bool
 }
 
 func (p *ScanTaskPool) AddTask(task *ScanTask) {
 	p.Lock()
 	defer p.Unlock()
 	p.Tasks = append(p.Tasks, task)
+}
+func (p *ScanTaskPool) StopTask(id string) {
+	task := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
+		return i.(*ScanTask).ID == id
+	}).(*ScanTask)
+	task.StopTask()
 }
 func (p *ScanTaskPool) NewLibraryAndScan(targetPath string, name string) (*ScanTask, error) {
 	library, err := CreateLibrary(name, targetPath)
@@ -86,6 +95,9 @@ func (t *ScanTask) StartTask() {
 		}
 	}()
 }
+func (t *ScanTask) StopTask() {
+	t.stopFlag = true
+}
 func (t *ScanTask) ScannerDir() chan interface{} {
 	resultChan := make(chan interface{})
 	go func(resultChan chan interface{}) {
@@ -103,6 +115,10 @@ func (t *ScanTask) ScannerDir() chan interface{} {
 		t.Status = ScanStatusAdd
 		// create library
 		for _, item := range scanner.Result {
+			if t.stopFlag {
+				t.Status = ScanStatusStop
+				return
+			}
 			t.Current += 1
 			t.CurrentDir = filepath.Base(item.DirPath)
 			relativePath, _ := filepath.Rel(t.TargetDir, item.DirPath)
