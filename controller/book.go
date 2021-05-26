@@ -394,7 +394,7 @@ func SaveCover(context *gin.Context, book model.Book, file *multipart.FileHeader
 	if err != nil {
 		return err, ""
 	}
-	return nil,coverImageFilePath
+	return nil, coverImageFilePath
 }
 
 var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
@@ -430,7 +430,7 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	coverThumbnailStorePath := filepath.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
-	_,err = services.GenerateCoverThumbnail(coverImageFilePath,coverThumbnailStorePath)
+	_, err = services.GenerateCoverThumbnail(coverImageFilePath, coverThumbnailStorePath)
 
 	// update cover
 	book.Cover = filepath.Base(coverImageFilePath)
@@ -465,13 +465,13 @@ var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	book,err := services.GetBookById(uint(id))
+	book, err := services.GetBookById(uint(id))
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 
-	err, storePath := services.GetBookPath(book.Path,book.LibraryId)
+	err, storePath := services.GetBookPath(book.Path, book.LibraryId)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
@@ -636,7 +636,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	for _, file := range files {
 		if file.Filename == requestBody.Cover {
 			//save cover
-			err, coverPath:= SaveCover(context, *book, file)
+			err, coverPath := SaveCover(context, *book, file)
 			if err != nil {
 				logrus.Error(err)
 				ApiError.RaiseApiError(context, err, nil)
@@ -693,8 +693,9 @@ var GetBook gin.HandlerFunc = func(context *gin.Context) {
 }
 
 type ImportLibraryRequestBody struct {
-	LibraryPath    string `form:"library_path" json:"library_path" xml:"library_path"  binding:"required"`
+	LibraryPath string `form:"library_path" json:"library_path" xml:"library_path"  binding:"required"`
 }
+
 var ImportLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody ImportLibraryRequestBody
 	err := DecodeJsonBody(context, &requestBody)

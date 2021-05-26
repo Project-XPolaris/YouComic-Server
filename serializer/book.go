@@ -6,6 +6,7 @@ import (
 	"github.com/allentom/youcomic-api/services"
 	"github.com/jinzhu/copier"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -18,6 +19,7 @@ type BaseBookTemplate struct {
 	Cover     string      `json:"cover"`
 	LibraryId uint        `json:"library_id"`
 	Tags      interface{} `json:"tags"`
+	DirName   string      `json:"dirName"`
 }
 
 func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]interface{}) error {
@@ -28,10 +30,11 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 	}
 	if len(b.Cover) != 0 {
 		b.Cover = fmt.Sprintf("%s?t=%d",
-			path.Join("/","content", "book", strconv.Itoa(int(serializerModel.ID)), serializerModel.Cover),
+			path.Join("/", "content", "book", strconv.Itoa(int(serializerModel.ID)), serializerModel.Cover),
 			time.Now().Unix(),
 		)
 	}
+	b.DirName = filepath.Base(serializerModel.Path)
 	tags, err := services.GetBookTagsByTypes(serializerModel.ID, "artist", "translator", "series", "theme")
 	if err != nil {
 		return err
