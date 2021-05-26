@@ -70,5 +70,6 @@ func SetRouter(engine *gin.Engine) {
 	engine.GET("/dashboard/tag/books", controller.TagBooksCountHandler)
 	engine.GET("/dashboard/tag/types", controller.TagTypeCountHandler)
 	engine.POST("/scan/tasks", controller.NewScannerHandler)
+	engine.POST("/scan/stop", controller.StopLibraryScanHandler)
 	engine.GET("/ws", controller.WShandler)
 }

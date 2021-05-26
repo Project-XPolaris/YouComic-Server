@@ -346,6 +346,5 @@ func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int, error) {
 		}
 		result = append(result, dailyResult)
 	}
-
 	return result, count, err
 }
