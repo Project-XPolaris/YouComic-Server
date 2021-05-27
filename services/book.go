@@ -176,7 +176,7 @@ func (f *BookCollectionQueryFilter) SetCollectionQueryFilter(collectionIds ...in
 func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count int64= 0
+	var count int64 = 0
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
@@ -228,19 +228,15 @@ func DeleteBooks(ids ...int) error {
 }
 func DeleteBooksPermanently(tx *gorm.DB, ids ...int) error {
 	var err error
-	deleteTx := tx
-	if tx == nil {
-		tx = database.DB.Begin()
-	}
+
 	for _, id := range ids {
 		book := model.Book{}
 		book.ID = uint(id)
-		err = deleteTx.Unscoped().Delete(&book).Error
+		err = database.DB.Unscoped().Delete(&book).Error
 		if err != nil {
 			return err
 		}
 	}
-	deleteTx.Commit()
 	return nil
 }
 
@@ -311,7 +307,7 @@ type BookDailyResult struct {
 func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int64, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count int64= 0
+	var count int64 = 0
 	rawRows, err := query.Model(
 		&model.Book{},
 	).Limit(

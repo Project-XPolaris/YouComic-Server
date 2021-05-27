@@ -32,7 +32,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
-	gorm.io/driver/mysql v1.1.0 // indirect
-	gorm.io/driver/sqlite v1.1.4 // indirect
-	gorm.io/gorm v1.21.10 // indirect
+	gorm.io/driver/mysql v1.1.0
+	gorm.io/driver/sqlite v1.1.4
+	gorm.io/gorm v1.21.10
 )

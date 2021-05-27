@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type Page struct {
 	gorm.Model
-	Order  int
-	Path   string
-	BookId int
+	PageOrder int
+	Path      string
+	BookId    int
 }

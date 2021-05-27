@@ -76,10 +76,10 @@ func (p *ScanTaskPool) NewLibraryAndScan(targetPath string, name string) (*ScanT
 func (p *ScanTaskPool) NewScanLibraryTask(library *model.Library) (*ScanTask, error) {
 	exist := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
 		task := i.(*ScanTask)
-		return task.LibraryId == library.ID && ( task.Status == ScanStatusAdd || task.Status == ScanStatusAnalyze)
+		return task.LibraryId == library.ID && (task.Status == ScanStatusAdd || task.Status == ScanStatusAnalyze)
 	})
 	if exist != nil {
-		return exist.(*ScanTask),nil
+		return exist.(*ScanTask), nil
 	}
 	task := &ScanTask{
 		ID:        xid.New().String(),
@@ -145,9 +145,9 @@ func (t *ScanTask) ScannerDir() chan interface{} {
 			// for pages
 			for idx, pageName := range item.Pages {
 				page := &model.Page{
-					Path:   pageName,
-					BookId: int(book.Model.ID),
-					Order:  idx + 1,
+					Path:      pageName,
+					BookId:    int(book.Model.ID),
+					PageOrder: idx + 1,
 				}
 				database.DB.Save(page)
 			}
