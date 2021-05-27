@@ -74,6 +74,13 @@ func (p *ScanTaskPool) NewLibraryAndScan(targetPath string, name string) (*ScanT
 }
 
 func (p *ScanTaskPool) NewScanLibraryTask(library *model.Library) (*ScanTask, error) {
+	exist := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
+		task := i.(*ScanTask)
+		return task.LibraryId == library.ID && ( task.Status == ScanStatusAdd || task.Status == ScanStatusAnalyze)
+	})
+	if exist != nil {
+		return exist.(*ScanTask),nil
+	}
 	task := &ScanTask{
 		ID:        xid.New().String(),
 		TargetDir: library.Path,

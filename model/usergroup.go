@@ -1,6 +1,6 @@
 package model
 
-import "github.com/jinzhu/gorm"
+import "gorm.io/gorm"
 
 type UserGroup struct {
 	gorm.Model

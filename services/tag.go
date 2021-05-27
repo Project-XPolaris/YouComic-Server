@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 type TagQueryBuilder struct {
@@ -55,10 +55,10 @@ func (f *TagSubscriptionQueryFilter) SetTagSubscriptionQueryFilter(subscriptions
 	}
 }
 
-func (b *TagQueryBuilder) ReadModels() (int, interface{}, error) {
+func (b *TagQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64 = 0
 	md := make([]model.Tag, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {
@@ -67,14 +67,12 @@ func (b *TagQueryBuilder) ReadModels() (int, interface{}, error) {
 	return count, md, err
 }
 
-func GetTagBooks(tagId uint, page int, pageSize int) (int, []model.Book, error) {
+func GetTagBooks(tagId uint, page int, pageSize int) (int64, []model.Book, error) {
 	var books []model.Book
-	count := 0
+	var count int64 = 0
 	err := database.DB.Model(
 		&model.Tag{Model: gorm.Model{ID: tagId}},
-	).Limit(pageSize).Offset((page-1)*pageSize).Related(
-		&books, "Books",
-	).Error
+	).Limit(pageSize).Offset((page-1)*pageSize).Preload("Books", ).Error
 	count = database.DB.Model(
 		&model.Tag{Model: gorm.Model{ID: tagId}},
 	).Association("Books").Count()
@@ -87,7 +85,7 @@ func AddBooksToTag(tagId int, bookIds []int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err = database.DB.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Append(books).Error
+	err = database.DB.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Append(books)
 	return err
 }
 
@@ -97,43 +95,44 @@ func RemoveBooksFromTag(tagId int, bookIds []int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err = database.DB.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Delete(books).Error
+	err = database.DB.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Delete(books)
 	return err
 }
 
-func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag) (err error) {
-	tx := database.DB.Begin()
+func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag,isTagOverwrite bool) (err error) {
 	for _, tag := range tags {
-		err = tx.Model(tag).FirstOrCreate(tag).Error
-		if err != nil {
-			return err
-		}
-		err = tx.Model(book).Association("Tags").Append(tag).Error
+		err = database.DB.FirstOrCreate(tag,model.Tag{Name: tag.Name,Type: tag.Type}).Error
 		if err != nil {
 			return err
 		}
 	}
-	defer func() {
+	ass := database.DB.Model(book).Association("Tags")
+	if isTagOverwrite {
+		err = ass.Clear()
 		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
+			return err
 		}
-	}()
+	}
+	for _, tag := range tags {
+		err = database.DB.Model(tag).Association("Books").Append(book)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 // add users to tag
 func AddTagSubscription(tagId uint, users ...interface{}) error {
 	tag := &model.Tag{Model: gorm.Model{ID: tagId}}
-	err := database.DB.Model(tag).Association("Subscriptions").Append(users...).Error
+	err := database.DB.Model(tag).Association("Subscriptions").Append(users...)
 	return err
 }
 
 // remove users from tag
 func RemoveTagSubscription(tagId uint, users ...interface{}) error {
 	tag := &model.Tag{Model: gorm.Model{ID: tagId}}
-	err := database.DB.Model(tag).Association("Subscriptions").Delete(users...).Error
+	err := database.DB.Model(tag).Association("Subscriptions").Delete(users...)
 	return err
 }
 
@@ -148,10 +147,10 @@ type TagCount struct {
 	Name string `json:"name"`
 	Total int `json:"total"`
 }
-func (b *TagQueryBuilder) GetTagCount() (int, interface{}, error) {
+func (b *TagQueryBuilder) GetTagCount() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64 = 0
 	rows, err := query.Model(&model.Tag{}).Select(
 		`name,count(book_tags.book_id) as total`,
 	).Joins(
@@ -177,10 +176,10 @@ type TagTypeCount struct {
 	Name string `json:"name"`
 	Total int `json:"total"`
 }
-func (b *TagQueryBuilder) GetTagTypeCount() (int, []TagTypeCount, error) {
+func (b *TagQueryBuilder) GetTagTypeCount() (int64, []TagTypeCount, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64= 0
 	rows, err := query.Model(&model.Tag{}).Select(
 		`type as name,count(*) as total`,
 	).Group(

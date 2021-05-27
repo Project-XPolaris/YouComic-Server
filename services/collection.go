@@ -5,7 +5,7 @@ import (
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 type CollectionQueryBuilder struct {
@@ -20,11 +20,11 @@ type CollectionQueryBuilder struct {
 	HasBookQueryFilter
 }
 
-func (b *CollectionQueryBuilder) ReadModels() (int, interface{}, error) {
+func (b *CollectionQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
 	var collections []model.Collection
-	var count = 0
+	var count int64 = 0
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&collections).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {
 		return 0, query, nil
@@ -111,7 +111,7 @@ func AddBooksToCollection(collectionId uint, bookIds ...int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Append(books).Error
+	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Append(books)
 	return err
 }
 
@@ -120,7 +120,7 @@ func RemoveBooksFromCollection(collectionId uint, bookIds ...int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Delete(books).Error
+	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Delete(books)
 	return err
 }
 func AddUsersToCollection(collectionId uint, userIds ...int) error {
@@ -128,7 +128,7 @@ func AddUsersToCollection(collectionId uint, userIds ...int) error {
 	for _, bookId := range userIds {
 		users = append(users, model.User{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Append(users).Error
+	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Append(users)
 	return err
 }
 
@@ -137,7 +137,7 @@ func RemoveUsersFromCollection(collectionId uint, userIds ...int) error {
 	for _, bookId := range userIds {
 		users = append(users, model.User{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Delete(users).Error
+	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Delete(users)
 	return err
 }
 

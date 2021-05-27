@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm.io/driver/mysql"
+	_ "gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
+	_ "gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"log"
 )
 
@@ -21,14 +23,14 @@ func MysqlConnector() (err error) {
 		mysqlConfig.Port,
 		mysqlConfig.Database,
 	)
-	DB, err = gorm.Open("mysql", connectString)
+	DB, err = gorm.Open(mysql.Open(connectString), &gorm.Config{})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func SqliteConnector() (err error) {
-	DB, err = gorm.Open("sqlite3", config.Config.Sqlite.Path)
+	DB, err = gorm.Open(sqlite.Open(config.Config.Sqlite.Path) ,&gorm.Config{})
 	return
 }
 func ConnectDatabase() {

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 type PermissionQueryBuilder struct {
@@ -16,10 +16,10 @@ type PermissionQueryBuilder struct {
 	UserFilter
 }
 
-func (b *PermissionQueryBuilder) ReadModels() (int, interface{}, error) {
+func (b *PermissionQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64 = 0
 	md := make([]model.Permission, 0)
 	err := query.Limit(b.PageSize).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {

@@ -7,7 +7,7 @@ import (
 	"github.com/allentom/youcomic-api/application"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"os"
 	"path"
 	"reflect"
@@ -173,10 +173,10 @@ func (f *BookCollectionQueryFilter) SetCollectionQueryFilter(collectionIds ...in
 		}
 	}
 }
-func (b *BooksQueryBuilder) ReadModels(models interface{}) (int, error) {
+func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64= 0
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
@@ -187,21 +187,18 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int, error) {
 
 func CreateBooks(books []model.Book) error {
 	var err error
-	tx := database.DB.Begin()
+
 	for _, book := range books {
-		err = tx.Create(&book).Error
+		err = database.DB.Create(&book).Error
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	tx.Commit()
 	return nil
 }
 
 func UpdateBooks(Books []model.Book, allowFields ...string) error {
 	var err error
-	tx := database.DB.Begin()
 	for _, book := range Books {
 		updateMap := make(map[string]interface{})
 		r := reflect.ValueOf(book)
@@ -211,27 +208,22 @@ func UpdateBooks(Books []model.Book, allowFields ...string) error {
 		}
 		err := database.DB.Model(&book).Updates(updateMap).Error
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	tx.Commit()
 	return err
 }
 
 func DeleteBooks(ids ...int) error {
 	var err error
-	tx := database.DB.Begin()
 	for _, id := range ids {
 		book := model.Book{}
 		book.ID = uint(id)
-		err = tx.Delete(&book).Error
+		err = database.DB.Delete(&book).Error
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	tx.Commit()
 	return nil
 }
 func DeleteBooksPermanently(tx *gorm.DB, ids ...int) error {
@@ -257,7 +249,7 @@ func AddTagToBook(bookId int, tagIds ...int) error {
 	for _, tagId := range tagIds {
 		tagsToAdd = append(tagsToAdd, &model.Tag{Model: gorm.Model{ID: uint(tagId)}})
 	}
-	return database.DB.Model(&model.Book{Model: gorm.Model{ID: uint(bookId)}}).Association("Tags").Append(tagsToAdd...).Error
+	return database.DB.Model(&model.Book{Model: gorm.Model{ID: uint(bookId)}}).Association("Tags").Append(tagsToAdd...)
 }
 
 func GetBookPath(bookPath string, libraryId uint) (error, string) {
@@ -301,7 +293,7 @@ func GetBookTagsByTypes(bookId uint, tagTypes ...string) ([]model.Tag, error) {
 
 func GetBookTag(bookId uint) ([]model.Tag, error) {
 	tags := make([]model.Tag, 0)
-	err := database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Find(&tags).Error
+	err := database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Find(&tags)
 	return tags, err
 }
 
@@ -316,10 +308,10 @@ type BookDailyResult struct {
 	Total int
 }
 
-func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int, error) {
+func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int64, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64= 0
 	rawRows, err := query.Model(
 		&model.Book{},
 	).Limit(

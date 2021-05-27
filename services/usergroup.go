@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 type UserGroupQueryBuilder struct {
@@ -14,10 +14,10 @@ type UserGroupQueryBuilder struct {
 	DefaultPageFilter
 }
 
-func (b *UserGroupQueryBuilder) ReadModels() (int, interface{}, error) {
+func (b *UserGroupQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64= 0
 	md := make([]model.UserGroup, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {
@@ -31,7 +31,7 @@ func AddPermissionsToUserGroup(userGroup *model.UserGroup, permissions ...*model
 	for _, permission := range permissions {
 		permissionInterfaces = append(permissionInterfaces, permission)
 	}
-	return database.DB.Model(userGroup).Association("Permissions").Append(permissionInterfaces...).Error
+	return database.DB.Model(userGroup).Association("Permissions").Append(permissionInterfaces...)
 }
 
 type UserGroupUserFilter struct {
@@ -58,7 +58,7 @@ func AddUsersToUserGroup(userGroup *model.UserGroup, users ...*model.User) error
 	for _, user := range users {
 		userInterfaces = append(userInterfaces, user)
 	}
-	return database.DB.Model(userGroup).Association("Users").Append(userInterfaces...).Error
+	return database.DB.Model(userGroup).Association("Users").Append(userInterfaces...)
 }
 
 func RemoveUsersFromUserGroup(userGroup *model.UserGroup, users ...*model.User) error {
@@ -66,7 +66,7 @@ func RemoveUsersFromUserGroup(userGroup *model.UserGroup, users ...*model.User) 
 	for _, user := range users {
 		userInterfaces = append(userInterfaces, user)
 	}
-	return database.DB.Model(userGroup).Association("Users").Delete(userInterfaces...).Error
+	return database.DB.Model(userGroup).Association("Users").Delete(userInterfaces...)
 }
 
 func RemovePermissionsFromUserGroup(userGroup *model.UserGroup, permissions ...*model.Permission) error {
@@ -74,5 +74,5 @@ func RemovePermissionsFromUserGroup(userGroup *model.UserGroup, permissions ...*
 	for _, permission := range permissions {
 		permissionInterfaces = append(permissionInterfaces, permission)
 	}
-	return database.DB.Model(userGroup).Association("Permissions").Delete(permissionInterfaces...).Error
+	return database.DB.Model(userGroup).Association("Permissions").Delete(permissionInterfaces...)
 }

@@ -4,7 +4,7 @@ import (
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/jinzhu/copier"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"time"
 )
 

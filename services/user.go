@@ -8,7 +8,7 @@ import (
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 var (
@@ -65,10 +65,10 @@ type UserQueryBuilder struct {
 	OrderQueryFilter
 }
 
-func (b *UserQueryBuilder) ReadModels() (int, interface{}, error) {
+func (b *UserQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64 = 0
 	md := make([]model.User, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {

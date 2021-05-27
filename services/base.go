@@ -5,7 +5,7 @@ import (
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"os"
 	"reflect"
 )
@@ -45,7 +45,7 @@ type OrderFilter interface {
 
 //read models from database
 type ModelsReader interface {
-	ReadModels() (int, interface{}, error)
+	ReadModels() (int64, interface{}, error)
 }
 
 //delete model by model's id
@@ -172,21 +172,17 @@ func (f *NameSearchQueryFilter) SetNameSearchQueryFilter(nameSearch interface{})
 }
 func CreateModels(models []interface{}) error {
 	var err error
-	tx := database.DB.Begin()
 	for _, modelToCreate := range models {
-		err = tx.Create(modelToCreate).Error
+		err = database.DB.Create(modelToCreate).Error
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	tx.Commit()
 	return nil
 }
 
 func UpdateModels(updateModel interface{}, updateModels []interface{}, allowFields ...string) error {
 	var err error
-	tx := database.DB.Begin()
 	for _, updateMapInterface := range updateModels {
 		rawUpdateMap := updateMapInterface.(map[string]interface{})
 		updateMap := make(map[string]interface{}, 0)
@@ -195,23 +191,20 @@ func UpdateModels(updateModel interface{}, updateModels []interface{}, allowFiel
 		}
 		err := database.DB.Model(updateModel).Where("id = ?", rawUpdateMap["id"]).Updates(updateMap).Error
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	tx.Commit()
 	return err
 }
 
 func DeleteModels(deleteModel interface{}, ids ...int) error {
 	var err error
-	tx := database.DB.Begin()
-	err = tx.Where("id in (?)", ids).Delete(deleteModel).Error
+
+	err = database.DB.Where("id in (?)", ids).Delete(deleteModel).Error
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	tx.Commit()
+
 	return nil
 }
 
@@ -225,7 +218,7 @@ func CreateModel(modelToCreate interface{}) error {
 }
 
 func RemoveTagFromBook(bookId uint, tagId uint) error {
-	return database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Delete(model.Tag{Model: gorm.Model{ID: tagId}}).Error
+	return database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Delete(model.Tag{Model: gorm.Model{ID: tagId}})
 }
 
 func DeleteBookFile(bookId uint) (err error) {

@@ -166,7 +166,7 @@ func initStorePath() error {
 }
 
 func initDefaultLibrary() error {
-	count := 0
+	var count int64 = 0
 	err := database.DB.Model(&model.Library{}).Where("name = ?", application.DEFAULT_LIBRARY_NAME).Count(&count).Error
 	if err != nil {
 		return err

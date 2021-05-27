@@ -16,8 +16,8 @@ import (
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"mime/multipart"
 	"net/http"
 	"path"
@@ -75,6 +75,11 @@ var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 type UpdateBookRequestBody struct {
 	Id   int
 	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
+	UpdateTags []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"updateTags"`
+	OverwriteTag  bool `json:"overwriteTag"`
 }
 
 // update book handler
@@ -136,6 +141,18 @@ var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
+	// update tags
+	if requestBody.UpdateTags != nil {
+		tags := make([]*model.Tag,0)
+		for _, rawTag := range requestBody.UpdateTags {
+			tags = append(tags, &model.Tag{Name: rawTag.Name,Type: rawTag.Type})
+		}
+		err = services.AddOrCreateTagToBook(book,tags,requestBody.OverwriteTag)
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
+	}
 	template := &serializer.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
@@ -336,6 +353,7 @@ var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 			ApiError.RaiseApiError(context, err, nil)
 			return
 		}
+
 		booksToUpdate = append(booksToUpdate, book)
 	}
 	err = services.UpdateBooks(booksToUpdate, "Name")
@@ -512,7 +530,7 @@ var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     1,
 		"pageSize": len(createPages),
-		"count":    len(createPages),
+		"count":    int64(len(createPages)),
 		"url":      context.Request.URL,
 	})
 	context.JSON(http.StatusOK, responseBody)
@@ -535,7 +553,7 @@ var GetBookTags gin.HandlerFunc = func(context *gin.Context) {
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     1,
 		"pageSize": len(tags),
-		"count":    len(tags),
+		"count":    int64(len(tags)),
 		"url":      context.Request.URL,
 	})
 	context.JSON(http.StatusOK, responseBody)
@@ -596,7 +614,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	err = services.AddOrCreateTagToBook(book, tagToAdd)
+	err = services.AddOrCreateTagToBook(book, tagToAdd,true)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)

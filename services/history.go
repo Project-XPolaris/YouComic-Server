@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"time"
 )
 
 func AddBookHistory(userId uint, bookId uint) error {
-	count := 0
+	var count int64 = 0
 	database.DB.Model(&model.History{}).Where(&model.History{UserId: userId, BookId: bookId}).Count(&count)
 	fmt.Println(count)
 	if count > 0 {
@@ -27,10 +27,10 @@ type HistoryQueryBuilder struct {
 	UserIdFilter
 }
 
-func (b *HistoryQueryBuilder) ReadModels() (int, interface{}, error) {
+func (b *HistoryQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64 = 0
 	md := make([]model.History, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {

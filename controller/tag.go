@@ -9,8 +9,8 @@ import (
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"net/http"
 )
 

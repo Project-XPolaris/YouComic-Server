@@ -104,30 +104,27 @@ func DeleteLibrary(libraryId uint) error {
 		return err
 	}
 
-	tx := database.DB.Begin()
 	books := make([]model.Book, 0)
-	err = tx.Model(&library).Association("Books").Find(&books).Error
+	err = database.DB.Model(&library).Association("Books").Find(&books)
 	if err != nil {
 		return err
 	}
 	for _, book := range books {
-		err = tx.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
+		err = database.DB.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	err = tx.Unscoped().Delete(model.Book{}, "library_id = ?", library.ID).Error
+	err = database.DB.Unscoped().Delete(model.Book{}, "library_id = ?", library.ID).Error
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	err = tx.Unscoped().Delete(&library).Error
+	err = database.DB.Unscoped().Delete(&library).Error
 	if err != nil {
 		return err
 	}
-	err = tx.Commit().Error
+	err = database.DB.Commit().Error
 	if err != nil {
 		return err
 	}
@@ -156,10 +153,10 @@ func (b *LibraryQueryBuilder) Update(valueMapping map[string]interface{}) error 
 	return err
 }
 
-func (b *LibraryQueryBuilder) ReadModels() (int, interface{}, error) {
+func (b *LibraryQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count = 0
+	var count int64 = 0
 	md := make([]model.Library, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {

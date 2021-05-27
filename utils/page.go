@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func GetNextPageURL(url *url.URL, count int, page int, pageSize int) string {
+func GetNextPageURL(url *url.URL, count int64, page int, pageSize int) string {
 	totalPage := math.Ceil(float64(count) / float64(pageSize))
 	query := url.Query()
 	if totalPage > float64(page) {
@@ -18,7 +18,7 @@ func GetNextPageURL(url *url.URL, count int, page int, pageSize int) string {
 	}
 }
 
-func GetNextPreviousURL(url *url.URL, count int, page int) string {
+func GetNextPreviousURL(url *url.URL, count int64, page int) string {
 	query := url.Query()
 	if page > 2 {
 		query.Set("page", strconv.Itoa(page-1))

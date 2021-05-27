@@ -10,7 +10,7 @@ type ListContainerSerializer interface {
 }
 
 type DefaultListContainer struct {
-	Count    int         `json:"count"`
+	Count    int64         `json:"count"`
 	Next     string      `json:"next"`
 	Previous string      `json:"previous"`
 	Page     int         `json:"page"`
@@ -22,7 +22,7 @@ func (c *DefaultListContainer) SerializeList(result interface{}, context map[str
 	page := context["page"].(int)
 	pageSize := context["pageSize"].(int)
 	requestUrl := context["url"].(*url.URL)
-	count := context["count"].(int)
+	count := context["count"].(int64)
 	c.Count = count
 	c.Next = utils.GetNextPageURL(requestUrl, count, page, pageSize)
 	c.Previous = utils.GetNextPreviousURL(requestUrl, count, page)
