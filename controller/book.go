@@ -346,15 +346,39 @@ var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	booksToUpdate := make([]model.Book, 0)
 	for _, updateBook := range requestBody.Update {
-		book := model.Book{}
-		err = AssignUpdateModel(&updateBook, &book)
+		book := &model.Book{}
+		err = AssignUpdateModel(&updateBook, book)
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
 		book.ID = uint(updateBook.Id)
+
+		err = services.UpdateBook(book, "Name")
 		if err != nil {
 			ApiError.RaiseApiError(context, err, nil)
 			return
 		}
 
-		booksToUpdate = append(booksToUpdate, book)
+		err = services.GetBook(book)
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
+		booksToUpdate = append(booksToUpdate, *book)
+
+		// update tags
+		if updateBook.UpdateTags != nil {
+			tags := make([]*model.Tag,0)
+			for _, rawTag := range updateBook.UpdateTags {
+				tags = append(tags, &model.Tag{Name: rawTag.Name,Type: rawTag.Type})
+			}
+			err = services.AddOrCreateTagToBook(book,tags,updateBook.OverwriteTag)
+			if err != nil {
+				ApiError.RaiseApiError(context, err, nil)
+				return
+			}
+		}
 	}
 	err = services.UpdateBooks(booksToUpdate, "Name")
 	if err != nil {
