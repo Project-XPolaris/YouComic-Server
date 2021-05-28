@@ -73,13 +73,13 @@ var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 }
 
 type UpdateBookRequestBody struct {
-	Id   int
-	Name string `form:"name" json:"name" xml:"name"  binding:"required"`
+	Id         int
+	Name       string `form:"name" json:"name" xml:"name"  binding:"required"`
 	UpdateTags []struct {
 		Name string `json:"name"`
 		Type string `json:"type"`
 	} `json:"updateTags"`
-	OverwriteTag  bool `json:"overwriteTag"`
+	OverwriteTag bool `json:"overwriteTag"`
 }
 
 // update book handler
@@ -143,11 +143,11 @@ var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	// update tags
 	if requestBody.UpdateTags != nil {
-		tags := make([]*model.Tag,0)
+		tags := make([]*model.Tag, 0)
 		for _, rawTag := range requestBody.UpdateTags {
-			tags = append(tags, &model.Tag{Name: rawTag.Name,Type: rawTag.Type})
+			tags = append(tags, &model.Tag{Name: rawTag.Name, Type: rawTag.Type})
 		}
-		err = services.AddOrCreateTagToBook(book,tags,requestBody.OverwriteTag)
+		err = services.AddOrCreateTagToBook(book, tags, requestBody.OverwriteTag)
 		if err != nil {
 			ApiError.RaiseApiError(context, err, nil)
 			return
@@ -538,7 +538,7 @@ var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
 					ApiError.RaiseApiError(context, err, nil)
 					return
 				}
-				page := &model.Page{Path: storeFileName, Order: order, BookId: id}
+				page := &model.Page{Path: storeFileName, PageOrder: order, BookId: id}
 				err = services.CreateModel(page)
 				if err != nil {
 					ApiError.RaiseApiError(context, err, nil)
@@ -638,7 +638,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	err = services.AddOrCreateTagToBook(book, tagToAdd,true)
+	err = services.AddOrCreateTagToBook(book, tagToAdd, true)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -665,7 +665,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 					ApiError.RaiseApiError(context, err, nil)
 					return
 				}
-				err = services.CreatePage(&model.Page{Order: pageIdx, Path: filepath.Base(storePath), BookId: int(book.ID)})
+				err = services.CreatePage(&model.Page{PageOrder: pageIdx, Path: filepath.Base(storePath), BookId: int(book.ID)})
 				if err != nil {
 					logrus.Error(err)
 					ApiError.RaiseApiError(context, err, nil)

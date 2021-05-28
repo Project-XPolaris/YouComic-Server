@@ -88,7 +88,7 @@ func ImportLibrary(libraryPath string) error {
 			database.DB.Model(&book).Association("Tags").Append(&tag)
 		}
 		for _, pageConfig := range bookConfig.Pages {
-			page := model.Page{Order: pageConfig.Order, Path: pageConfig.Path, BookId: int(book.ID)}
+			page := model.Page{PageOrder: pageConfig.Order, Path: pageConfig.Path, BookId: int(book.ID)}
 			err = database.DB.Create(&page).Error
 			if err != nil {
 				return err
@@ -121,10 +121,6 @@ func DeleteLibrary(libraryId uint) error {
 	}
 
 	err = database.DB.Unscoped().Delete(&library).Error
-	if err != nil {
-		return err
-	}
-	err = database.DB.Commit().Error
 	if err != nil {
 		return err
 	}

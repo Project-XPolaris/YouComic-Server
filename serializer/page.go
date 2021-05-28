@@ -14,14 +14,14 @@ import (
 type BasePageTemplate struct {
 	ID        uint      `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
-	Order     int       `json:"order"`
+	PageOrder int       `json:"page_order"`
 	BookId    int       `json:"book_id"`
 	Path      string    `json:"path"`
 }
 type PageTemplateWithSize struct {
 	ID        uint      `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
-	Order     int       `json:"order"`
+	PageOrder int       `json:"page_order"`
 	BookId    int       `json:"book_id"`
 	Path      string    `json:"path"`
 	Width     int       `json:"width"`
@@ -43,7 +43,7 @@ func (t *PageTemplateWithSize) Serializer(dataModel interface{}, context map[str
 	var err error
 	serializerModel := dataModel.(model.Page)
 	err = copier.Copy(t, serializerModel)
-	t.Path = fmt.Sprintf("%s/?t=%d", path.Join("/content/book",fmt.Sprintf("%d",serializerModel.BookId),serializerModel.Path), time.Now().Unix())
+	t.Path = fmt.Sprintf("%s/?t=%d", path.Join("/content/book", fmt.Sprintf("%d", serializerModel.BookId), serializerModel.Path), time.Now().Unix())
 
 	book, err := services.GetBookById(uint(serializerModel.BookId))
 	if err != nil {
