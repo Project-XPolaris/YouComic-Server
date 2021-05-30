@@ -2,28 +2,68 @@ package serializer
 
 import "github.com/allentom/youcomic-api/services"
 
-type ScanTaskSerializer struct {
-	ID        string `json:"id"`
-	TargetDir string `json:"targetDir"`
-	LibraryId uint   `json:"libraryId"`
-	Name      string `json:"name"`
-	Total     int64  `json:"total"`
-	Current   int64  `json:"current"`
-	Status    string `json:"status"`
-	Created   string `json:"created"`
+type TaskSerializer struct {
+	ID      string      `json:"id"`
+	Status  string      `json:"status"`
+	Created string      `json:"created"`
+	Type    string      `json:"type"`
+	Data    interface{} `json:"data"`
+}
+
+func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]interface{}) error {
+	task := dataModel.(services.Task)
+	t.ID = task.GetBaseInfo().ID
+	t.Created = task.GetBaseInfo().Created.Format(timeFormat)
+	t.Status = task.GetBaseInfo().Status
+	switch dataModel.(type) {
+	case *services.ScanTask:
+		t.Data = SerializeScanTask(dataModel)
+		t.Type = "ScanLibrary"
+	case *services.MatchLibraryTagTask:
+		t.Data = SerializeMatchTask(dataModel)
+		t.Type = "MatchLibrary"
+	}
+	return nil
+}
+
+type ScanLibrarySerialize struct {
+	TargetDir  string `json:"targetDir"`
+	LibraryId  uint   `json:"libraryId"`
+	Name       string `json:"name"`
+	Total      int64  `json:"total"`
+	Current    int64  `json:"current"`
 	CurrentDir string `json:"currentDir"`
 }
 
-func (t *ScanTaskSerializer) Serializer(dataModel interface{}, context map[string]interface{}) error {
+func SerializeScanTask(dataModel interface{}) ScanLibrarySerialize {
 	model := dataModel.(*services.ScanTask)
-	t.ID = model.ID
+	t := ScanLibrarySerialize{}
 	t.TargetDir = model.TargetDir
 	t.LibraryId = model.LibraryId
 	t.Name = model.Name
 	t.Total = model.Total
 	t.Current = model.Current
-	t.Status = model.Status
-	t.Created = model.Created.Format(timeFormat)
 	t.CurrentDir = model.CurrentDir
-	return nil
+	return t
+}
+
+type MatchLibrarySerialize struct {
+	TargetDir  string `json:"targetDir"`
+	LibraryId  uint   `json:"libraryId"`
+	Name       string `json:"name"`
+	Total      int64  `json:"total"`
+	Current    int64  `json:"current"`
+	CurrentDir string `json:"currentDir"`
+}
+
+func SerializeMatchTask(dataModel interface{}) MatchLibrarySerialize {
+	model := dataModel.(*services.MatchLibraryTagTask)
+	t := MatchLibrarySerialize{}
+	t.TargetDir = model.TargetDir
+	t.LibraryId = model.LibraryId
+	t.Name = model.Name
+	t.Total = model.Total
+	t.Current = model.Current
+	t.CurrentDir = model.CurrentDir
+	return t
 }

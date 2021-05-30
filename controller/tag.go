@@ -68,17 +68,17 @@ var BatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		Permissions: map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker{
 			Create: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.CreateTagPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateTagPermissionName},
 				}
 			},
 			Update: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.UpdateTagPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.UpdateTagPermissionName},
 				}
 			},
 			Delete: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId,PermissionName: permission.DeleteTagPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.DeleteTagPermissionName},
 				}
 			},
 		},
@@ -211,8 +211,8 @@ var RemoveBooksFromTagHandler gin.HandlerFunc = func(context *gin.Context) {
 }
 
 type AddSubscriptionRequestBody struct {
-
 }
+
 // add user to tag handler
 //
 // path: /tag/:id/subscription
@@ -228,8 +228,8 @@ var AddSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
 	}
 	claims := auth.GetUserClaimsFromContext(context)
 
-	user := &model.User{Model:gorm.Model{ID: claims.UserId}}
-	err = services.AddTagSubscription(uint(id),user)
+	user := &model.User{Model: gorm.Model{ID: claims.UserId}}
+	err = services.AddTagSubscription(uint(id), user)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -253,8 +253,8 @@ var RemoveSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
 	}
 	claims := auth.GetUserClaimsFromContext(context)
 
-	user := &model.User{Model:gorm.Model{ID: claims.UserId}}
-	err = services.RemoveTagSubscription(uint(id),user)
+	user := &model.User{Model: gorm.Model{ID: claims.UserId}}
+	err = services.RemoveTagSubscription(uint(id), user)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -276,7 +276,7 @@ var GetTag gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	tag,err  := services.GetTagById(uint(id))
+	tag, err := services.GetTagById(uint(id))
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -286,4 +286,24 @@ var GetTag gin.HandlerFunc = func(context *gin.Context) {
 	template := &serializer.BaseTagTemplate{}
 	RenderTemplate(context, template, tag)
 	context.JSON(http.StatusOK, template)
+}
+
+type AddTagBooksToTagRequestBody struct {
+	From uint `json:"from"`
+	To   uint `json:"to"`
+}
+
+var AddTagBooksToTag gin.HandlerFunc = func(context *gin.Context) {
+	var requestBody AddTagBooksToTagRequestBody
+	err := context.BindJSON(&requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	err = services.TagAdd(requestBody.From, requestBody.To)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
 }

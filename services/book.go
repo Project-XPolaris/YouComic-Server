@@ -7,9 +7,11 @@ import (
 	"github.com/allentom/youcomic-api/application"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/utils"
 	"gorm.io/gorm"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 )
 
@@ -335,4 +337,28 @@ func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int64, error) {
 		result = append(result, dailyResult)
 	}
 	return result, count, err
+}
+
+func RenameBookDirectory(bookId int, name string) (*model.Book, error) {
+	var book model.Book
+	err := database.DB.First(&book, bookId).Error
+	if err != nil {
+		return nil, err
+	}
+	var library model.Library
+	err = database.DB.First(&library, book.LibraryId).Error
+	if err != nil {
+		return nil, err
+	}
+	newPath := utils.ReplaceLastString(book.Path, filepath.Base(book.Path), name)
+	err = os.Rename(path.Join(library.Path, book.Path), path.Join(library.Path, newPath))
+	if err != nil {
+		return nil, err
+	}
+	book.Path = newPath
+	err = database.DB.Save(&book).Error
+	if err != nil {
+		return nil, err
+	}
+	return &book, nil
 }

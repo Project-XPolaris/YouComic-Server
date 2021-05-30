@@ -72,7 +72,7 @@ func GetTagBooks(tagId uint, page int, pageSize int) (int64, []model.Book, error
 	var count int64 = 0
 	err := database.DB.Model(
 		&model.Tag{Model: gorm.Model{ID: tagId}},
-	).Limit(pageSize).Offset((page-1)*pageSize).Preload("Books", ).Error
+	).Limit(pageSize).Offset((page - 1) * pageSize).Preload("Books").Error
 	count = database.DB.Model(
 		&model.Tag{Model: gorm.Model{ID: tagId}},
 	).Association("Books").Count()
@@ -99,9 +99,9 @@ func RemoveBooksFromTag(tagId int, bookIds []int) error {
 	return err
 }
 
-func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag,isTagOverwrite bool) (err error) {
+func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag, isTagOverwrite bool) (err error) {
 	for _, tag := range tags {
-		err = database.DB.FirstOrCreate(tag,model.Tag{Name: tag.Name,Type: tag.Type}).Error
+		err = database.DB.FirstOrCreate(tag, model.Tag{Name: tag.Name, Type: tag.Type}).Error
 		if err != nil {
 			return err
 		}
@@ -144,9 +144,10 @@ func GetTagById(id uint) (*model.Tag, error) {
 }
 
 type TagCount struct {
-	Name string `json:"name"`
-	Total int `json:"total"`
+	Name  string `json:"name"`
+	Total int    `json:"total"`
 }
+
 func (b *TagQueryBuilder) GetTagCount() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
@@ -172,14 +173,16 @@ func (b *TagQueryBuilder) GetTagCount() (int64, interface{}, error) {
 	}
 	return count, result, err
 }
+
 type TagTypeCount struct {
-	Name string `json:"name"`
-	Total int `json:"total"`
+	Name  string `json:"name"`
+	Total int    `json:"total"`
 }
+
 func (b *TagQueryBuilder) GetTagTypeCount() (int64, []TagTypeCount, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
-	var count int64= 0
+	var count int64 = 0
 	rows, err := query.Model(&model.Tag{}).Select(
 		`type as name,count(*) as total`,
 	).Group(
@@ -198,4 +201,26 @@ func (b *TagQueryBuilder) GetTagTypeCount() (int64, []TagTypeCount, error) {
 		result = append(result, tagCount)
 	}
 	return count, result, err
+}
+
+func TagAdd(fromTagId uint, toTargetId uint) error {
+	var fromTag, toTag model.Tag
+	err := database.DB.First(&fromTag, fromTagId).Error
+	if err != nil {
+		return err
+	}
+	err = database.DB.First(&toTag, toTargetId).Error
+	if err != nil {
+		return err
+	}
+	var deltaBooks []model.Book
+	err = database.DB.Model(&fromTag).Association("Books").Find(&deltaBooks)
+	if err != nil {
+		return err
+	}
+	err = database.DB.Model(&toTag).Association("Books").Append(deltaBooks)
+	if err != nil {
+		return err
+	}
+	return nil
 }

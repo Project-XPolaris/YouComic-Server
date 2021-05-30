@@ -166,5 +166,5 @@ func ScanLibrary(id uint) (*ScanTask, error) {
 	if err != nil {
 		return nil, err
 	}
-	return DefaultScanTaskPool.NewScanLibraryTask(&library)
+	return DefaultTaskPool.NewScanLibraryTask(&library)
 }

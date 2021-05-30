@@ -369,11 +369,11 @@ var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 
 		// update tags
 		if updateBook.UpdateTags != nil {
-			tags := make([]*model.Tag,0)
+			tags := make([]*model.Tag, 0)
 			for _, rawTag := range updateBook.UpdateTags {
-				tags = append(tags, &model.Tag{Name: rawTag.Name,Type: rawTag.Type})
+				tags = append(tags, &model.Tag{Name: rawTag.Name, Type: rawTag.Type})
 			}
-			err = services.AddOrCreateTagToBook(book,tags,updateBook.OverwriteTag)
+			err = services.AddOrCreateTagToBook(book, tags, updateBook.OverwriteTag)
 			if err != nil {
 				ApiError.RaiseApiError(context, err, nil)
 				return
@@ -753,4 +753,33 @@ var ImportLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	ServerSuccessResponse(context)
+}
+
+type RenameBookDirectoryRequestBody struct {
+	Name string `json:"name"`
+}
+
+var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	var requestBody RenameBookDirectoryRequestBody
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	book, err := services.RenameBookDirectory(id, requestBody.Name)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	template := &serializer.BaseBookTemplate{}
+	RenderTemplate(context, template, *book)
+	context.JSON(http.StatusOK, template)
 }

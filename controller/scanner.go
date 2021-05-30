@@ -15,17 +15,17 @@ func init() {
 	go func() {
 		for {
 			<-time.After(1 * time.Second)
-			data := make([]serializer.ScanTaskSerializer,0)
-			for _, task := range services.DefaultScanTaskPool.Tasks {
-				template := serializer.ScanTaskSerializer{}
-				err := template.Serializer(task,nil)
+			data := make([]serializer.TaskSerializer, 0)
+			for _, task := range services.DefaultTaskPool.Tasks {
+				template := serializer.TaskSerializer{}
+				err := template.Serializer(task, nil)
 				if err != nil {
 					continue
 				}
 				data = append(data, template)
 			}
 			DefaultNotificationManager.sendJSONToAll(map[string]interface{}{
-				"event": "ScanTaskUpdate",
+				"event": "TaskBeat",
 				"data":  data,
 			})
 		}
@@ -56,6 +56,6 @@ var NewScannerHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
-	services.DefaultScanTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath))
+	services.DefaultTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath))
 	ServerSuccessResponse(context)
 }
