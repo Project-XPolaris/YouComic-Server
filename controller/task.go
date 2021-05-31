@@ -59,3 +59,37 @@ var NewScannerHandler gin.HandlerFunc = func(context *gin.Context) {
 	services.DefaultTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath))
 	ServerSuccessResponse(context)
 }
+
+type NewRenameLibraryBookDirectoryRequestBody struct {
+	Pattern string                `json:"pattern"`
+	Slots   []services.RenameSlot `json:"slots"`
+}
+
+var NewRenameLibraryBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	var requestBody NewRenameLibraryBookDirectoryRequestBody
+	err = context.BindJSON(&requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	rawUserClaims, _ := context.Get("claim")
+	scanLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.ScanLibraryPermissionName,
+		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
+		return
+	}
+	task, err := services.DefaultTaskPool.NeRenameBookDirectoryLibraryTask(uint(id),requestBody.Pattern,requestBody.Slots)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	context.JSON(200, task)
+}

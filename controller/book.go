@@ -756,7 +756,8 @@ var ImportLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 }
 
 type RenameBookDirectoryRequestBody struct {
-	Name string `json:"name"`
+	Pattern string                `json:"pattern"`
+	Slots   []services.RenameSlot `json:"slots"`
 }
 
 var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
@@ -772,7 +773,7 @@ var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	book, err := services.RenameBookDirectory(id, requestBody.Name)
+	book, err := services.RenameBookDirectoryById(id, requestBody.Pattern,requestBody.Slots)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)

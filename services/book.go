@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/ahmetb/go-linq/v3"
 	"github.com/allentom/youcomic-api/application"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
@@ -13,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strings"
 )
 
 var (
@@ -339,9 +341,38 @@ func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int64, error) {
 	return result, count, err
 }
 
-func RenameBookDirectory(bookId int, name string) (*model.Book, error) {
+func RenderBookDirectoryRenameText(book *model.Book,Pattern string,Slots []RenameSlot) string{
+	name := Pattern
+	for _, slot := range Slots {
+		if slot.Type == "title" {
+			titleText := strings.ReplaceAll(slot.Pattern, "%content%", book.Name)
+			name = strings.ReplaceAll(name, "%title%", titleText)
+			continue
+		}
+		var tags []*model.Tag
+		linq.From(book.Tags).Where(func(i interface{}) bool {
+			return i.(*model.Tag).Type == slot.Type
+		}).ToSlice(&tags)
+		slotTexts := make([]string, 0)
+		for _, tag := range tags {
+			slotTexts = append(slotTexts, tag.Name)
+		}
+		slotContent := ""
+		if len(slotTexts) != 0 {
+			slotContent = strings.ReplaceAll(slot.Pattern, "%content%", strings.Join(slotTexts, slot.Sep))
+		}
+		name = strings.ReplaceAll(
+			name,
+			fmt.Sprintf("%%%s%%", slot.Type),
+			slotContent,
+		)
+	}
+	name = strings.TrimSpace(name)
+	return name
+}
+func RenameBookDirectoryById(bookId int, pattern string,slots []RenameSlot) (*model.Book, error) {
 	var book model.Book
-	err := database.DB.First(&book, bookId).Error
+	err := database.DB.Preload("Tags").First(&book, bookId).Error
 	if err != nil {
 		return nil, err
 	}
@@ -349,6 +380,10 @@ func RenameBookDirectory(bookId int, name string) (*model.Book, error) {
 	err = database.DB.First(&library, book.LibraryId).Error
 	if err != nil {
 		return nil, err
+	}
+	name := RenderBookDirectoryRenameText(&book,pattern,slots)
+	if name == filepath.Base(book.Path) {
+		return &book,nil
 	}
 	newPath := utils.ReplaceLastString(book.Path, filepath.Base(book.Path), name)
 	err = os.Rename(path.Join(library.Path, book.Path), path.Join(library.Path, newPath))
@@ -361,4 +396,20 @@ func RenameBookDirectory(bookId int, name string) (*model.Book, error) {
 		return nil, err
 	}
 	return &book, nil
+}
+func RenameBookDirectory(book *model.Book,library *model.Library, name string) (*model.Book, error) {
+	if name == filepath.Base(book.Path) {
+		return book,nil
+	}
+	newPath := utils.ReplaceLastString(book.Path, filepath.Base(book.Path), name)
+	err := os.Rename(path.Join(library.Path, book.Path), path.Join(library.Path, newPath))
+	if err != nil {
+		return nil, err
+	}
+	book.Path = newPath
+	err = database.DB.Save(&book).Error
+	if err != nil {
+		return nil, err
+	}
+	return book, nil
 }

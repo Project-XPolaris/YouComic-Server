@@ -22,6 +22,9 @@ func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]in
 	case *services.MatchLibraryTagTask:
 		t.Data = SerializeMatchTask(dataModel)
 		t.Type = "MatchLibrary"
+	case *services.RenameBookDirectoryTask:
+		t.Data = SerializeRenameTask(dataModel)
+		t.Type = "RenameLibraryBookDirectory"
 	}
 	return nil
 }
@@ -59,6 +62,27 @@ type MatchLibrarySerialize struct {
 func SerializeMatchTask(dataModel interface{}) MatchLibrarySerialize {
 	model := dataModel.(*services.MatchLibraryTagTask)
 	t := MatchLibrarySerialize{}
+	t.TargetDir = model.TargetDir
+	t.LibraryId = model.LibraryId
+	t.Name = model.Name
+	t.Total = model.Total
+	t.Current = model.Current
+	t.CurrentDir = model.CurrentDir
+	return t
+}
+
+type RenameLibraryBookDirectorySerialize struct {
+	TargetDir  string `json:"targetDir"`
+	LibraryId  uint   `json:"libraryId"`
+	Name       string `json:"name"`
+	Total      int64  `json:"total"`
+	Current    int64  `json:"current"`
+	CurrentDir string `json:"currentDir"`
+}
+
+func SerializeRenameTask(dataModel interface{}) RenameLibraryBookDirectorySerialize {
+	model := dataModel.(*services.RenameBookDirectoryTask)
+	t := RenameLibraryBookDirectorySerialize{}
 	t.TargetDir = model.TargetDir
 	t.LibraryId = model.LibraryId
 	t.Name = model.Name
