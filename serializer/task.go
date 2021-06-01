@@ -1,6 +1,8 @@
 package serializer
 
-import "github.com/allentom/youcomic-api/services"
+import (
+	"github.com/allentom/youcomic-api/services"
+)
 
 type TaskSerializer struct {
 	ID      string      `json:"id"`
@@ -25,6 +27,9 @@ func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]in
 	case *services.RenameBookDirectoryTask:
 		t.Data = SerializeRenameTask(dataModel)
 		t.Type = "RenameLibraryBookDirectory"
+	case *services.MoveBookTask:
+		t.Data = SerializeMoveBookTask(dataModel)
+		t.Type = "MoveBook"
 	}
 	return nil
 }
@@ -86,6 +91,20 @@ func SerializeRenameTask(dataModel interface{}) RenameLibraryBookDirectorySerial
 	t.TargetDir = model.TargetDir
 	t.LibraryId = model.LibraryId
 	t.Name = model.Name
+	t.Total = model.Total
+	t.Current = model.Current
+	t.CurrentDir = model.CurrentDir
+	return t
+}
+type MoveBookSerializer struct {
+	CurrentDir string `json:"currentDir"`
+	Total      int `json:"total"`
+	Current    int `json:"current"`
+}
+
+func SerializeMoveBookTask(dataModel interface{})  MoveBookSerializer {
+	model := dataModel.(*services.MoveBookTask)
+	t :=  MoveBookSerializer{}
 	t.Total = model.Total
 	t.Current = model.Current
 	t.CurrentDir = model.CurrentDir

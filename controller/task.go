@@ -86,7 +86,36 @@ var NewRenameLibraryBookDirectoryHandler gin.HandlerFunc = func(context *gin.Con
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
 	}
-	task, err := services.DefaultTaskPool.NeRenameBookDirectoryLibraryTask(uint(id),requestBody.Pattern,requestBody.Slots)
+	task, err := services.DefaultTaskPool.NewRenameBookDirectoryLibraryTask(uint(id), requestBody.Pattern, requestBody.Slots)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	context.JSON(200, task)
+}
+
+type NewMoveBookTaskRequestBody struct {
+	BookIds []int `json:"bookIds"`
+	To      int   `json:"to"`
+}
+
+var NewMoveBookTaskHandler gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	var requestBody NewMoveBookTaskRequestBody
+	err = context.BindJSON(&requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	rawUserClaims, _ := context.Get("claim")
+	scanLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.UpdateBookPermissionName,
+		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
+		return
+	}
+	task, err := services.DefaultTaskPool.NewMoveBookTask(requestBody.BookIds, requestBody.To)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return

@@ -9,6 +9,7 @@ import (
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+	"os"
 	"path"
 	"path/filepath"
 	"sync"
@@ -63,7 +64,7 @@ func (p *TaskPool) NewLibraryAndScan(targetPath string, name string) (*ScanTask,
 func (p *TaskPool) NewScanLibraryTask(library *model.Library) (*ScanTask, error) {
 	lockSuccess := DefaultLibraryLockPool.TryToLock(library.ID)
 	if !lockSuccess {
-		return nil,LibraryLockError
+		return nil, LibraryLockError
 	}
 	exist := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
 		if task, ok := i.(*ScanTask); ok {
@@ -88,7 +89,7 @@ func (p *TaskPool) NewScanLibraryTask(library *model.Library) (*ScanTask, error)
 func (p *TaskPool) NewMatchLibraryTagTask(libraryId uint) (*MatchLibraryTagTask, error) {
 	lockSuccess := DefaultLibraryLockPool.TryToLock(libraryId)
 	if !lockSuccess {
-		return nil,LibraryLockError
+		return nil, LibraryLockError
 	}
 	exist := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
 		if task, ok := i.(*MatchLibraryTagTask); ok {
@@ -116,10 +117,10 @@ func (p *TaskPool) NewMatchLibraryTagTask(libraryId uint) (*MatchLibraryTagTask,
 	task.Start()
 	return task, nil
 }
-func (p *TaskPool) NeRenameBookDirectoryLibraryTask(libraryId uint, pattern string, slots []RenameSlot) (*RenameBookDirectoryTask, error) {
+func (p *TaskPool) NewRenameBookDirectoryLibraryTask(libraryId uint, pattern string, slots []RenameSlot) (*RenameBookDirectoryTask, error) {
 	lockSuccess := DefaultLibraryLockPool.TryToLock(libraryId)
 	if !lockSuccess {
-		return nil,LibraryLockError
+		return nil, LibraryLockError
 	}
 	exist := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
 		if task, ok := i.(*RenameBookDirectoryTask); ok {
@@ -143,6 +144,45 @@ func (p *TaskPool) NeRenameBookDirectoryLibraryTask(libraryId uint, pattern stri
 		Library:   &library,
 		Pattern:   pattern,
 		Slots:     slots,
+	}
+	task.Status = StatusRunning
+	p.AddTask(task)
+	task.Start()
+	return task, nil
+}
+func (p *TaskPool) NewMoveBookTask(bookIds []int, toLibraryId int) (*MoveBookTask, error) {
+	lockSuccess := DefaultLibraryLockPool.TryToLock(uint(toLibraryId))
+	if !lockSuccess {
+		return nil, LibraryLockError
+	}
+	exist := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
+		if task, ok := i.(*MoveBookTask); ok {
+			if task.Status != StatusRunning {
+				return false
+			}
+			for _, taskBookId := range task.BookIds {
+				for _, id := range bookIds {
+					if id == taskBookId {
+						return false
+					}
+				}
+			}
+		}
+		return false
+	})
+	if exist != nil {
+		return exist.(*MoveBookTask), nil
+	}
+	var library model.Library
+	err := database.DB.First(&library, toLibraryId).Error
+	if err != nil {
+		return nil, err
+	}
+	task := &MoveBookTask{
+		BaseTask: NewBaseTask(),
+		BookIds:  bookIds,
+		To:       &library,
+		Total:    len(bookIds),
 	}
 	task.Status = StatusRunning
 	p.AddTask(task)
@@ -292,7 +332,6 @@ func (t *MatchLibraryTagTask) Stop() error {
 	t.stopFlag = true
 	return nil
 }
-
 func (t *MatchLibraryTagTask) Start() error {
 	books := make([]model.Book, 0)
 	err := database.DB.Find(&books, "library_id = ?", t.Library.ID).Error
@@ -363,14 +402,13 @@ type RenameBookDirectoryTask struct {
 	Library    *model.Library
 	Pattern    string
 	Slots      []RenameSlot
-	Option RenameBookDirectoryTaskOption
+	Option     RenameBookDirectoryTaskOption
 }
 
 func (t *RenameBookDirectoryTask) Stop() error {
 	t.stopFlag = true
 	return nil
 }
-
 func (t *RenameBookDirectoryTask) Start() error {
 	books := make([]model.Book, 0)
 	err := database.DB.Preload("Tags").Find(&books, "library_id = ?", t.Library.ID).Error
@@ -389,10 +427,92 @@ func (t *RenameBookDirectoryTask) Start() error {
 			}
 			t.Current += 1
 			t.CurrentDir = filepath.Base(book.Path)
-			name := RenderBookDirectoryRenameText(&book,t.Pattern,t.Slots)
+			name := RenderBookDirectoryRenameText(&book, t.Pattern, t.Slots)
 			_, err := RenameBookDirectory(&book, t.Library, name)
 			if err != nil {
 				logrus.Error(err)
+			}
+		}
+		t.Status = StatusComplete
+	}()
+	return nil
+}
+
+type MoveBookTask struct {
+	BaseTask
+	BookIds    []int
+	CurrentDir string
+	From       *model.Library
+	To         *model.Library
+	Total      int
+	Current    int
+	stopFlag bool
+}
+
+func (t *MoveBookTask) Stop() error {
+	t.stopFlag = true
+	return nil
+}
+
+func (t *MoveBookTask) Start() error {
+	go func() {
+		defer func() {
+			DefaultLibraryLockPool.TryToUnlock(t.To.ID)
+		}()
+		libraries := make([]*model.Library, 0)
+		for _, id := range t.BookIds {
+			if t.stopFlag {
+				t.Status = StatusStop
+				return
+			}
+			t.Current += 1
+			var book model.Book
+			err := database.DB.First(&book,id).Error
+			if err != nil {
+				logrus.Error(err)
+				continue
+			}
+			if book.LibraryId == t.To.ID {
+				continue
+			}
+			t.CurrentDir = filepath.Base(book.Path)
+			var library *model.Library
+			for _, cacheLibrary := range libraries {
+				if cacheLibrary.ID == book.LibraryId {
+					library = cacheLibrary
+				}
+			}
+			if library == nil {
+				err = database.DB.First(&library, book.LibraryId).Error
+				libraries = append(libraries, library)
+				if err != nil {
+					logrus.Error(err)
+					continue
+				}
+			}
+			t.From = library
+			sourcePath := filepath.Join(library.Path,book.Path)
+			toPath := filepath.Join(t.To.Path,book.Path)
+			err = os.MkdirAll(toPath,0644)
+			if err != nil {
+				logrus.Error(err)
+				continue
+			}
+			err = utils.CopyDirectory(sourcePath,toPath)
+			if err != nil {
+				logrus.Error(err)
+				continue
+			}
+			book.LibraryId = t.To.ID
+			err = database.DB.Save(&book).Error
+			if err != nil {
+				logrus.Error(err)
+				continue
+			}
+			err = os.RemoveAll(sourcePath)
+			if err != nil {
+				logrus.Error(err)
+				continue
 			}
 		}
 		t.Status = StatusComplete
