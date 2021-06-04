@@ -11,7 +11,14 @@ var matchRegex = []string{
 	"\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<theme>.*?)$",
 	"^[[［【](?P<translator>.*?)[]］】]\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)\\s?\\((?P<theme>.*?)\\)$",
 }
-
+var tagMatchRegex = []string{
+	"\\((.*?)\\)",
+	"\\[(.*?)]",
+	"{(.*?)}",
+	"《(.*?)》",
+	"（(.*?)）",
+	"【(.*?)】",
+}
 type MatchTagResult struct {
 	Name       string
 	Artist     string
@@ -51,6 +58,18 @@ func toMatchResult(regex *regexp.Regexp, text string) *MatchTagResult {
 			case "translator":
 				result.Translator = match[i]
 			}
+		}
+	}
+	return result
+}
+
+func MatchTagTextFromText(text string) []string{
+	result := make([]string,0)
+	for _, regexPattern := range tagMatchRegex {
+		regex := regexp.MustCompile(regexPattern)
+		match := regex.FindStringSubmatch(text)
+		if len(match) > 1 {
+			result = append(result, match[1:]...)
 		}
 	}
 	return result

@@ -80,6 +80,7 @@ type BooksQueryBuilder struct {
 	EndTimeQueryFilter
 	NameSearchQueryFilter
 	LibraryQueryFilter
+	DirectoryNameQueryFilter
 }
 
 type EndTimeQueryFilter struct {
@@ -98,6 +99,21 @@ func (f *EndTimeQueryFilter) SetEndTimeQueryFilter(endTime interface{}) {
 	if len(endTime.(string)) > 0 {
 		f.endTime = endTime
 	}
+
+}
+
+type DirectoryNameQueryFilter struct {
+	Key string
+}
+
+func (f DirectoryNameQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if len(f.Key) != 0 {
+		return db.Where("path like ?", fmt.Sprintf("%%%s%%",f.Key))
+	}
+	return db
+}
+func (f *DirectoryNameQueryFilter) SetPathSearchQueryFilter(searchKey interface{}) {
+	f.Key = searchKey.(string)
 
 }
 

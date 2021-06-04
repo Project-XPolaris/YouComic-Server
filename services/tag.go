@@ -2,8 +2,11 @@ package services
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
+	"github.com/allentom/youcomic-api/utils"
+	"github.com/rs/xid"
 	"gorm.io/gorm"
 )
 
@@ -223,4 +226,67 @@ func TagAdd(fromTagId uint, toTargetId uint) error {
 		return err
 	}
 	return nil
+}
+
+type RawTag struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Source string `json:"source"`
+}
+
+func MatchTag(raw string) []*RawTag {
+	result := utils.MatchName(raw)
+	tags := make([]*RawTag, 0)
+	if result != nil {
+		if len(result.Name) > 0 {
+			tags = append(tags, &RawTag{Name: result.Name, Type: "name", Source: "pattern",ID: xid.New().String()})
+		}
+		if len(result.Artist) > 0 {
+			tags = append(tags, &RawTag{Name: result.Artist, Type: "artist", Source: "pattern",ID: xid.New().String()})
+		}
+		if len(result.Series) > 0 {
+			tags = append(tags, &RawTag{Name: result.Series, Type: "series", Source: "pattern",ID: xid.New().String()})
+		}
+		if len(result.Theme) > 0 {
+			tags = append(tags, &RawTag{Name: result.Theme, Type: "theme", Source: "pattern",ID: xid.New().String()})
+		}
+		if len(result.Translator) > 0 {
+			tags = append(tags, &RawTag{Name: result.Translator, Type: "translator", Source: "pattern",ID: xid.New().String()})
+		}
+	}
+
+	rawTagStrings := utils.MatchTagTextFromText(raw)
+	var queryTags []model.Tag
+	if len(rawTagStrings) > 0 {
+		query := database.DB.Model(&model.Tag{})
+		for idx, tagString := range rawTagStrings {
+			if idx == 0 {
+				query = query.Where("name like ?", fmt.Sprintf("%%%s%%", tagString))
+				continue
+			}
+			query = query.Or("name like ?", fmt.Sprintf("%%%s%%", tagString))
+		}
+		query.Find(&queryTags)
+		if queryTags != nil {
+			for _, tagRecord := range queryTags {
+				appendFlag := true
+				for idx := range tags {
+					exist := tags[idx]
+					if exist.Type == tagRecord.Type && exist.Name == tagRecord.Name {
+						appendFlag = false
+						break
+					}
+				}
+				if appendFlag {
+					tags = append(tags, &RawTag{Name: tagRecord.Name, Type: tagRecord.Type, Source: "database",ID: xid.New().String()})
+				}
+			}
+
+		}
+	}
+	for _, tagString := range rawTagStrings {
+		tags = append(tags, &RawTag{Name: tagString, Type: "", Source: "raw",ID: xid.New().String()})
+	}
+	return tags
 }

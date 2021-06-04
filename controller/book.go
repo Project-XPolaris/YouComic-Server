@@ -218,6 +218,11 @@ var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 			Method: "SetLibraryQueryFilter",
 			Many:   true,
 		},
+		{
+			Lookup: "pathSearch",
+			Method: "SetPathSearchQueryFilter",
+			Many:   false,
+		},
 	}
 	for _, filter := range filterMapping {
 		utils.FilterByParam(context, filter.Lookup, &queryBuilder, filter.Method, filter.Many)
