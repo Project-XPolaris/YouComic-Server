@@ -7,6 +7,7 @@ import (
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/rs/xid"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -240,19 +241,19 @@ func MatchTag(raw string) []*RawTag {
 	tags := make([]*RawTag, 0)
 	if result != nil {
 		if len(result.Name) > 0 {
-			tags = append(tags, &RawTag{Name: result.Name, Type: "name", Source: "pattern",ID: xid.New().String()})
+			tags = append(tags, &RawTag{Name: result.Name, Type: "name", Source: "pattern", ID: xid.New().String()})
 		}
 		if len(result.Artist) > 0 {
-			tags = append(tags, &RawTag{Name: result.Artist, Type: "artist", Source: "pattern",ID: xid.New().String()})
+			tags = append(tags, &RawTag{Name: result.Artist, Type: "artist", Source: "pattern", ID: xid.New().String()})
 		}
 		if len(result.Series) > 0 {
-			tags = append(tags, &RawTag{Name: result.Series, Type: "series", Source: "pattern",ID: xid.New().String()})
+			tags = append(tags, &RawTag{Name: result.Series, Type: "series", Source: "pattern", ID: xid.New().String()})
 		}
 		if len(result.Theme) > 0 {
-			tags = append(tags, &RawTag{Name: result.Theme, Type: "theme", Source: "pattern",ID: xid.New().String()})
+			tags = append(tags, &RawTag{Name: result.Theme, Type: "theme", Source: "pattern", ID: xid.New().String()})
 		}
 		if len(result.Translator) > 0 {
-			tags = append(tags, &RawTag{Name: result.Translator, Type: "translator", Source: "pattern",ID: xid.New().String()})
+			tags = append(tags, &RawTag{Name: result.Translator, Type: "translator", Source: "pattern", ID: xid.New().String()})
 		}
 	}
 
@@ -261,6 +262,9 @@ func MatchTag(raw string) []*RawTag {
 	if len(rawTagStrings) > 0 {
 		query := database.DB.Model(&model.Tag{})
 		for idx, tagString := range rawTagStrings {
+			if len(tagString) == 0 {
+				continue
+			}
 			if idx == 0 {
 				query = query.Where("name like ?", fmt.Sprintf("%%%s%%", tagString))
 				continue
@@ -270,6 +274,7 @@ func MatchTag(raw string) []*RawTag {
 		query.Find(&queryTags)
 		if queryTags != nil {
 			for _, tagRecord := range queryTags {
+				logrus.Info(tagRecord.Name)
 				appendFlag := true
 				for idx := range tags {
 					exist := tags[idx]
@@ -279,14 +284,29 @@ func MatchTag(raw string) []*RawTag {
 					}
 				}
 				if appendFlag {
-					tags = append(tags, &RawTag{Name: tagRecord.Name, Type: tagRecord.Type, Source: "database",ID: xid.New().String()})
+					tags = append(tags, &RawTag{Name: tagRecord.Name, Type: tagRecord.Type, Source: "database", ID: xid.New().String()})
 				}
 			}
 
 		}
 	}
 	for _, tagString := range rawTagStrings {
-		tags = append(tags, &RawTag{Name: tagString, Type: "", Source: "raw",ID: xid.New().String()})
+		tags = append(tags, &RawTag{Name: tagString, Type: "", Source: "raw", ID: xid.New().String()})
 	}
 	return tags
+}
+
+func ClearEmptyTag() error {
+	var tags []model.Tag
+	database.DB.Find(&tags)
+	for _, tag := range tags {
+		ass := database.DB.Model(&tag).Association("Books")
+		if ass.Count() == 0 {
+			err := database.DB.Unscoped().Delete(&tag).Error
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+	}
+	return nil
 }

@@ -6,8 +6,11 @@ import (
 
 var matchRegex = []string{
 	"\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*? \\(.*?\\))]\\s?(?P<name>.*?)\\s?\\((?P<theme>.*?)\\)\\s?\\[(?P<translator>.*?)]",
+	"^\\[(?P<translator>.*?)]\\s?\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)\\s?\\((?P<theme>.*?)\\)$",
+	"^\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)\\s?\\((?P<theme>.*?)\\)\\s?\\[(?P<translator>.*?)]$",
 	"^\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)\\s?\\[(?P<translator>.*?)]$",
-	"^\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)\\s?\\((?P<theme>.*?)\\)",
+	"^\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)\\s?\\((?P<theme>.*?)\\)$",
+	"^\\[(?P<translator>.*?)]\\s?\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)$",
 	"\\((?P<series>.*?)\\)\\s?\\[(?P<artist>.*?)]\\s?(?P<theme>.*?)$",
 	"^[[［【](?P<translator>.*?)[]］】]\\s?\\[(?P<artist>.*?)]\\s?(?P<name>.*?)\\s?\\((?P<theme>.*?)\\)$",
 }
@@ -19,6 +22,7 @@ var tagMatchRegex = []string{
 	"（(.*?)）",
 	"【(.*?)】",
 }
+
 type MatchTagResult struct {
 	Name       string
 	Artist     string
@@ -63,13 +67,15 @@ func toMatchResult(regex *regexp.Regexp, text string) *MatchTagResult {
 	return result
 }
 
-func MatchTagTextFromText(text string) []string{
-	result := make([]string,0)
+func MatchTagTextFromText(text string) []string {
+	result := make([]string, 0)
 	for _, regexPattern := range tagMatchRegex {
 		regex := regexp.MustCompile(regexPattern)
-		match := regex.FindStringSubmatch(text)
-		if len(match) > 1 {
-			result = append(result, match[1:]...)
+		groups := regex.FindAllStringSubmatch(text, -1)
+		for _, group := range groups {
+			if len(group) > 1 {
+				result = append(result, group[1:]...)
+			}
 		}
 	}
 	return result

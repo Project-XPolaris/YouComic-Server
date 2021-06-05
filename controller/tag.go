@@ -311,6 +311,7 @@ var AddTagBooksToTag gin.HandlerFunc = func(context *gin.Context) {
 type AnalyzeTagFromTextRequestBody struct {
 	Text string `json:"text"`
 }
+
 var AnalyzeTagFromTextHandler gin.HandlerFunc = func(context *gin.Context) {
 	var requestBody AnalyzeTagFromTextRequestBody
 	err := context.BindJSON(&requestBody)
@@ -319,5 +320,14 @@ var AnalyzeTagFromTextHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	tags := services.MatchTag(requestBody.Text)
-	context.JSON(200,tags)
+	context.JSON(200, tags)
+}
+
+var ClearEmptyTagHandler gin.HandlerFunc = func(context *gin.Context) {
+	err := services.ClearEmptyTag()
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
 }
