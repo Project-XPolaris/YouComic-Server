@@ -30,6 +30,9 @@ func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]in
 	case *services.MoveBookTask:
 		t.Data = SerializeMoveBookTask(dataModel)
 		t.Type = "MoveBook"
+	case *services.RemoveEmptyTagTask:
+		t.Data = SerializeRemoveEmptyTagTask(dataModel)
+		t.Type = "RemoveEmptyTag"
 	}
 	return nil
 }
@@ -96,17 +99,35 @@ func SerializeRenameTask(dataModel interface{}) RenameLibraryBookDirectorySerial
 	t.CurrentDir = model.CurrentDir
 	return t
 }
+
 type MoveBookSerializer struct {
 	CurrentDir string `json:"currentDir"`
-	Total      int `json:"total"`
-	Current    int `json:"current"`
+	Total      int    `json:"total"`
+	Current    int    `json:"current"`
 }
 
-func SerializeMoveBookTask(dataModel interface{})  MoveBookSerializer {
+func SerializeMoveBookTask(dataModel interface{}) MoveBookSerializer {
 	model := dataModel.(*services.MoveBookTask)
-	t :=  MoveBookSerializer{}
+	t := MoveBookSerializer{}
 	t.Total = model.Total
 	t.Current = model.Current
 	t.CurrentDir = model.CurrentDir
+	return t
+}
+
+type RemoveEmptyTagSerializer struct {
+	CurrentTagName string `json:"currentTagName"`
+	Total      int    `json:"total"`
+	Current    int    `json:"current"`
+}
+
+func SerializeRemoveEmptyTagTask(dataModel interface{}) RemoveEmptyTagSerializer {
+	model := dataModel.(*services.RemoveEmptyTagTask)
+	t := RemoveEmptyTagSerializer{}
+	t.Total = model.Total
+	t.Current = model.Current
+	if model.CurrentTag != nil {
+		t.CurrentTagName = model.CurrentTag.Name
+	}
 	return t
 }

@@ -324,7 +324,7 @@ var AnalyzeTagFromTextHandler gin.HandlerFunc = func(context *gin.Context) {
 }
 
 var ClearEmptyTagHandler gin.HandlerFunc = func(context *gin.Context) {
-	err := services.ClearEmptyTag()
+	_,err := services.DefaultTaskPool.NewRemoveEmptyTagTask()
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
