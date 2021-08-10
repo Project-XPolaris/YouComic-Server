@@ -81,6 +81,7 @@ type BooksQueryBuilder struct {
 	NameSearchQueryFilter
 	LibraryQueryFilter
 	DirectoryNameQueryFilter
+	RandomQueryFilter
 }
 
 type EndTimeQueryFilter struct {
@@ -102,13 +103,29 @@ func (f *EndTimeQueryFilter) SetEndTimeQueryFilter(endTime interface{}) {
 
 }
 
+type RandomQueryFilter struct {
+	random bool
+}
+
+func (f RandomQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	return db
+}
+
+func (f *RandomQueryFilter) SetRandomQueryFilter(random interface{}) {
+
+	if len(random.(string)) > 0 {
+		f.random = true
+	}
+
+}
+
 type DirectoryNameQueryFilter struct {
 	Key string
 }
 
 func (f DirectoryNameQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 	if len(f.Key) != 0 {
-		return db.Where("path like ?", fmt.Sprintf("%%%s%%",f.Key))
+		return db.Where("path like ?", fmt.Sprintf("%%%s%%", f.Key))
 	}
 	return db
 }
@@ -196,6 +213,9 @@ func (f *BookCollectionQueryFilter) SetCollectionQueryFilter(collectionIds ...in
 func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
+	if b.random {
+		query = query.Order("random()")
+	}
 	var count int64 = 0
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
 
@@ -357,7 +377,7 @@ func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int64, error) {
 	return result, count, err
 }
 
-func RenderBookDirectoryRenameText(book *model.Book,Pattern string,Slots []RenameSlot) string{
+func RenderBookDirectoryRenameText(book *model.Book, Pattern string, Slots []RenameSlot) string {
 	name := Pattern
 	for _, slot := range Slots {
 		if slot.Type == "title" {
@@ -386,7 +406,7 @@ func RenderBookDirectoryRenameText(book *model.Book,Pattern string,Slots []Renam
 	name = strings.TrimSpace(name)
 	return name
 }
-func RenameBookDirectoryById(bookId int, pattern string,slots []RenameSlot) (*model.Book, error) {
+func RenameBookDirectoryById(bookId int, pattern string, slots []RenameSlot) (*model.Book, error) {
 	var book model.Book
 	err := database.DB.Preload("Tags").First(&book, bookId).Error
 	if err != nil {
@@ -397,9 +417,9 @@ func RenameBookDirectoryById(bookId int, pattern string,slots []RenameSlot) (*mo
 	if err != nil {
 		return nil, err
 	}
-	name := RenderBookDirectoryRenameText(&book,pattern,slots)
+	name := RenderBookDirectoryRenameText(&book, pattern, slots)
 	if name == filepath.Base(book.Path) {
-		return &book,nil
+		return &book, nil
 	}
 	newPath := utils.ReplaceLastString(book.Path, filepath.Base(book.Path), name)
 	err = os.Rename(path.Join(library.Path, book.Path), path.Join(library.Path, newPath))
@@ -413,9 +433,9 @@ func RenameBookDirectoryById(bookId int, pattern string,slots []RenameSlot) (*mo
 	}
 	return &book, nil
 }
-func RenameBookDirectory(book *model.Book,library *model.Library, name string) (*model.Book, error) {
+func RenameBookDirectory(book *model.Book, library *model.Library, name string) (*model.Book, error) {
 	if name == filepath.Base(book.Path) {
-		return book,nil
+		return book, nil
 	}
 	newPath := utils.ReplaceLastString(book.Path, filepath.Base(book.Path), name)
 	err := os.Rename(path.Join(library.Path, book.Path), path.Join(library.Path, newPath))

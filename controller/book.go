@@ -223,6 +223,11 @@ var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 			Method: "SetPathSearchQueryFilter",
 			Many:   false,
 		},
+		{
+			Lookup: "random",
+			Method: "SetRandomQueryFilter",
+			Many:   false,
+		},
 	}
 	for _, filter := range filterMapping {
 		utils.FilterByParam(context, filter.Lookup, &queryBuilder, filter.Method, filter.Many)
@@ -778,7 +783,7 @@ var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	book, err := services.RenameBookDirectoryById(id, requestBody.Pattern,requestBody.Slots)
+	book, err := services.RenameBookDirectoryById(id, requestBody.Pattern, requestBody.Slots)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)

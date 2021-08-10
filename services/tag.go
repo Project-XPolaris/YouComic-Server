@@ -9,6 +9,7 @@ import (
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"regexp"
 )
 
 type TagQueryBuilder struct {
@@ -236,8 +237,15 @@ type RawTag struct {
 	Source string `json:"source"`
 }
 
-func MatchTag(raw string) []*RawTag {
-	result := utils.MatchName(raw)
+func MatchTag(raw string, pattern string) []*RawTag {
+	var result *utils.MatchTagResult
+	if len(pattern) > 0 {
+		rex := regexp.MustCompile(pattern)
+		result = utils.MatchAllResult(rex, raw)
+
+	} else {
+		result = utils.MatchName(raw)
+	}
 	tags := make([]*RawTag, 0)
 	if result != nil {
 		if len(result.Name) > 0 {

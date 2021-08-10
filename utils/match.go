@@ -34,7 +34,7 @@ type MatchTagResult struct {
 func MatchName(name string) *MatchTagResult {
 	for _, regexPattern := range matchRegex {
 		rex := regexp.MustCompile(regexPattern)
-		result := toMatchResult(rex, name)
+		result := MatchAllResult(rex, name)
 		if result != nil {
 			return result
 		}
@@ -42,7 +42,7 @@ func MatchName(name string) *MatchTagResult {
 	return nil
 }
 
-func toMatchResult(regex *regexp.Regexp, text string) *MatchTagResult {
+func MatchAllResult(regex *regexp.Regexp, text string) *MatchTagResult {
 	match := regex.FindStringSubmatch(text)
 	if match == nil {
 		return nil
