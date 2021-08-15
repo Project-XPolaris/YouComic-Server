@@ -122,6 +122,11 @@ var TagListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Method: "SetTagSubscriptionQueryFilter",
 				Many:   true,
 			},
+			{
+				Lookup: "random",
+				Method: "SetRandomQueryFilter",
+				Many:   false,
+			},
 		},
 		GetContainer: func() serializer.ListContainerSerializer {
 			return &serializer.DefaultListContainer{}

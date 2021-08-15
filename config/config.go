@@ -37,6 +37,14 @@ type ApplicationConfig struct {
 		Type   string `json:"type"`
 		Target string `json:"target"`
 	} `json:"thumbnail"`
+	YouPlus struct {
+		RPCUrl       string `json:"rpc"`
+		EntityConfig struct {
+			Enable  bool   `json:"enable"`
+			Name    string `json:"name"`
+			Version int64  `json:"version"`
+		} `json:"entity"`
+	} `json:"youplus"`
 }
 
 func InitApplicationConfig() error {
@@ -70,6 +78,10 @@ func LoadConfig() {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
 	err = InitApplicationConfig()
+	Config.YouPlus.RPCUrl = viper.GetString("youplus.rpc")
+	Config.YouPlus.EntityConfig.Name = viper.GetString("youplus.entity.name")
+	Config.YouPlus.EntityConfig.Enable = viper.GetBool("youplus.entity.enable")
+	Config.YouPlus.EntityConfig.Version = viper.GetInt64("youplus.entity.version")
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}

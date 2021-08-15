@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
@@ -9,10 +10,13 @@ import (
 	"github.com/allentom/youcomic-api/middleware"
 	"github.com/allentom/youcomic-api/router"
 	"github.com/allentom/youcomic-api/setup"
+	util "github.com/allentom/youcomic-api/utils"
+	"github.com/allentom/youcomic-api/youplus"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 	srv "github.com/kardianos/service"
+	entry "github.com/project-xpolaris/youplustoolkit/youplus/entity"
 	"github.com/sirupsen/logrus"
 	ginlogrus "github.com/toorop/gin-logrus"
 	"github.com/urfave/cli/v2"
@@ -80,6 +84,50 @@ func Program() {
 	r.Static("/assets", config.Config.Store.Root)
 	router.SetRouter(r)
 
+	// register rpc
+	if len(config.Config.YouPlus.RPCUrl) > 0 {
+		err = youplus.LoadYouPlusRPCClient()
+		if err != nil {
+			MainLogger.WithFields(logrus.Fields{
+				"signal": "rpc_connect_failed",
+				"url":    config.Config.YouPlus.RPCUrl,
+			}).Fatal("RPC connect success")
+		}
+		MainLogger.WithFields(logrus.Fields{
+			"signal": "rpc_connect_success",
+			"port":   config.Config.YouPlus.RPCUrl,
+		}).Info("RPC connect success")
+	}
+	// youplus entity
+	if config.Config.YouPlus.EntityConfig.Enable {
+		youplus.InitEntity()
+		err = youplus.DefaultEntry.Register()
+		if err != nil {
+			MainLogger.WithFields(logrus.Fields{
+				"signal": "entity_register_failed",
+			}).Fatal("entity register failed")
+		}
+
+		addrs, err := util.GetHostIpList()
+		urls := make([]string, 0)
+		for _, addr := range addrs {
+			urls = append(urls, fmt.Sprintf("http://%s:%s", addr, config.Config.Application.Port))
+		}
+		if err != nil {
+			MainLogger.Fatal(err.Error())
+		}
+		err = youplus.DefaultEntry.UpdateExport(entry.EntityExport{Urls: urls, Extra: map[string]interface{}{}})
+		if err != nil {
+			MainLogger.Fatal(err.Error())
+		}
+
+		err = youplus.DefaultEntry.StartHeartbeat(context.Background())
+		if err != nil {
+			MainLogger.Fatal(err.Error())
+		}
+		MainLogger.Info("success register entity")
+
+	}
 	MainLogger.WithFields(logrus.Fields{
 		"signal": "start_success",
 		"port":   config.Config.Application.Port,

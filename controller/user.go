@@ -52,8 +52,9 @@ var RegisterUserHandler gin.HandlerFunc = func(context *gin.Context) {
 }
 
 type LoginUserRequestBody struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	WithYouPlus bool   `json:"withYouPlus"`
 }
 type UserAuthResponse struct {
 	Id   uint   `json:"id"`
@@ -201,7 +202,7 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context) {
 			Lookup: "usergroup",
 			Method: "SetUserGroupQueryFilter",
 			Many:   true,
-		},{
+		}, {
 			Lookup: "order",
 			Method: "SetOrderFilter",
 			Many:   true,
@@ -268,7 +269,6 @@ var ChangeUserPasswordHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	ServerSuccessResponse(context)
 }
-
 
 type ChangeUserNicknameRequestBody struct {
 	Nickname string `json:"nickname"`

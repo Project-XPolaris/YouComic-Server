@@ -20,6 +20,7 @@ type TagQueryBuilder struct {
 	DefaultPageFilter
 	TagTypeQueryFilter
 	TagSubscriptionQueryFilter
+	RandomQueryFilter
 }
 
 type TagTypeQueryFilter struct {
@@ -63,6 +64,9 @@ func (f *TagSubscriptionQueryFilter) SetTagSubscriptionQueryFilter(subscriptions
 func (b *TagQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
+	if b.random {
+		query = query.Order("random()")
+	}
 	var count int64 = 0
 	md := make([]model.Tag, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
