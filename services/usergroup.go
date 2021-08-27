@@ -6,7 +6,7 @@ import (
 	"github.com/allentom/youcomic-api/model"
 	"gorm.io/gorm"
 )
-
+var DefaultUserGroupName = "Default"
 type UserGroupQueryBuilder struct {
 	IdQueryFilter
 	UserGroupUserFilter

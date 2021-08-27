@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
@@ -83,7 +84,14 @@ var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	user, sign, err := services.UserLogin(requestBody.Username, requestBody.Password)
+	var user *model.User
+	var sign string
+	if config.Config.YouPlus.Auth {
+		user, sign, err = services.YouPlusLogin(requestBody.Username, requestBody.Password)
+	}else{
+		user, sign, err = services.UserLogin(requestBody.Username, requestBody.Password)
+	}
+
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return

@@ -17,10 +17,8 @@ func InitApplication() (err error) {
 	}
 	LogField.Info("initial...")
 	superUserGroupName := config.GetString("superUserGroupName")
-	defaultUserGroupName := config.GetString("defaultUserGroupName")
 	superUserUsername := config.GetString("adminAccount.username")
 	superUserPassword := config.GetString("adminAccount.password")
-
 	// create user group
 	superUserGroup, err := CreateUserGroupIfNotExist(superUserGroupName)
 	if err != nil {
@@ -28,7 +26,7 @@ func InitApplication() (err error) {
 	}
 
 	// create default user group
-	_, err = CreateUserGroupIfNotExist(defaultUserGroupName)
+	_, err = CreateUserGroupIfNotExist(services.DefaultUserGroupName)
 	if err != nil {
 		return err
 	}

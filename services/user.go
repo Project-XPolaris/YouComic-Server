@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -8,12 +9,14 @@ import (
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
+	"github.com/allentom/youcomic-api/youplus"
+	"github.com/project-xpolaris/youplustoolkit/youplus/rpc"
 	"gorm.io/gorm"
 )
 
 var (
 	UserPasswordInvalidate = errors.New("invalidate user password")
-	UserNotFoundError = errors.New("user not found")
+	UserNotFoundError      = errors.New("user not found")
 )
 
 func RegisterUser(user *model.User) error {
@@ -42,7 +45,7 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 	var user model.User
 	err = database.DB.Where(&model.User{Username: username, Password: password}).Find(&user).Error
 	if err == gorm.ErrRecordNotFound {
-		return nil,"",UserPasswordInvalidate
+		return nil, "", UserPasswordInvalidate
 	}
 	if err != nil {
 		return nil, "", err
@@ -52,6 +55,54 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 		return nil, "", err
 	}
 	return &user, sign, nil
+}
+func YouPlusLogin(username string, rawPassword string) (*model.User, string, error) {
+	result, err := youplus.DefaultRPCClient.Client.GenerateToken(context.Background(), &rpc.GenerateTokenRequest{
+		Username: &username,
+		Password: &rawPassword,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	if !*result.Success {
+		return nil, "", errors.New(*result.Reason)
+	}
+	var accountCount int64
+	err = database.DB.Model(&model.User{}).Where("username = ?", username).Count(&accountCount).Error
+	if err != nil {
+		return nil, "", err
+	}
+	var account model.User
+	if accountCount == 0 {
+		var defaultUserGroup model.UserGroup
+		err = database.DB.Where("name = ?",DefaultUserGroupName).First(&defaultUserGroup).Error
+		if err != nil {
+			return nil, "", err
+		}
+		account = model.User{
+			Username:       username,
+			Nickname:       username,
+			YouPlusAccount: true,
+			UserGroups: []*model.UserGroup{
+				&defaultUserGroup,
+			},
+		}
+		err = database.DB.Create(&account).Error
+		if err != nil {
+			return nil, "", err
+		}
+	}else{
+		err = database.DB.Where("username = ?", username).First(&account).Error
+		if err != nil {
+			return nil, "", err
+		}
+	}
+	sign, err := auth.GenerateJWTSign(&account)
+	if err != nil {
+		return nil, "", err
+	}
+	return &account, sign, nil
+
 }
 
 type UserQueryBuilder struct {

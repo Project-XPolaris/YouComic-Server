@@ -39,6 +39,7 @@ type ApplicationConfig struct {
 	} `json:"thumbnail"`
 	YouPlus struct {
 		RPCUrl       string `json:"rpc"`
+		Auth         bool   `json:"auth"`
 		EntityConfig struct {
 			Enable  bool   `json:"enable"`
 			Name    string `json:"name"`
