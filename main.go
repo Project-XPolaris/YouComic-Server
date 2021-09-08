@@ -38,6 +38,7 @@ func initService() error {
 		Name:             "YouComicCoreService",
 		DisplayName:      "YouComic Core Service",
 		WorkingDirectory: workPath,
+		Arguments:        []string{"run"},
 	}
 	return nil
 }

@@ -20,7 +20,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.7 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/project-xpolaris/youplustoolkit v0.0.0-20210820012521-e2723bbd3150
 	github.com/rs/xid v1.3.0
 	github.com/sirupsen/logrus v1.8.1
@@ -31,7 +30,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 	golang.org/x/text v0.3.7 // indirect
-	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/mysql v1.1.0
 	gorm.io/driver/sqlite v1.1.4
