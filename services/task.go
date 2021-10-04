@@ -209,6 +209,7 @@ func (p *TaskPool) NewRemoveEmptyTagTask() (*RemoveEmptyTagTask, error) {
 	task.Start()
 	return task, nil
 }
+
 type Task interface {
 	Stop() error
 	Start() error
@@ -312,22 +313,25 @@ func (t *ScanTask) scannerDir() chan interface{} {
 				Output:  coverThumbnailStorePath,
 				ErrChan: make(chan error),
 			}
-			DefaultThumbnailService.Resource <- option
-			err = <-option.ErrChan
-			if err != nil {
-				// use page as cover
-				for _, page := range item.Pages {
-					option.Input = filepath.Join(t.TargetDir, book.Path, page)
-					DefaultThumbnailService.Resource <- option
-					err = <-option.ErrChan
-					if err == nil {
-						break
+			go func() {
+				DefaultThumbnailService.Resource <- option
+				err = <-option.ErrChan
+				if err != nil {
+					// use page as cover
+					for _, page := range item.Pages {
+						option.Input = filepath.Join(t.TargetDir, book.Path, page)
+						DefaultThumbnailService.Resource <- option
+						err = <-option.ErrChan
+						if err == nil {
+							break
+						}
 					}
 				}
-			}
-			if err != nil {
-				logrus.Error(err)
-			}
+				if err != nil {
+					logrus.Error(err)
+				}
+			}()
+
 		}
 		t.Status = StatusComplete
 		resultChan <- struct{}{}
@@ -465,7 +469,7 @@ type MoveBookTask struct {
 	To         *model.Library
 	Total      int
 	Current    int
-	stopFlag bool
+	stopFlag   bool
 }
 
 func (t *MoveBookTask) Stop() error {
@@ -486,7 +490,7 @@ func (t *MoveBookTask) Start() error {
 			}
 			t.Current += 1
 			var book model.Book
-			err := database.DB.First(&book,id).Error
+			err := database.DB.First(&book, id).Error
 			if err != nil {
 				logrus.Error(err)
 				continue
@@ -510,14 +514,14 @@ func (t *MoveBookTask) Start() error {
 				}
 			}
 			t.From = library
-			sourcePath := filepath.Join(library.Path,book.Path)
-			toPath := filepath.Join(t.To.Path,book.Path)
-			err = os.MkdirAll(toPath,0644)
+			sourcePath := filepath.Join(library.Path, book.Path)
+			toPath := filepath.Join(t.To.Path, book.Path)
+			err = os.MkdirAll(toPath, 0644)
 			if err != nil {
 				logrus.Error(err)
 				continue
 			}
-			err = utils.CopyDirectory(sourcePath,toPath)
+			err = utils.CopyDirectory(sourcePath, toPath)
 			if err != nil {
 				logrus.Error(err)
 				continue
@@ -544,7 +548,7 @@ type RemoveEmptyTagTask struct {
 	CurrentTag *model.Tag
 	Total      int
 	Current    int
-	stopFlag bool
+	stopFlag   bool
 }
 
 func (t *RemoveEmptyTagTask) Stop() error {

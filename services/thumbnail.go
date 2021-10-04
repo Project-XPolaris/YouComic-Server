@@ -125,7 +125,7 @@ func (e *DefaultThumbnailsEngine) Generate(input string, output string, maxWidth
 	}
 
 	// make thumbnail
-	resizeImage := resize.Thumbnail(uint(maxWidth), 0, thumbnailImage, resize.Lanczos3)
+	resizeImage := resize.Thumbnail(uint(maxWidth), 480, thumbnailImage, resize.Lanczos3)
 
 	// mkdir
 	outputImage, err := os.Create(output)
