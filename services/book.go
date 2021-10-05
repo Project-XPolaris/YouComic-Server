@@ -449,3 +449,39 @@ func RenameBookDirectory(book *model.Book, library *model.Library, name string) 
 	}
 	return book, nil
 }
+
+func GenerateBookCoverById(id uint) error {
+	var book model.Book
+	err := database.DB.Preload("Page").Where("id = ?", id).First(&book).Error
+	if err != nil {
+		return err
+	}
+	if book.Page == nil || len(book.Page) == 0 {
+		return errors.New("no pages in book")
+	}
+	library, err := GetLibraryById(book.LibraryId)
+	if err != nil {
+		return err
+	}
+	bookPath := filepath.Join(library.Path, book.Path)
+	coverThumbnailStorePath := utils.GetThumbnailStorePath(book.ID)
+	option := ThumbnailTaskOption{
+		Input:   filepath.Join(bookPath, book.Page[0].Path),
+		Output:  coverThumbnailStorePath,
+		ErrChan: make(chan error),
+	}
+	DefaultThumbnailService.Resource <- option
+	err = <-option.ErrChan
+	if err != nil {
+		// use page as cover
+		for _, page := range book.Page {
+			option.Input = filepath.Join(bookPath, page.Path)
+			DefaultThumbnailService.Resource <- option
+			err = <-option.ErrChan
+			if err == nil {
+				break
+			}
+		}
+	}
+	return err
+}

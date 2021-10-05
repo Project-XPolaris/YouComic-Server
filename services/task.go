@@ -1,16 +1,13 @@
 package services
 
 import (
-	"fmt"
 	linq "github.com/ahmetb/go-linq/v3"
-	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"os"
-	"path"
 	"path/filepath"
 	"sync"
 	"time"
@@ -307,7 +304,7 @@ func (t *ScanTask) scannerDir() chan interface{} {
 				}
 				database.DB.Save(page)
 			}
-			coverThumbnailStorePath := path.Join(config.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+			coverThumbnailStorePath := utils.GetThumbnailStorePath(book.ID)
 			option := ThumbnailTaskOption{
 				Input:   filepath.Join(t.TargetDir, book.Path, book.Cover),
 				Output:  coverThumbnailStorePath,

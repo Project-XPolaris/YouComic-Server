@@ -794,3 +794,18 @@ var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
 }
+
+var GenerateCoverThumbnail gin.HandlerFunc = func(context *gin.Context) {
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	err = services.GenerateBookCoverById(uint(id))
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	ServerSuccessResponse(context)
+}
