@@ -255,18 +255,37 @@ func (t *ScanTask) Stop() error {
 	return nil
 }
 func (t *ScanTask) scannerDir() chan interface{} {
-
 	resultChan := make(chan interface{})
 	go func(resultChan chan interface{}) {
 		defer func() {
 			DefaultLibraryLockPool.TryToUnlock(t.LibraryId)
 		}()
+		// sync with exist book
+		var library model.Library
+		err := database.DB.Where("id = ?", t.LibraryId).Preload("Books").Find(&library).Error
+		if err != nil {
+			resultChan <- err
+			return
+		}
+		removeBookIds := make([]int, 0)
+		for _, book := range library.Books {
+			if !utils.CheckFileExist(filepath.Join(library.Path, book.Path)) {
+				removeBookIds = append(removeBookIds, int(book.ID))
+			}
+		}
+		if len(removeBookIds) > 0 {
+			err = DeleteBooks(removeBookIds...)
+			if err != nil {
+				resultChan <- err
+				return
+			}
+		}
 		scanner := utils.Scanner{
 			TargetPath:   t.TargetDir,
 			PageExt:      utils.DefaultScanPageExt,
 			MinPageCount: 4,
 		}
-		err := scanner.Scan()
+		err = scanner.Scan()
 		if err != nil {
 			resultChan <- err
 			return
@@ -282,12 +301,17 @@ func (t *ScanTask) scannerDir() chan interface{} {
 			t.Current += 1
 			t.CurrentDir = filepath.Base(item.DirPath)
 			relativePath, _ := filepath.Rel(t.TargetDir, item.DirPath)
-			var book model.Book
-			database.DB.Model(&model.Book{}).Where("path = ?", relativePath).First(&book)
-			if len(book.Path) != 0 {
+			isExist := false
+			for _, book := range library.Books {
+				if book.Path == relativePath {
+					isExist = true
+					break
+				}
+			}
+			if isExist {
 				continue
 			}
-			book = model.Book{
+			book := model.Book{
 				Name:      filepath.Base(item.DirPath),
 				LibraryId: t.LibraryId,
 				Path:      relativePath,
