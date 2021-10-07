@@ -516,10 +516,12 @@ func (t *MoveBookTask) Start() error {
 				logrus.Error(err)
 				continue
 			}
+			// in position,skip
 			if book.LibraryId == t.To.ID {
 				continue
 			}
 			t.CurrentDir = filepath.Base(book.Path)
+			// get target library
 			var library *model.Library
 			for _, cacheLibrary := range libraries {
 				if cacheLibrary.ID == book.LibraryId {
@@ -537,23 +539,29 @@ func (t *MoveBookTask) Start() error {
 			t.From = library
 			sourcePath := filepath.Join(library.Path, book.Path)
 			toPath := filepath.Join(t.To.Path, book.Path)
-			err = os.MkdirAll(toPath, 0644)
+
+			// try to move
+			err = os.Rename(sourcePath+"/", toPath+"/")
 			if err != nil {
-				logrus.Error(err)
-				continue
-			}
-			err = utils.CopyDirectory(sourcePath, toPath)
-			if err != nil {
-				logrus.Error(err)
-				continue
+				// failed to move,try to copy
+				err = os.MkdirAll(toPath, 0644)
+				if err != nil {
+					logrus.Error(err)
+					continue
+				}
+				err = utils.CopyDirectory(sourcePath, toPath)
+				if err != nil {
+					logrus.Error(err)
+					continue
+				}
+				err = os.RemoveAll(sourcePath)
+				if err != nil {
+					logrus.Error(err)
+					continue
+				}
 			}
 			book.LibraryId = t.To.ID
 			err = database.DB.Save(&book).Error
-			if err != nil {
-				logrus.Error(err)
-				continue
-			}
-			err = os.RemoveAll(sourcePath)
 			if err != nil {
 				logrus.Error(err)
 				continue
