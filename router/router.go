@@ -70,6 +70,7 @@ func SetRouter(engine *gin.Engine) {
 	engine.DELETE("/library/:id", controller.DeleteLibraryHandler)
 	engine.PUT("/library/:id/scan", controller.ScanLibraryHandler)
 	engine.PUT("/library/:id/match", controller.NewLibraryMatchTagHandler)
+	engine.POST("/library/:id/task/writemeta", controller.WriteBookMetaTaskHandler)
 	engine.PUT("/library/:id/books/rename", controller.NewRenameLibraryBookDirectoryHandler)
 	engine.GET("/library/:id", controller.LibraryObjectHandler)
 	engine.GET("/libraries", controller.LibraryListHandler)

@@ -122,3 +122,23 @@ var NewMoveBookTaskHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	context.JSON(200, task)
 }
+
+var WriteBookMetaTaskHandler gin.HandlerFunc = func(context *gin.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	library, err := services.GetLibraryById(uint(id))
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	task, err := services.DefaultTaskPool.NewWriteBookMetaTask(&library)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	context.JSON(200, task)
+}

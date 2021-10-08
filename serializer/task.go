@@ -33,6 +33,9 @@ func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]in
 	case *services.RemoveEmptyTagTask:
 		t.Data = SerializeRemoveEmptyTagTask(dataModel)
 		t.Type = "RemoveEmptyTag"
+	case *services.WriteBookMetaTask:
+		t.Data = SerializeWriteBookMetaTask(dataModel)
+		t.Type = "WriteBookMeta"
 	}
 	return nil
 }
@@ -117,8 +120,8 @@ func SerializeMoveBookTask(dataModel interface{}) MoveBookSerializer {
 
 type RemoveEmptyTagSerializer struct {
 	CurrentTagName string `json:"currentTagName"`
-	Total      int    `json:"total"`
-	Current    int    `json:"current"`
+	Total          int    `json:"total"`
+	Current        int    `json:"current"`
 }
 
 func SerializeRemoveEmptyTagTask(dataModel interface{}) RemoveEmptyTagSerializer {
@@ -128,6 +131,22 @@ func SerializeRemoveEmptyTagTask(dataModel interface{}) RemoveEmptyTagSerializer
 	t.Current = model.Current
 	if model.CurrentTag != nil {
 		t.CurrentTagName = model.CurrentTag.Name
+	}
+	return t
+}
+
+type WriteBookMetaSerializer struct {
+	Current     int    `json:"current"`
+	Total       int    `json:"total"`
+	CurrentBook string `json:"currentBook"`
+}
+
+func SerializeWriteBookMetaTask(dataModel interface{}) WriteBookMetaSerializer {
+	model := dataModel.(*services.WriteBookMetaTask)
+	t := WriteBookMetaSerializer{
+		Total:       model.Total,
+		Current:     model.Total,
+		CurrentBook: model.CurrentBook,
 	}
 	return t
 }
