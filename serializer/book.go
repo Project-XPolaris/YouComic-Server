@@ -12,14 +12,15 @@ import (
 )
 
 type BaseBookTemplate struct {
-	ID        uint        `json:"id"`
-	CreatedAt time.Time   `json:"created_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
-	Name      string      `json:"name"`
-	Cover     string      `json:"cover"`
-	LibraryId uint        `json:"library_id"`
-	Tags      interface{} `json:"tags"`
-	DirName   string      `json:"dirName"`
+	ID           uint        `json:"id"`
+	CreatedAt    time.Time   `json:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at"`
+	Name         string      `json:"name"`
+	Cover        string      `json:"cover"`
+	LibraryId    uint        `json:"library_id"`
+	Tags         interface{} `json:"tags"`
+	DirName      string      `json:"dirName"`
+	OriginalName string      `json:"originalName"`
 }
 
 func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]interface{}) error {
@@ -35,6 +36,9 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 		)
 	}
 	b.DirName = filepath.Base(serializerModel.Path)
+	if len(b.OriginalName) == 0 {
+		b.OriginalName = b.DirName
+	}
 	tags, err := services.GetBookTagsByTypes(serializerModel.ID, "artist", "translator", "series", "theme")
 	if err != nil {
 		return err

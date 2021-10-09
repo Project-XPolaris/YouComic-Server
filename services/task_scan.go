@@ -1,11 +1,14 @@
 package services
 
 import (
+	"encoding/json"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -133,11 +136,34 @@ func (t *ScanTask) scannerDir() chan interface{} {
 			if isExist {
 				continue
 			}
+			// try to find out meta file
+			metaFilePath := filepath.Join(item.DirPath, "youcomic_meta.json")
+			meta := BookMeta{}
+			if utils.CheckFileExist(metaFilePath) {
+				jsonFile, err := os.Open(metaFilePath)
+				byteValue, _ := ioutil.ReadAll(jsonFile)
+				err = json.Unmarshal(byteValue, &meta)
+				if err != nil {
+					jsonFile.Close()
+					logrus.Error(err)
+					continue
+				}
+				jsonFile.Close()
+			}
 			book := model.Book{
 				Name:      filepath.Base(item.DirPath),
 				LibraryId: t.LibraryId,
 				Path:      relativePath,
 				Cover:     item.CoverName,
+			}
+			if len(meta.OriginalName) > 0 {
+				book.OriginalName = meta.OriginalName
+			}
+			if len(meta.Cover) > 0 && utils.CheckFileExist(filepath.Join(item.DirPath, meta.Cover)) {
+				book.Cover = meta.Cover
+			}
+			if len(meta.Title) > 0 {
+				book.Name = meta.Title
 			}
 			database.DB.Save(&book)
 
@@ -149,6 +175,20 @@ func (t *ScanTask) scannerDir() chan interface{} {
 					PageOrder: idx + 1,
 				}
 				database.DB.Save(page)
+			}
+			// for tags
+			if meta.Tags != nil && len(meta.Tags) > 0 {
+				tags := make([]*model.Tag, 0)
+				for _, metaTag := range meta.Tags {
+					tags = append(tags, &model.Tag{
+						Name: metaTag.Name,
+						Type: metaTag.Type,
+					})
+				}
+				err = AddOrCreateTagToBook(&book, tags, false)
+				if err != nil {
+					logrus.Error(err)
+				}
 			}
 			coverThumbnailStorePath := utils.GetThumbnailStorePath(book.ID)
 			option := ThumbnailTaskOption{
