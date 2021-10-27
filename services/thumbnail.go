@@ -11,7 +11,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 )
+
+const MaxThumbnailGeneratorQueue = 100000
 
 var DefaultThumbnailService = NewThumbnailService(10)
 
@@ -20,28 +23,51 @@ type ThumbnailTaskOption struct {
 	Output  string
 	ErrChan chan error
 }
+type ThumbnailServiceStatus struct {
+	sync.Mutex
+	Total      int64
+	InQueue    int64
+	MaxQueue   int64
+	InProgress int64
+}
 type ThumbnailService struct {
 	MaxTask  int
 	Resource chan ThumbnailTaskOption
-	use      chan struct{}
+	Status   ThumbnailServiceStatus
 }
 
 func NewThumbnailService(maxTask int) *ThumbnailService {
-	resChan := make(chan ThumbnailTaskOption, 0)
+	resChan := make(chan ThumbnailTaskOption, MaxThumbnailGeneratorQueue)
 	useChan := make(chan struct{}, maxTask)
 	service := &ThumbnailService{
 		Resource: resChan,
 		MaxTask:  maxTask,
+		Status: ThumbnailServiceStatus{
+			Total:      0,
+			InQueue:    0,
+			MaxQueue:   MaxThumbnailGeneratorQueue,
+			InProgress: 0,
+		},
 	}
 	go func() {
 		for {
 			useChan <- struct{}{}
 			option := <-resChan
+			service.Status.Lock()
+			service.Status.InQueue = int64(len(service.Resource))
+			service.Status.Unlock()
 			go func() {
 				defer func() {
 					<-useChan
 				}()
+				service.Status.Lock()
+				service.Status.InProgress += 1
+				service.Status.Unlock()
 				_, err := GenerateCoverThumbnail(option.Input, option.Output)
+				service.Status.Lock()
+				service.Status.InProgress -= 1
+				service.Status.Total += 1
+				service.Status.Unlock()
 				if err != nil {
 					option.ErrChan <- err
 					return
@@ -52,6 +78,12 @@ func NewThumbnailService(maxTask int) *ThumbnailService {
 		}
 	}()
 	return service
+}
+
+func (s *ThumbnailService) GetQueueStatus() *ThumbnailServiceStatus {
+	s.Status.Lock()
+	defer s.Status.Unlock()
+	return &s.Status
 }
 
 //generate thumbnail image

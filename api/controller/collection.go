@@ -2,11 +2,11 @@ package controller
 
 import (
 	"fmt"
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
@@ -23,7 +23,7 @@ var CreateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		CreateModel: func() interface{} {
 			return &model.Collection{}
 		},
-		ResponseTemplate: &serializer.BaseCollectionTemplate{},
+		ResponseTemplate: &serializer2.BaseCollectionTemplate{},
 		RequestBody:      &CreateCollectionRequestBody{},
 		OnBeforeCreate: func(v *CreateModelView, modelToCreate interface{}) {
 			dataModel := modelToCreate.(*model.Collection)
@@ -58,14 +58,13 @@ var CollectionsListHandler gin.HandlerFunc = func(context *gin.Context) {
 			}
 			queryBuilder.SetHasBookQueryFilter(containBookIds...)
 
-
 			collections := result.([]model.Collection)
 			collectionIds := make([]interface{}, 0)
 			for _, collection := range collections {
 				collectionIds = append(collectionIds, collection.ID)
 			}
 			queryBuilder.InId(collectionIds...)
-			queryBuilder.SetPageFilter(1,len(collections))
+			queryBuilder.SetPageFilter(1, len(collections))
 
 			_, bookInCollections, _ := queryBuilder.ReadModels()
 			fmt.Println(bookInCollections)
@@ -120,14 +119,14 @@ var CollectionsListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Many:   true,
 			},
 		},
-		GetContainer: func() serializer.ListContainerSerializer {
-			return &serializer.DefaultListContainer{}
+		GetContainer: func() serializer2.ListContainerSerializer {
+			return &serializer2.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer.TemplateSerializer {
-			if _,exist := context.GetQuery("withBookContain");exist {
-				return &serializer.CollectionWithBookContainTemplate{}
+		GetTemplate: func() serializer2.TemplateSerializer {
+			if _, exist := context.GetQuery("withBookContain"); exist {
+				return &serializer2.CollectionWithBookContainTemplate{}
 			}
-			return &serializer.BaseCollectionTemplate{}
+			return &serializer2.BaseCollectionTemplate{}
 		},
 		GetSerializerContext: getSerializerContext,
 	}
@@ -303,7 +302,7 @@ var UpdateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	template := &serializer.BaseCollectionTemplate{}
+	template := &serializer2.BaseCollectionTemplate{}
 	RenderTemplate(context, template, *collection)
 	context.JSON(http.StatusOK, template)
 }

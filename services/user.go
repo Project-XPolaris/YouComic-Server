@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
@@ -75,7 +75,7 @@ func YouPlusLogin(username string, rawPassword string) (*model.User, string, err
 	var account model.User
 	if accountCount == 0 {
 		var defaultUserGroup model.UserGroup
-		err = database.DB.Where("name = ?",DefaultUserGroupName).First(&defaultUserGroup).Error
+		err = database.DB.Where("name = ?", DefaultUserGroupName).First(&defaultUserGroup).Error
 		if err != nil {
 			return nil, "", err
 		}
@@ -91,7 +91,7 @@ func YouPlusLogin(username string, rawPassword string) (*model.User, string, err
 		if err != nil {
 			return nil, "", err
 		}
-	}else{
+	} else {
 		err = database.DB.Where("username = ?", username).First(&account).Error
 		if err != nil {
 			return nil, "", err

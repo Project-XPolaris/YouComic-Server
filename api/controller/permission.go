@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/gin-gonic/gin"
@@ -61,8 +61,8 @@ var GetPermissionListHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	count, permissions, err := permissionQueryBuilder.ReadModels()
 
-	result := serializer.SerializeMultipleTemplate(permissions, &serializer.BasePermissionTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(permissions, &serializer2.BasePermissionTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,

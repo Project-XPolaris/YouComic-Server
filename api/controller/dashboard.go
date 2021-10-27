@@ -1,8 +1,8 @@
 package controller
 
 import (
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/gin-gonic/gin"
@@ -74,8 +74,8 @@ var BookCountDailySummaryHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	serializerTemplates := serializer.SerializeMultipleTemplate(result, &serializer.BookDailySummaryTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	serializerTemplates := serializer2.SerializeMultipleTemplate(result, &serializer2.BookDailySummaryTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(serializerTemplates, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -128,14 +128,14 @@ var TagBooksCountHandler gin.HandlerFunc = func(context *gin.Context) {
 		utils.FilterByParam(context, filter.Lookup, &queryBuilder, filter.Method, filter.Many)
 	}
 
-	count,result,err := queryBuilder.GetTagCount()
+	count, result, err := queryBuilder.GetTagCount()
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 
-	serializerTemplates := serializer.SerializeMultipleTemplate(result, &serializer.TagCountTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	serializerTemplates := serializer2.SerializeMultipleTemplate(result, &serializer2.TagCountTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(serializerTemplates, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -189,14 +189,14 @@ var TagTypeCountHandler gin.HandlerFunc = func(context *gin.Context) {
 		utils.FilterByParam(context, filter.Lookup, &queryBuilder, filter.Method, filter.Many)
 	}
 
-	count,result,err := queryBuilder.GetTagTypeCount()
+	count, result, err := queryBuilder.GetTagTypeCount()
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 
-	serializerTemplates := serializer.SerializeMultipleTemplate(result, &serializer.TagTypeCountTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	serializerTemplates := serializer2.SerializeMultipleTemplate(result, &serializer2.TagTypeCountTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(serializerTemplates, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,

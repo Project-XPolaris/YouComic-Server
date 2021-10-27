@@ -1,12 +1,12 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	"github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/validate"
@@ -88,7 +88,7 @@ var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 	var sign string
 	if config.Config.YouPlus.Auth {
 		user, sign, err = services.YouPlusLogin(requestBody.Username, requestBody.Password)
-	}else{
+	} else {
 		user, sign, err = services.UserLogin(requestBody.Username, requestBody.Password)
 	}
 
@@ -121,7 +121,7 @@ var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	template := serializer.BaseUserTemplate{}
+	template := serializer2.BaseUserTemplate{}
 	err = template.Serializer(user, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -150,8 +150,8 @@ var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	result := serializer.SerializeMultipleTemplate(usergroups, &serializer.BaseUserGroupTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(usergroups, &serializer2.BaseUserGroupTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     1,
 		"pageSize": 10,
@@ -222,8 +222,8 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	count, users, err := userQueryBuilder.ReadModels()
 
-	result := serializer.SerializeMultipleTemplate(users, &serializer.ManagerUserTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(users, &serializer2.ManagerUserTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -348,11 +348,11 @@ var UserHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
 				Many:   false,
 			},
 		},
-		GetContainer: func() serializer.ListContainerSerializer {
-			return &serializer.DefaultListContainer{}
+		GetContainer: func() serializer2.ListContainerSerializer {
+			return &serializer2.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer.TemplateSerializer {
-			return &serializer.BaseHistoryTemplate{}
+		GetTemplate: func() serializer2.TemplateSerializer {
+			return &serializer2.BaseHistoryTemplate{}
 		},
 	}
 	view.Run()

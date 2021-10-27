@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/allentom/youcomic-api/api/router"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/install"
 	applogger "github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/middleware"
-	"github.com/allentom/youcomic-api/router"
 	"github.com/allentom/youcomic-api/setup"
 	util "github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/youplus"

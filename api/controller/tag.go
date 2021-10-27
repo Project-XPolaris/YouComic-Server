@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
@@ -30,7 +30,7 @@ var CreateTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		CreateModel: func() interface{} {
 			return &model.Tag{}
 		},
-		ResponseTemplate: &serializer.BaseTagTemplate{},
+		ResponseTemplate: &serializer2.BaseTagTemplate{},
 		RequestBody:      &CreateTagRequestBody{},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
@@ -128,11 +128,11 @@ var TagListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Many:   false,
 			},
 		},
-		GetContainer: func() serializer.ListContainerSerializer {
-			return &serializer.DefaultListContainer{}
+		GetContainer: func() serializer2.ListContainerSerializer {
+			return &serializer2.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer.TemplateSerializer {
-			return &serializer.BaseTagTemplate{}
+		GetTemplate: func() serializer2.TemplateSerializer {
+			return &serializer2.BaseTagTemplate{}
 		},
 	}
 	view.Run()
@@ -154,8 +154,8 @@ var TagBooksHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	result := serializer.SerializeMultipleTemplate(books, &serializer.BaseBookTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(books, &serializer2.BaseBookTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -288,7 +288,7 @@ var GetTag gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	template := &serializer.BaseTagTemplate{}
+	template := &serializer2.BaseTagTemplate{}
 	RenderTemplate(context, template, tag)
 	context.JSON(http.StatusOK, template)
 }

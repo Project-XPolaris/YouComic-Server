@@ -2,10 +2,10 @@ package controller
 
 import (
 	"fmt"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	"github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/gin-gonic/gin"
@@ -55,7 +55,7 @@ var PageUploadHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	template := serializer.BasePageTemplate{}
+	template := serializer2.BasePageTemplate{}
 	err = template.Serializer(&modelToCreate, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -115,7 +115,7 @@ var UpdatePageHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	//render
-	template := serializer.BasePageTemplate{}
+	template := serializer2.BasePageTemplate{}
 	err = template.Serializer(&modelToUpdate, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -177,16 +177,16 @@ var PageListHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	var template serializer.TemplateSerializer
-	template = &serializer.BasePageTemplate{}
+	var template serializer2.TemplateSerializer
+	template = &serializer2.BasePageTemplate{}
 	templateQueryParam := context.Query("template")
 	if len(templateQueryParam) != 0 {
 		if templateQueryParam == "withSize" {
-			template = &serializer.PageTemplateWithSize{}
+			template = &serializer2.PageTemplateWithSize{}
 		}
 	}
-	result := serializer.SerializeMultipleTemplate(pages, template, nil)
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(pages, template, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,

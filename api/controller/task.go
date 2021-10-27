@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
@@ -27,6 +27,16 @@ func init() {
 			DefaultNotificationManager.sendJSONToAll(map[string]interface{}{
 				"event": "TaskBeat",
 				"data":  data,
+			})
+			status := services.DefaultThumbnailService.GetQueueStatus()
+			DefaultNotificationManager.sendJSONToAll(map[string]interface{}{
+				"event": "GeneratorStatusBeat",
+				"data": map[string]interface{}{
+					"total":      status.Total,
+					"maxQueue":   status.MaxQueue,
+					"inQueue":    status.InQueue,
+					"inProgress": status.InProgress,
+				},
 			})
 		}
 	}()

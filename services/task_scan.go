@@ -185,7 +185,7 @@ func (t *ScanTask) scannerDir() chan interface{} {
 						Type: metaTag.Type,
 					})
 				}
-				err = AddOrCreateTagToBook(&book, tags, false)
+				err = AddOrCreateTagToBook(&book, tags, FillEmpty)
 				if err != nil {
 					logrus.Error(err)
 				}

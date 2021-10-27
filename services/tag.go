@@ -108,7 +108,16 @@ func RemoveBooksFromTag(tagId int, bookIds []int) error {
 	return err
 }
 
-func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag, isTagOverwrite bool) (err error) {
+type TagStrategy int
+
+const (
+	Overwrite TagStrategy = iota + 1
+	Append
+	FillEmpty
+	ReplaceSameType
+)
+
+func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag, strategy TagStrategy) (err error) {
 	for _, tag := range tags {
 		err = database.DB.FirstOrCreate(tag, model.Tag{Name: tag.Name, Type: tag.Type}).Error
 		if err != nil {
@@ -116,13 +125,55 @@ func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag, isTagOverwrite bo
 		}
 	}
 	ass := database.DB.Model(book).Association("Tags")
-	if isTagOverwrite {
+	if strategy == Overwrite {
 		err = ass.Clear()
 		if err != nil {
 			return err
 		}
 	}
-	for _, tag := range tags {
+	if strategy == Append {
+
+	}
+	appendTag := tags
+	if strategy == FillEmpty {
+		var existTags []model.Tag
+		err = ass.Find(&existTags)
+		if err != nil {
+			return err
+		}
+		appendTag = []*model.Tag{}
+		for _, tag := range tags {
+			isExist := false
+			for _, existTag := range existTags {
+				if tag.Type == existTag.Type {
+					isExist = true
+					break
+				}
+			}
+			if !isExist {
+				appendTag = append(appendTag, tag)
+			}
+		}
+	}
+	if strategy == ReplaceSameType {
+		var existTags []model.Tag
+		err = ass.Find(&existTags)
+		if err != nil {
+			return err
+		}
+		appendTag = []*model.Tag{}
+		for _, tag := range tags {
+			for _, existTag := range existTags {
+				if tag.Type == existTag.Type {
+					err = ass.Delete(existTag)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	for _, tag := range appendTag {
 		err = database.DB.Model(tag).Association("Books").Append(book)
 		if err != nil {
 			return err

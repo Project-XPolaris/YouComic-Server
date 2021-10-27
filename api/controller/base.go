@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/validate"
@@ -27,8 +27,8 @@ func DecodeJsonBody(context *gin.Context, requestBody interface{}) error {
 	return err
 }
 
-func RenderTemplate(context *gin.Context, template serializer.TemplateSerializer, model interface{}) {
-	err := serializer.DefaultSerializerModelByTemplate(model, template)
+func RenderTemplate(context *gin.Context, template serializer2.TemplateSerializer, model interface{}) {
+	err := serializer2.DefaultSerializerModelByTemplate(model, template)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -211,7 +211,7 @@ type CreateModelView struct {
 	Context          *gin.Context
 	onAuthUser       func(v *CreateModelView) error
 	CreateModel      func() interface{}
-	ResponseTemplate serializer.TemplateSerializer
+	ResponseTemplate serializer2.TemplateSerializer
 	RequestBody      interface{}
 	Claims           *auth.UserClaims
 	OnBeforeCreate   func(v *CreateModelView, modelToCreate interface{})
@@ -285,8 +285,8 @@ type ListView struct {
 	QueryBuilder         interface{}
 	FilterMapping        []FilterMapping
 	GetSerializerContext func(v *ListView, result interface{}) map[string]interface{}
-	GetTemplate          func() serializer.TemplateSerializer
-	GetContainer         func() serializer.ListContainerSerializer
+	GetTemplate          func() serializer2.TemplateSerializer
+	GetContainer         func() serializer2.ListContainerSerializer
 	GetPermissions       func(v *ListView) []permission.PermissionChecker
 	OnApplyQuery         func()
 	Claims               *auth.UserClaims
@@ -332,10 +332,10 @@ func (v *ListView) Run() {
 	}
 	serializerContext := map[string]interface{}{}
 	if v.GetSerializerContext != nil {
-		serializerContext = v.GetSerializerContext(v,modelList)
+		serializerContext = v.GetSerializerContext(v, modelList)
 	}
 
-	result := serializer.SerializeMultipleTemplate(modelList, v.GetTemplate(), serializerContext)
+	result := serializer2.SerializeMultipleTemplate(modelList, v.GetTemplate(), serializerContext)
 	responseBody := v.GetContainer()
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     page,
@@ -349,7 +349,7 @@ func (v *ListView) Run() {
 type ModelView struct {
 	Context     *gin.Context
 	GetModels   func() interface{}
-	GetTemplate func() serializer.TemplateSerializer
+	GetTemplate func() serializer2.TemplateSerializer
 	LookUpKey   string
 	SetFilter   func(v *ModelView, lookupValue interface{})
 }

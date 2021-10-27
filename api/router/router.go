@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/allentom/youcomic-api/controller"
+	"github.com/allentom/youcomic-api/api/controller"
 	"github.com/gin-gonic/gin"
 )
 
@@ -81,5 +81,6 @@ func SetRouter(engine *gin.Engine) {
 	engine.POST("/scan/stop", controller.StopLibraryScanHandler)
 	engine.POST("/task/bookMove", controller.NewMoveBookTaskHandler)
 	engine.GET("/explore/read", controller.ReadDirectoryHandler)
+	engine.GET("/thumbnail/status", controller.GetThumbnailGeneratorStatus)
 	engine.GET("/ws", controller.WShandler)
 }

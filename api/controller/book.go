@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	appconfig "github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	ApplicationError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/validate"
@@ -67,7 +67,7 @@ var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	//serializer response
-	template := serializer.BaseBookTemplate{}
+	template := serializer2.BaseBookTemplate{}
 	RenderTemplate(context, &template, *book)
 	context.JSON(http.StatusCreated, template)
 }
@@ -147,13 +147,13 @@ var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 		for _, rawTag := range requestBody.UpdateTags {
 			tags = append(tags, &model.Tag{Name: rawTag.Name, Type: rawTag.Type})
 		}
-		err = services.AddOrCreateTagToBook(book, tags, requestBody.OverwriteTag)
+		err = services.AddOrCreateTagToBook(book, tags, services.Overwrite)
 		if err != nil {
 			ApiError.RaiseApiError(context, err, nil)
 			return
 		}
 	}
-	template := &serializer.BaseBookTemplate{}
+	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
 }
@@ -239,8 +239,8 @@ var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	with := context.GetStringSlice("with")
-	result := serializer.SerializeMultipleTemplate(books, &serializer.BaseBookTemplate{}, map[string]interface{}{"with": with})
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(books, &serializer2.BaseBookTemplate{}, map[string]interface{}{"with": with})
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -383,7 +383,7 @@ var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 			for _, rawTag := range updateBook.UpdateTags {
 				tags = append(tags, &model.Tag{Name: rawTag.Name, Type: rawTag.Type})
 			}
-			err = services.AddOrCreateTagToBook(book, tags, updateBook.OverwriteTag)
+			err = services.AddOrCreateTagToBook(book, tags, services.Overwrite)
 			if err != nil {
 				ApiError.RaiseApiError(context, err, nil)
 				return
@@ -493,7 +493,7 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	// render response
-	template := &serializer.BaseBookTemplate{}
+	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, book)
 	context.JSON(http.StatusOK, template)
 }
@@ -559,8 +559,8 @@ var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
 		}
 	}
 
-	result := serializer.SerializeMultipleTemplate(createPages, &serializer.BasePageTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(createPages, &serializer2.BasePageTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     1,
 		"pageSize": len(createPages),
@@ -582,8 +582,8 @@ var GetBookTags gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	result := serializer.SerializeMultipleTemplate(tags, &serializer.BaseTagTemplate{}, nil)
-	responseBody := serializer.DefaultListContainer{}
+	result := serializer2.SerializeMultipleTemplate(tags, &serializer2.BaseTagTemplate{}, nil)
+	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     1,
 		"pageSize": len(tags),
@@ -648,7 +648,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	err = services.AddOrCreateTagToBook(book, tagToAdd, true)
+	err = services.AddOrCreateTagToBook(book, tagToAdd, services.Overwrite)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -704,7 +704,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 		}
 	}
 
-	template := &serializer.BaseBookTemplate{}
+	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
 }
@@ -739,7 +739,7 @@ var GetBook gin.HandlerFunc = func(context *gin.Context) {
 		}
 	}
 
-	template := &serializer.BaseBookTemplate{}
+	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
 }
@@ -790,7 +790,7 @@ var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	template := &serializer.BaseBookTemplate{}
+	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
 	context.JSON(http.StatusOK, template)
 }

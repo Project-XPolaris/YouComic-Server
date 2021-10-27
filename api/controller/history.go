@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -33,14 +33,14 @@ var HistoryListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Many:   false,
 			},
 		},
-		GetContainer: func() serializer.ListContainerSerializer {
-			return &serializer.DefaultListContainer{}
+		GetContainer: func() serializer2.ListContainerSerializer {
+			return &serializer2.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer.TemplateSerializer {
+		GetTemplate: func() serializer2.TemplateSerializer {
 			if withBook == "True" {
-				return &serializer.HistoryWithBookTemplate{}
+				return &serializer2.HistoryWithBookTemplate{}
 			}
-			return &serializer.BaseHistoryTemplate{}
+			return &serializer2.BaseHistoryTemplate{}
 		},
 	}
 	view.Run()

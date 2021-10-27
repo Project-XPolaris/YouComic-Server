@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/gin-gonic/gin"
 )
@@ -36,7 +36,7 @@ var CreateLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	template := serializer.BaseLibraryTemplate{}
+	template := serializer2.BaseLibraryTemplate{}
 	err = template.Serializer(*library, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -60,7 +60,7 @@ var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	if hasPermission := permission.CheckPermissionAndServerError(context, &deleteLibraryPermission); !hasPermission {
 		return
 	}
-	err = services.DeleteLibrary(uint(id))
+	_, err = services.DefaultTaskPool.NewRemoveLibraryTask(id)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
@@ -81,7 +81,7 @@ var LibraryObjectHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	template := serializer.BaseLibraryTemplate{}
+	template := serializer2.BaseLibraryTemplate{}
 	err = template.Serializer(library, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
@@ -113,11 +113,11 @@ var LibraryListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Many:   true,
 			},
 		},
-		GetContainer: func() serializer.ListContainerSerializer {
-			return &serializer.DefaultListContainer{}
+		GetContainer: func() serializer2.ListContainerSerializer {
+			return &serializer2.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer.TemplateSerializer {
-			return &serializer.BaseLibraryTemplate{}
+		GetTemplate: func() serializer2.TemplateSerializer {
+			return &serializer2.BaseLibraryTemplate{}
 		},
 	}
 	view.Run()
@@ -200,6 +200,10 @@ var NewLibraryMatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
+	strategy := context.GetString("strategy")
+	if len(strategy) == 0 {
+		strategy = "fillEmpty"
+	}
 	rawUserClaims, _ := context.Get("claim")
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
@@ -208,7 +212,7 @@ var NewLibraryMatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
 	}
-	task, err := services.DefaultTaskPool.NewMatchLibraryTagTask(uint(id))
+	task, err := services.DefaultTaskPool.NewMatchLibraryTagTask(uint(id), strategy)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return

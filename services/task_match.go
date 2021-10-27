@@ -8,10 +8,18 @@ import (
 	"path/filepath"
 )
 
+var StrategyMapping = map[string]TagStrategy{
+	"overwrite":       Overwrite,
+	"append":          Append,
+	"fillEmpty":       FillEmpty,
+	"replaceSameType": ReplaceSameType,
+}
+
 type MatchLibraryTagTask struct {
 	BaseTask
 	TargetDir  string
 	LibraryId  uint
+	Strategy   TagStrategy
 	Name       string
 	Total      int64
 	Current    int64
@@ -64,7 +72,7 @@ func (t *MatchLibraryTagTask) Start() error {
 				tags = append(tags, &model.Tag{Name: result.Translator, Type: "translator"})
 			}
 			if len(tags) > 0 {
-				AddOrCreateTagToBook(&book, tags, true)
+				AddOrCreateTagToBook(&book, tags, t.Strategy)
 			}
 		}
 		t.Status = StatusComplete
@@ -73,7 +81,7 @@ func (t *MatchLibraryTagTask) Start() error {
 	return nil
 }
 
-func (p *TaskPool) NewMatchLibraryTagTask(libraryId uint) (*MatchLibraryTagTask, error) {
+func (p *TaskPool) NewMatchLibraryTagTask(libraryId uint, strategy string) (*MatchLibraryTagTask, error) {
 	lockSuccess := DefaultLibraryLockPool.TryToLock(libraryId)
 	if !lockSuccess {
 		return nil, LibraryLockError
@@ -92,12 +100,14 @@ func (p *TaskPool) NewMatchLibraryTagTask(libraryId uint) (*MatchLibraryTagTask,
 	if err != nil {
 		return nil, err
 	}
+
 	task := &MatchLibraryTagTask{
 		BaseTask:  NewBaseTask(),
 		TargetDir: library.Path,
 		LibraryId: library.ID,
 		Name:      library.Name,
 		Library:   &library,
+		Strategy:  StrategyMapping[strategy],
 	}
 	task.Status = StatusRunning
 	p.AddTask(task)

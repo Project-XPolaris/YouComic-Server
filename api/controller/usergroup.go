@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"github.com/allentom/youcomic-api/auth"
+	"github.com/allentom/youcomic-api/api/auth"
+	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
-	"github.com/allentom/youcomic-api/serializer"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
 	"github.com/gin-gonic/gin"
@@ -33,11 +33,11 @@ var GetUserGroupListHandler gin.HandlerFunc = func(context *gin.Context) {
 				Many:   false,
 			},
 		},
-		GetTemplate: func() serializer.TemplateSerializer {
-			return &serializer.BaseUserGroupTemplate{}
+		GetTemplate: func() serializer2.TemplateSerializer {
+			return &serializer2.BaseUserGroupTemplate{}
 		},
-		GetContainer: func() serializer.ListContainerSerializer {
-			return &serializer.DefaultListContainer{}
+		GetContainer: func() serializer2.ListContainerSerializer {
+			return &serializer2.DefaultListContainer{}
 		},
 		GetPermissions: func(v *ListView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
@@ -58,7 +58,7 @@ var CreateUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
 		CreateModel: func() interface{} {
 			return &model.UserGroup{}
 		},
-		ResponseTemplate: &serializer.BaseUserGroupTemplate{},
+		ResponseTemplate: &serializer2.BaseUserGroupTemplate{},
 		RequestBody:      &CreateUserGroupRequestBody{},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
@@ -222,6 +222,7 @@ var RemoveUserFromUserGroupHandler gin.HandlerFunc = func(context *gin.Context) 
 type RemovePermissionFromUserGroupRequestBody struct {
 	PermissionIds []uint `json:"permissionIds"`
 }
+
 // remove permission from usergroup handler
 //
 // path: /usergroup/:id/permissions
@@ -265,4 +266,3 @@ var RemovePermissionFromUserGroupHandler gin.HandlerFunc = func(context *gin.Con
 	}
 	ServerSuccessResponse(context)
 }
-
