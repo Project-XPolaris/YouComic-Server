@@ -1,11 +1,12 @@
-package controller
+package httpapi
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	appconfig "github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	ApplicationError "github.com/allentom/youcomic-api/error"
@@ -14,12 +15,13 @@ import (
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/validate"
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -36,7 +38,7 @@ type CreateBookRequestBody struct {
 // path: /books
 //
 // method: post
-var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
+var CreateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody CreateBookRequestBody
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -69,7 +71,7 @@ var CreateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	//serializer response
 	template := serializer2.BaseBookTemplate{}
 	RenderTemplate(context, &template, *book)
-	context.JSON(http.StatusCreated, template)
+	context.JSONWithStatus(template, http.StatusCreated)
 }
 
 type UpdateBookRequestBody struct {
@@ -87,7 +89,7 @@ type UpdateBookRequestBody struct {
 // path: /book/:id
 //
 // method: patch
-var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
+var UpdateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -155,7 +157,7 @@ var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
 // get book list handler
@@ -163,7 +165,7 @@ var UpdateBookHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /books
 //
 // method: get
-var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
+var BookListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	//get page
 	pagination := DefaultPagination{}
 	pagination.Read(context)
@@ -238,7 +240,7 @@ var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	with := context.GetStringSlice("with")
+	with := context.GetQueryStrings("with")
 	result := serializer2.SerializeMultipleTemplate(books, &serializer2.BaseBookTemplate{}, map[string]interface{}{"with": with})
 	responseBody := serializer2.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
@@ -247,7 +249,7 @@ var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
 // delete book handler
@@ -255,7 +257,7 @@ var BookListHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /book/:id
 //
 // method: delete
-var DeleteBookHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeleteBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
@@ -276,7 +278,7 @@ var DeleteBookHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	//permanently delete permission check
-	permanently := context.Query("permanently") == "true"
+	permanently := context.GetQueryString("permanently") == "true"
 	if permanently {
 		if hasPermission := permission.CheckPermissionAndServerError(context,
 			&permission.StandardPermissionChecker{PermissionName: permission.PermanentlyDeleteBookPermissionName, UserId: claims.UserId},
@@ -313,7 +315,7 @@ type BatchRequestBody struct {
 // path: /books/batch
 //
 // method: post
-var BookBatchHandler gin.HandlerFunc = func(context *gin.Context) {
+var BookBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 	requestBody := BatchRequestBody{}
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -414,7 +416,7 @@ type AddTagToBookRequestBody struct {
 	Tags []int `json:"tags"`
 }
 
-var BookTagBatch gin.HandlerFunc = func(context *gin.Context) {
+var BookTagBatch haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -422,9 +424,8 @@ var BookTagBatch gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	requestBody := AddTagToBookRequestBody{}
-	err = context.ShouldBindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	err = services.AddTagToBook(id, requestBody.Tags...)
@@ -435,33 +436,39 @@ var BookTagBatch gin.HandlerFunc = func(context *gin.Context) {
 	ServerSuccessResponse(context)
 }
 
-func SaveCover(context *gin.Context, book model.Book, file *multipart.FileHeader) (error, string) {
+func SaveCover(book model.Book, file multipart.File, header *multipart.FileHeader) (error, string) {
 	err, storePath := services.GetBookPath(book.Path, book.LibraryId)
 	if err != nil {
 		return err, ""
 	}
-	fileExt := filepath.Ext(file.Filename)
+	fileExt := filepath.Ext(header.Filename)
 	coverImageFilePath := filepath.Join(storePath, fmt.Sprintf("cover%s", fileExt))
-	err = context.SaveUploadedFile(file, coverImageFilePath)
+	f, err := os.OpenFile(coverImageFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+	defer f.Close()
+	_, err = io.Copy(f, file)
 	if err != nil {
 		return err, ""
 	}
 	return nil, coverImageFilePath
 }
 
-var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
+var AddBookCover haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	form, err := context.MultipartForm()
-	if form == nil {
+	file, header, err := context.Request.FormFile("file")
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	if header == nil {
 		ApiError.RaiseApiError(context, errors.New("form not found"), nil)
 		return
 	}
-	if _, isFileExistInForm := form.File["image"]; !isFileExistInForm {
+	if file == nil {
 		ApiError.RaiseApiError(context, errors.New("no such file in form"), nil)
 		return
 	}
@@ -472,16 +479,14 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	//get file from form
-	fileHeader := form.File["image"][0]
-
+	defer file.Close()
 	//save cover and generate thumbnail
-	err, coverImageFilePath := SaveCover(context, book, fileHeader)
+	err, coverImageFilePath := SaveCover(book, file, header)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	coverThumbnailStorePath := filepath.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+	coverThumbnailStorePath := filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
 	_, err = services.GenerateCoverThumbnail(coverImageFilePath, coverThumbnailStorePath)
 
 	// update cover
@@ -495,19 +500,19 @@ var AddBookCover gin.HandlerFunc = func(context *gin.Context) {
 	// render response
 	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, book)
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
-var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
+var AddBookPages haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	form, err := context.MultipartForm()
+	form := context.Request.MultipartForm
 	if form == nil {
-		context.JSON(http.StatusOK, "template")
+		ApiError.RaiseApiError(context, errors.New("request not a form"), nil)
 		return
 	}
 
@@ -543,11 +548,23 @@ var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
 				storeFileHeader := file[0]
 				fileExt := path.Ext(storeFileHeader.Filename)
 				storeFileName := fmt.Sprintf("page_%d%s", order, fileExt)
-				err = context.SaveUploadedFile(storeFileHeader, fmt.Sprintf("%s/%s", storePath, storeFileName))
+				file, err := storeFileHeader.Open()
 				if err != nil {
 					ApiError.RaiseApiError(context, err, nil)
 					return
 				}
+				f, err := os.OpenFile(fmt.Sprintf("%s/%s", storePath, storeFileName), os.O_WRONLY|os.O_CREATE, 0666)
+				if err != nil {
+					ApiError.RaiseApiError(context, err, nil)
+					return
+				}
+				_, err = io.Copy(f, file)
+				if err != nil {
+					ApiError.RaiseApiError(context, err, nil)
+					return
+				}
+				f.Close()
+				file.Close()
 				page := &model.Page{Path: storeFileName, PageOrder: order, BookId: id}
 				err = services.CreateModel(page)
 				if err != nil {
@@ -567,10 +584,10 @@ var AddBookPages gin.HandlerFunc = func(context *gin.Context) {
 		"count":    int64(len(createPages)),
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
-var GetBookTags gin.HandlerFunc = func(context *gin.Context) {
+var GetBookTags haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -590,10 +607,10 @@ var GetBookTags gin.HandlerFunc = func(context *gin.Context) {
 		"count":    int64(len(tags)),
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
-var DeleteBookTag gin.HandlerFunc = func(context *gin.Context) {
+var DeleteBookTag haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -620,12 +637,10 @@ type UploadBookRequestBody struct {
 	Cover   string `form:"cover"`
 }
 
-var CreateBook gin.HandlerFunc = func(context *gin.Context) {
+var CreateBook haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody UploadBookRequestBody
-	err := context.ShouldBind(&requestBody)
+	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		logrus.Error(err)
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	libraryId, err := strconv.Atoi(requestBody.Library)
@@ -656,7 +671,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	//handle with pages
-	form, _ := context.MultipartForm()
+	form := context.Request.MultipartForm
 	files := form.File["image"]
 	pageFilenames := make([]string, 0)
 	err = json.Unmarshal([]byte(requestBody.Pages), &pageFilenames)
@@ -669,7 +684,7 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 	for _, pageFilename := range pageFilenames {
 		for pageIdx, file := range files {
 			if pageFilename == file.Filename {
-				storePath, err := SavePageFile(context, file, int(book.ID), pageIdx)
+				storePath, err := SavePageFile(file, int(book.ID), pageIdx)
 				if err != nil {
 					logrus.Error(err)
 					ApiError.RaiseApiError(context, err, nil)
@@ -685,10 +700,11 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 		}
 	}
 
-	for _, file := range files {
-		if file.Filename == requestBody.Cover {
+	for _, fileHeader := range files {
+		if fileHeader.Filename == requestBody.Cover {
 			//save cover
-			err, coverPath := SaveCover(context, *book, file)
+			file, err := fileHeader.Open()
+			err, coverPath := SaveCover(*book, file, fileHeader)
 			if err != nil {
 				logrus.Error(err)
 				ApiError.RaiseApiError(context, err, nil)
@@ -706,10 +722,10 @@ var CreateBook gin.HandlerFunc = func(context *gin.Context) {
 
 	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
-var GetBook gin.HandlerFunc = func(context *gin.Context) {
+var GetBook haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -726,8 +742,8 @@ var GetBook gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	// add query history
-	if context.Query("history") == "True" {
-		userClaimsInterface, exist := context.Get("claim")
+	if context.GetQueryString("history") == "True" {
+		userClaimsInterface, exist := context.Param["claim"]
 		if exist {
 			claims := userClaimsInterface.(*auth.UserClaims)
 			err = services.AddBookHistory(claims.UserId, uint(id))
@@ -741,14 +757,14 @@ var GetBook gin.HandlerFunc = func(context *gin.Context) {
 
 	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
 type ImportLibraryRequestBody struct {
 	LibraryPath string `form:"library_path" json:"library_path" xml:"library_path"  binding:"required"`
 }
 
-var ImportLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
+var ImportLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody ImportLibraryRequestBody
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -770,7 +786,7 @@ type RenameBookDirectoryRequestBody struct {
 	Slots   []services.RenameSlot `json:"slots"`
 }
 
-var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
+var RenameBookDirectoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -792,10 +808,10 @@ var RenameBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, *book)
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
-var GenerateCoverThumbnail gin.HandlerFunc = func(context *gin.Context) {
+var GenerateCoverThumbnail haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)

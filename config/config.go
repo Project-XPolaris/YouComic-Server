@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Config ApplicationConfig
+var Instance ApplicationConfig
 
 type ApplicationConfig struct {
 	Application struct {
@@ -49,7 +49,7 @@ type ApplicationConfig struct {
 }
 
 func InitApplicationConfig() error {
-	err := viper.Unmarshal(&Config)
+	err := viper.Unmarshal(&Instance)
 	return err
 }
 
@@ -79,10 +79,10 @@ func LoadConfig() {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
 	err = InitApplicationConfig()
-	Config.YouPlus.RPCUrl = viper.GetString("youplus.rpc")
-	Config.YouPlus.EntityConfig.Name = viper.GetString("youplus.entity.name")
-	Config.YouPlus.EntityConfig.Enable = viper.GetBool("youplus.entity.enable")
-	Config.YouPlus.EntityConfig.Version = viper.GetInt64("youplus.entity.version")
+	Instance.YouPlus.RPCUrl = viper.GetString("youplus.rpc")
+	Instance.YouPlus.EntityConfig.Name = viper.GetString("youplus.entity.name")
+	Instance.YouPlus.EntityConfig.Enable = viper.GetBool("youplus.entity.enable")
+	Instance.YouPlus.EntityConfig.Version = viper.GetInt64("youplus.entity.version")
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}

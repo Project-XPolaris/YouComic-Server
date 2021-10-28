@@ -1,7 +1,7 @@
-package controller
+package httpapi
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/allentom/haruka"
 	"github.com/gorilla/websocket"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
@@ -60,7 +60,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func WShandler(context *gin.Context) {
+func WShandler(context *haruka.Context) {
 	c, err := upgrader.Upgrade(context.Writer, context.Request, nil)
 	if err != nil {
 		WebsocketLogger.Error(err)

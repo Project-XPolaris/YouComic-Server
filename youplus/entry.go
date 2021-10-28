@@ -12,6 +12,6 @@ type AppExport struct {
 }
 
 func InitEntity() {
-	DefaultEntry = entry.NewEntityClient(config.Config.YouPlus.EntityConfig.Name, config.Config.YouPlus.EntityConfig.Version, &entry.EntityExport{}, DefaultRPCClient)
+	DefaultEntry = entry.NewEntityClient(config.Instance.YouPlus.EntityConfig.Name, config.Instance.YouPlus.EntityConfig.Version, &entry.EntityExport{}, DefaultRPCClient)
 	DefaultEntry.HeartbeatRate = 3000
 }

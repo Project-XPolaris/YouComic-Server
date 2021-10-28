@@ -53,20 +53,20 @@ func SetupApplication() error {
 // create database if not exist
 func CheckDatabase() {
 	LogField.Info("check database")
-	if appconfig.Config.Database.Type == "sqlite" {
+	if appconfig.Instance.Database.Type == "sqlite" {
 		return
 	}
 	db, err := sql.Open("mysql", fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/",
-		appconfig.Config.Mysql.Username,
-		appconfig.Config.Mysql.Password,
-		appconfig.Config.Mysql.Host,
-		appconfig.Config.Mysql.Port,
+		appconfig.Instance.Mysql.Username,
+		appconfig.Instance.Mysql.Password,
+		appconfig.Instance.Mysql.Host,
+		appconfig.Instance.Mysql.Port,
 	))
 	if err != nil {
 		panic(err)
 	}
-	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + appconfig.Config.Mysql.Database)
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + appconfig.Instance.Mysql.Database)
 	if err != nil {
 		panic(err)
 	}
@@ -152,13 +152,13 @@ func initSuperuserPermission() error {
 
 func initStorePath() error {
 	// init app store
-	err := os.MkdirAll(appconfig.Config.Store.Root, os.ModePerm)
+	err := os.MkdirAll(appconfig.Instance.Store.Root, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	// init default library path
-	err = os.MkdirAll(appconfig.Config.Store.Books, os.ModePerm)
+	err = os.MkdirAll(appconfig.Instance.Store.Books, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func initDefaultLibrary() error {
 		return err
 	}
 	if count == 0 {
-		err = database.DB.Create(&model.Library{Path: appconfig.Config.Store.Books, Name: application.DEFAULT_LIBRARY_NAME}).Error
+		err = database.DB.Create(&model.Library{Path: appconfig.Instance.Store.Books, Name: application.DEFAULT_LIBRARY_NAME}).Error
 		if err != nil {
 			return err
 		}

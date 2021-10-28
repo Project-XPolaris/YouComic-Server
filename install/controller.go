@@ -1,48 +1,50 @@
 package install
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/allentom/haruka"
 	"net/http"
 )
 
-var IndexController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "index.html", gin.H{})
+var IndexController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/index.html", map[string]interface{}{})
 }
 
-var SettingDatabaseController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "database.html", gin.H{})
+var SettingDatabaseController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/database.html", map[string]interface{}{})
 }
-var SettingMysqlController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "mysql.html", gin.H{})
+var SettingMysqlController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/mysql.html", map[string]interface{}{})
 }
-var SettingSqliteController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "sqlite.html", gin.H{})
+var SettingSqliteController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/sqlite.html", map[string]interface{}{})
 }
 
 type SqliteDatabaseSettingForm struct {
-	Path string `form:"path"`
+	Path string `hsource:"form" hname:"path"`
 }
-var SettingSqliteSubmitController gin.HandlerFunc = func(context *gin.Context) {
+
+var SettingSqliteSubmitController haruka.RequestHandler = func(context *haruka.Context) {
 	var form SqliteDatabaseSettingForm
-	err := context.ShouldBind(&form)
+	err := context.BindingInput(&form)
 	if err != nil {
 		panic(err)
 	}
 	PreinstallConfig.Sqlite.Path = form.Path
 	PreinstallConfig.Database.Type = "sqlite"
-	context.Redirect(http.StatusFound,"/store")
+	http.Redirect(context.Writer, context.Request, "/store", http.StatusFound)
 }
 
 type MysqlDatabaseSettingForm struct {
-	Host string `form:"host"`
-	Port string `form:"port"`
-	Database string `form:"database"`
-	Username string `form:"username"`
-	Password string `form:"password"`
+	Host     string `hsource:"form" hname:"host"`
+	Port     string `hsource:"form" hname:"port"`
+	Database string `hsource:"form" hname:"database"`
+	Username string `hsource:"form" hname:"username"`
+	Password string `hsource:"form" hname:"password"`
 }
-var SettingMysqlSubmitController gin.HandlerFunc = func(context *gin.Context) {
+
+var SettingMysqlSubmitController haruka.RequestHandler = func(context *haruka.Context) {
 	var form MysqlDatabaseSettingForm
-	err := context.ShouldBind(&form)
+	err := context.BindingInput(&form)
 	if err != nil {
 		panic(err)
 	}
@@ -51,67 +53,68 @@ var SettingMysqlSubmitController gin.HandlerFunc = func(context *gin.Context) {
 	PreinstallConfig.Mysql.Database = form.Database
 	PreinstallConfig.Mysql.Password = form.Password
 	PreinstallConfig.Mysql.Username = form.Username
-	context.Redirect(http.StatusFound,"/store")
+	http.Redirect(context.Writer, context.Request, "/store", http.StatusFound)
 }
 
-
-var SettingStoreController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "store.html", gin.H{})
+var SettingStoreController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/store.html", map[string]interface{}{})
 }
+
 type StoreSettingForm struct {
-	Root string `form:"root"`
-	Books string `form:"books"`
+	Root  string `hsource:"form" hname:"root"`
+	Books string `hsource:"form" hname:"books"`
 }
-var SettingStoreSubmitController gin.HandlerFunc = func(context *gin.Context) {
+
+var SettingStoreSubmitController haruka.RequestHandler = func(context *haruka.Context) {
 	var form StoreSettingForm
-	err := context.ShouldBind(&form)
+	err := context.BindingInput(&form)
 	if err != nil {
 		panic(err)
 	}
 	PreinstallConfig.Store.Root = form.Root
 	PreinstallConfig.Store.Books = form.Books
-	context.Redirect(http.StatusFound,"/security")
+	http.Redirect(context.Writer, context.Request, "/security", http.StatusFound)
 }
 
-var SettingSecurityController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "security.html", gin.H{})
+var SettingSecurityController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/security.html", map[string]interface{}{})
 }
 
 type SecuritySettingForm struct {
-	Username string `form:"username"`
-	Password string `form:"password"`
+	Username string `hsource:"form" hname:"username"`
+	Password string `hsource:"form" hname:"password"`
 }
 
-var SettingSecuritySubmitController gin.HandlerFunc = func(context *gin.Context) {
+var SettingSecuritySubmitController haruka.RequestHandler = func(context *haruka.Context) {
 	var form SecuritySettingForm
-	err := context.ShouldBind(&form)
+	err := context.BindingInput(&form)
 	if err != nil {
 		panic(err)
 	}
 	InitUsername = form.Username
 	InitPassword = form.Password
-	context.Redirect(http.StatusFound,"/application")
-
+	http.Redirect(context.Writer, context.Request, "/application", http.StatusFound)
 }
 
-var SettingApplicationController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "application.html", gin.H{})
+var SettingApplicationController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/application.html", map[string]interface{}{})
 }
+
 type ApplicationSettingForm struct {
-	Port string `form:"port"`
+	Port string `hsource:"form" hname:"port"`
 }
-var SettingApplicationSubmitController gin.HandlerFunc = func(context *gin.Context) {
+
+var SettingApplicationSubmitController haruka.RequestHandler = func(context *haruka.Context) {
 	var form ApplicationSettingForm
-	err := context.ShouldBind(&form)
+	err := context.BindingInput(&form)
 	if err != nil {
 		panic(err)
 	}
 	PreinstallConfig.Application.Port = form.Port
 
 	generateSettingFile()
-	context.Redirect(http.StatusFound,"/complete")
-
+	http.Redirect(context.Writer, context.Request, "/complete", http.StatusFound)
 }
-var SettingCompleteController gin.HandlerFunc = func(context *gin.Context) {
-	context.HTML(http.StatusOK, "complete.html", gin.H{})
+var SettingCompleteController haruka.RequestHandler = func(context *haruka.Context) {
+	context.HTML("assets/install/templates/complete.html", map[string]interface{}{})
 }

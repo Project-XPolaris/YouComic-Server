@@ -1,8 +1,9 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	"github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -10,7 +11,6 @@ import (
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/validate"
-	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
@@ -25,12 +25,11 @@ type RegisterUserResponseBody struct {
 // path: /user/register
 //
 // method: post
-var RegisterUserHandler gin.HandlerFunc = func(context *gin.Context) {
+var RegisterUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	requestBody := RegisterUserResponseBody{}
-	err = context.ShouldBindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
 	// check validate
@@ -67,12 +66,11 @@ type UserAuthResponse struct {
 // path: /user/auth
 //
 // method: post
-var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
+var LoginUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	requestBody := LoginUserRequestBody{}
-	err = context.ShouldBindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
 
@@ -86,7 +84,7 @@ var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	var user *model.User
 	var sign string
-	if config.Config.YouPlus.Auth {
+	if config.Instance.YouPlus.Auth {
 		user, sign, err = services.YouPlusLogin(requestBody.Username, requestBody.Password)
 	} else {
 		user, sign, err = services.UserLogin(requestBody.Username, requestBody.Password)
@@ -96,10 +94,10 @@ var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSON(http.StatusOK, UserAuthResponse{
+	context.JSONWithStatus(UserAuthResponse{
 		Id:   user.ID,
 		Sign: sign,
-	})
+	}, http.StatusOK)
 }
 
 // get user handler
@@ -107,7 +105,7 @@ var LoginUserHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /user/:id
 //
 // method: get
-var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
+var GetUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -128,7 +126,7 @@ var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
 // get user groups handler
@@ -136,7 +134,7 @@ var GetUserHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /user/:id/groups
 //
 // method: get
-var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
+var GetUserUserGroupsHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -158,7 +156,7 @@ var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
 // get user list handler
@@ -166,7 +164,7 @@ var GetUserUserGroupsHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /users
 //
 // method: get
-var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context) {
+var GetUserUserListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	claims, err := auth.ParseAuthHeader(context)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -230,7 +228,7 @@ var GetUserUserListHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
 type ChangeUserPasswordRequestBody struct {
@@ -243,7 +241,7 @@ type ChangeUserPasswordRequestBody struct {
 // path: /user/password
 //
 // method: put
-var ChangeUserPasswordHandler gin.HandlerFunc = func(context *gin.Context) {
+var ChangeUserPasswordHandler haruka.RequestHandler = func(context *haruka.Context) {
 	claims, err := auth.ParseAuthHeader(context)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -251,9 +249,8 @@ var ChangeUserPasswordHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	requestBody := ChangeUserPasswordRequestBody{}
-	err = context.ShouldBindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
 
@@ -287,7 +284,7 @@ type ChangeUserNicknameRequestBody struct {
 // path: /user/nickname
 //
 // method: put
-var ChangeUserNicknameHandler gin.HandlerFunc = func(context *gin.Context) {
+var ChangeUserNicknameHandler haruka.RequestHandler = func(context *haruka.Context) {
 	claims, err := auth.ParseAuthHeader(context)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -295,9 +292,8 @@ var ChangeUserNicknameHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	requestBody := ChangeUserNicknameRequestBody{}
-	err = context.ShouldBindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
 
@@ -326,10 +322,9 @@ var ChangeUserNicknameHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /account/histories
 //
 // method: get
-var UserHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
+var UserHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	queryBuilder := &services.HistoryQueryBuilder{}
-	userClaimsInterface, _ := context.Get("claim")
-	userClaim := userClaimsInterface.(*auth.UserClaims)
+	userClaim := auth.GetUserClaimsFromContext(context)
 	queryBuilder.SetUserIdFilter(userClaim.UserId)
 
 	view := ListView{
@@ -363,9 +358,8 @@ var UserHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /account/histories
 //
 // method: delete
-var DeleteUserHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
-	userClaimsInterface, _ := context.Get("claim")
-	userClaim := userClaimsInterface.(*auth.UserClaims)
+var DeleteUserHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
+	userClaim := auth.GetUserClaimsFromContext(context)
 	queryBuilder := services.HistoryQueryBuilder{}
 	queryBuilder.SetUserIdFilter(userClaim.UserId)
 	err := queryBuilder.DeleteModels(true)

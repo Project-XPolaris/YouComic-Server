@@ -18,7 +18,7 @@ func EncryptSha1(data string) (string, error) {
 }
 
 func EncryptSha1WithSalt(data string) (string, error) {
-	enData, err := EncryptSha1(data + config.Config.Security.Salt)
+	enData, err := EncryptSha1(data + config.Instance.Security.Salt)
 	if err != nil {
 		return "", err
 	}

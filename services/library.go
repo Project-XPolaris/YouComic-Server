@@ -74,7 +74,7 @@ func ImportLibrary(libraryPath string) error {
 		}
 		//generate cover thumbnail
 		coverAbsolutePath := path.Join(libraryPath, bookConfig.Path, bookConfig.Cover)
-		coverThumbnailStorePath := path.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+		coverThumbnailStorePath := path.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
 		_, err = GenerateCoverThumbnail(coverAbsolutePath, coverThumbnailStorePath)
 		if err != nil {
 			return err
@@ -125,7 +125,7 @@ func DeleteLibrary(libraryId uint) error {
 		return err
 	}
 	for _, book := range books {
-		os.RemoveAll(filepath.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
+		os.RemoveAll(filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
 	}
 
 	return err

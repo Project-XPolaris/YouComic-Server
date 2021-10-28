@@ -1,18 +1,18 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-var GetUserGroupListHandler gin.HandlerFunc = func(context *gin.Context) {
+var GetUserGroupListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := ListView{
 		Context:      context,
 		Pagination:   &DefaultPagination{},
@@ -52,7 +52,7 @@ type CreateUserGroupRequestBody struct {
 	Name string `json:"name"`
 }
 
-var CreateUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+var CreateUserGroupHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := CreateModelView{
 		Context: context,
 		CreateModel: func() interface{} {
@@ -84,7 +84,7 @@ type AddUserToUserGroupRequestBody struct {
 // put: /usergroup/:id/users
 //
 // method: put
-var AddUserToUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+var AddUserToUserGroupHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -132,7 +132,7 @@ type AddPermissionToUserGroupRequestBody struct {
 // put: /usergroup/:id/permissions
 //
 // method: put
-var AddPermissionToUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+var AddPermissionToUserGroupHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -180,7 +180,7 @@ type RemoveUserToUserGroupRequestBody struct {
 // path: /usergroup/:id/users
 //
 // method: delete
-var RemoveUserFromUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+var RemoveUserFromUserGroupHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -228,7 +228,7 @@ type RemovePermissionFromUserGroupRequestBody struct {
 // path: /usergroup/:id/permissions
 //
 // method: delete
-var RemovePermissionFromUserGroupHandler gin.HandlerFunc = func(context *gin.Context) {
+var RemovePermissionFromUserGroupHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	id, err := GetLookUpId(context, "id")
 	if err != nil {

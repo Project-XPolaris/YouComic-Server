@@ -98,8 +98,8 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 	thumbnailImagePath := filepath.Join(storePath, fmt.Sprintf("cover_thumbnail%s", fileExt))
 
 	var generator ThumbnailEngine
-	if config.Config.Thumbnail.Type == "vips" {
-		generator = NewVipsThumbnailEngine(config.Config.Thumbnail.Target)
+	if config.Instance.Thumbnail.Type == "vips" {
+		generator = NewVipsThumbnailEngine(config.Instance.Thumbnail.Target)
 	} else {
 		generator = &DefaultThumbnailsEngine{}
 	}

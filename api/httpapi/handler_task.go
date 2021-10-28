@@ -1,12 +1,13 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	"github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
-	"github.com/gin-gonic/gin"
+	"net/http"
 	"path/filepath"
 	"time"
 )
@@ -46,9 +47,8 @@ type NewScannerRequestBody struct {
 	DirPath string `json:"dir_path"`
 }
 
-var NewScannerHandler gin.HandlerFunc = func(context *gin.Context) {
-	rawClaim, _ := context.Get("claim")
-	claim, _ := rawClaim.(*auth.UserClaims)
+var NewScannerHandler haruka.RequestHandler = func(context *haruka.Context) {
+	claim := auth.GetUserClaimsFromContext(context)
 	if hasPermission := permission.CheckPermissionAndServerError(context,
 		&permission.StandardPermissionChecker{
 			PermissionName: permission.CreateLibraryPermissionName, UserId: claim.UserId,
@@ -61,9 +61,8 @@ var NewScannerHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 
 	var requestBody NewScannerRequestBody
-	err := context.ShouldBindJSON(&requestBody)
+	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 		return
 	}
 	services.DefaultTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath))
@@ -75,7 +74,7 @@ type NewRenameLibraryBookDirectoryRequestBody struct {
 	Slots   []services.RenameSlot `json:"slots"`
 }
 
-var NewRenameLibraryBookDirectoryHandler gin.HandlerFunc = func(context *gin.Context) {
+var NewRenameLibraryBookDirectoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -83,15 +82,14 @@ var NewRenameLibraryBookDirectoryHandler gin.HandlerFunc = func(context *gin.Con
 		return
 	}
 	var requestBody NewRenameLibraryBookDirectoryRequestBody
-	err = context.BindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	rawUserClaims, _ := context.Get("claim")
+	userClaims := auth.GetUserClaimsFromContext(context)
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         userClaims.UserId,
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
@@ -101,7 +99,7 @@ var NewRenameLibraryBookDirectoryHandler gin.HandlerFunc = func(context *gin.Con
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	context.JSON(200, task)
+	context.JSONWithStatus(task, http.StatusOK)
 }
 
 type NewMoveBookTaskRequestBody struct {
@@ -109,18 +107,17 @@ type NewMoveBookTaskRequestBody struct {
 	To      int   `json:"to"`
 }
 
-var NewMoveBookTaskHandler gin.HandlerFunc = func(context *gin.Context) {
+var NewMoveBookTaskHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	var requestBody NewMoveBookTaskRequestBody
-	err = context.BindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	rawUserClaims, _ := context.Get("claim")
+	userClaims := auth.GetUserClaimsFromContext(context)
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.UpdateBookPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         userClaims.UserId,
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
@@ -130,10 +127,10 @@ var NewMoveBookTaskHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	context.JSON(200, task)
+	context.JSONWithStatus(task, http.StatusOK)
 }
 
-var WriteBookMetaTaskHandler gin.HandlerFunc = func(context *gin.Context) {
+var WriteBookMetaTaskHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -150,5 +147,5 @@ var WriteBookMetaTaskHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	context.JSON(200, task)
+	context.JSONWithStatus(task, http.StatusOK)
 }

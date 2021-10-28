@@ -1,14 +1,14 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
@@ -24,7 +24,7 @@ type CreateTagRequestBody struct {
 // path: /tags
 //
 // method: post
-var CreateTagHandler gin.HandlerFunc = func(context *gin.Context) {
+var CreateTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := CreateModelView{
 		Context: context,
 		CreateModel: func() interface{} {
@@ -53,7 +53,7 @@ var CreateTagHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /tags/batch
 //
 // method: post
-var BatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
+var BatchTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := ModelsBatchView{
 		Context: context,
 		CreateModel: func() interface{} {
@@ -86,7 +86,7 @@ var BatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
 	view.Run()
 }
 
-var TagListHandler gin.HandlerFunc = func(context *gin.Context) {
+var TagListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := ListView{
 		Context:      context,
 		Pagination:   &DefaultPagination{},
@@ -138,7 +138,7 @@ var TagListHandler gin.HandlerFunc = func(context *gin.Context) {
 	view.Run()
 }
 
-var TagBooksHandler gin.HandlerFunc = func(context *gin.Context) {
+var TagBooksHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -162,14 +162,14 @@ var TagBooksHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
 type AddBookToTagRequestBody struct {
 	Books []int `json:"books"`
 }
 
-var AddBooksToTagHandler gin.HandlerFunc = func(context *gin.Context) {
+var AddBooksToTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -177,9 +177,8 @@ var AddBooksToTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	var requestBody AddBookToTagRequestBody
-	err = context.BindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	err = services.AddBooksToTag(id, requestBody.Books)
@@ -194,7 +193,7 @@ type RemoveBookFromTagRequestBody struct {
 	Books []int `json:"books"`
 }
 
-var RemoveBooksFromTagHandler gin.HandlerFunc = func(context *gin.Context) {
+var RemoveBooksFromTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -202,9 +201,8 @@ var RemoveBooksFromTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	var requestBody RemoveBookFromTagRequestBody
-	err = context.BindJSON(&requestBody)
+	err = DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	err = services.RemoveBooksFromTag(id, requestBody.Books)
@@ -223,7 +221,7 @@ type AddSubscriptionRequestBody struct {
 // path: /tag/:id/subscription
 //
 // method: put
-var AddSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
+var AddSubscriptionUser haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -248,7 +246,7 @@ var AddSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
 // path: /tag/:id/subscription
 //
 // method: delete
-var RemoveSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
+var RemoveSubscriptionUser haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -273,7 +271,7 @@ var RemoveSubscriptionUser gin.HandlerFunc = func(context *gin.Context) {
 // path: /tag/:id
 //
 // method: get
-var GetTag gin.HandlerFunc = func(context *gin.Context) {
+var GetTag haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -290,7 +288,7 @@ var GetTag gin.HandlerFunc = func(context *gin.Context) {
 
 	template := &serializer2.BaseTagTemplate{}
 	RenderTemplate(context, template, tag)
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
 type AddTagBooksToTagRequestBody struct {
@@ -298,11 +296,10 @@ type AddTagBooksToTagRequestBody struct {
 	To   uint `json:"to"`
 }
 
-var AddTagBooksToTag gin.HandlerFunc = func(context *gin.Context) {
+var AddTagBooksToTag haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody AddTagBooksToTagRequestBody
-	err := context.BindJSON(&requestBody)
+	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	err = services.TagAdd(requestBody.From, requestBody.To)
@@ -318,18 +315,18 @@ type AnalyzeTagFromTextRequestBody struct {
 	Pattern string `json:"pattern"`
 }
 
-var AnalyzeTagFromTextHandler gin.HandlerFunc = func(context *gin.Context) {
+var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody AnalyzeTagFromTextRequestBody
-	err := context.BindJSON(&requestBody)
+	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	tags := services.MatchTag(requestBody.Text, requestBody.Pattern)
-	context.JSON(200, tags)
+	context.JSONWithStatus(tags, http.StatusOK)
 }
 
-var ClearEmptyTagHandler gin.HandlerFunc = func(context *gin.Context) {
+var ClearEmptyTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 	_, err := services.DefaultTaskPool.NewRemoveEmptyTagTask()
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)

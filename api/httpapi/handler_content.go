@@ -1,23 +1,24 @@
-package controller
+package httpapi
 
 import (
 	"fmt"
+	"github.com/allentom/haruka"
 	appconfig "github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/gin-gonic/gin"
+	"net/http"
 	"path"
 	"strings"
 )
 
-var BookContentHandler gin.HandlerFunc = func(context *gin.Context) {
+var BookContentHandler haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	fileName := context.Param("fileName")
+	fileName := context.GetPathParameterAsString("fileName")
 	book, err := services.GetBookById(uint(id))
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -33,20 +34,20 @@ var BookContentHandler gin.HandlerFunc = func(context *gin.Context) {
 	// handle with cover thumbnail
 	if strings.Contains(fileName, "cover_thumbnail") {
 		thumbnailExt := path.Ext(book.Cover)
-		thumbnail := path.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID), fmt.Sprintf("cover_thumbnail%s", thumbnailExt))
+		thumbnail := path.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID), fmt.Sprintf("cover_thumbnail%s", thumbnailExt))
 		if utils.CheckFileExist(thumbnail) {
-			context.File(thumbnail)
+			http.ServeFile(context.Writer, context.Request, thumbnail)
 			return
 		}
 		// cover not generate,return original cover
-		context.File(path.Join(library.Path, book.Path, book.Cover))
+		http.ServeFile(context.Writer, context.Request, path.Join(library.Path, book.Path, book.Cover))
 		return
 	}
 	if fileName == path.Base(book.Cover) {
-		context.File(path.Join(library.Path, book.Path, book.Cover))
+		http.ServeFile(context.Writer, context.Request, path.Join(library.Path, book.Path, book.Cover))
 		return
 	}
 
 	//handle with page
-	context.File(path.Join(library.Path, book.Path, fileName))
+	http.ServeFile(context.Writer, context.Request, path.Join(library.Path, book.Path, fileName))
 }

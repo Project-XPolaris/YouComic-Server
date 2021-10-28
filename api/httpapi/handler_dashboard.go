@@ -1,15 +1,15 @@
-package controller
+package httpapi
 
 import (
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-var BookCountDailySummaryHandler gin.HandlerFunc = func(context *gin.Context) {
+var BookCountDailySummaryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	//get page
 	pagination := DefaultPagination{}
 	pagination.Read(context)
@@ -82,10 +82,10 @@ var BookCountDailySummaryHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
-var TagBooksCountHandler gin.HandlerFunc = func(context *gin.Context) {
+var TagBooksCountHandler haruka.RequestHandler = func(context *haruka.Context) {
 	pagination := DefaultPagination{}
 	pagination.Read(context)
 
@@ -142,11 +142,10 @@ var TagBooksCountHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
-
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
-var TagTypeCountHandler gin.HandlerFunc = func(context *gin.Context) {
+var TagTypeCountHandler haruka.RequestHandler = func(context *haruka.Context) {
 	pagination := DefaultPagination{}
 	pagination.Read(context)
 
@@ -203,6 +202,6 @@ var TagTypeCountHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 
 }

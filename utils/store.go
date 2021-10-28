@@ -7,5 +7,5 @@ import (
 )
 
 func GetThumbnailStorePath(bookId uint) string {
-	return path.Join(config.Config.Store.Root, "generate", fmt.Sprintf("%d", bookId))
+	return path.Join(config.Instance.Store.Root, "generate", fmt.Sprintf("%d", bookId))
 }

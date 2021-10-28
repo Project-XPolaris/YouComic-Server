@@ -2,10 +2,10 @@ package install
 
 import (
 	"encoding/json"
+	"github.com/allentom/haruka"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/log"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
@@ -33,33 +33,30 @@ func RunInstallServer() {
 		return
 	}
 	createNewConfig()
-	r := gin.New()
-	r.Use(gin.Recovery())
-	gin.SetMode(gin.ReleaseMode)
-	r.Static("/assets", "assets/install/static")
-	r.LoadHTMLGlob("assets/install/templates/*")
-	r.GET("/", IndexController)
-	r.GET("/database", SettingDatabaseController)
-	r.GET("/mysql", SettingMysqlController)
-	r.GET("/sqlite", SettingSqliteController)
-	r.POST("/sqlite", SettingSqliteSubmitController)
-	r.POST("/mysql", SettingMysqlSubmitController)
-	r.GET("/store", SettingStoreController)
-	r.POST("/store", SettingStoreSubmitController)
-	r.GET("/security", SettingSecurityController)
-	r.POST("/security", SettingSecuritySubmitController)
-	r.GET("/application", SettingApplicationController)
-	r.POST("/application", SettingApplicationSubmitController)
-	r.GET("/complete", SettingCompleteController)
+	r := haruka.NewEngine()
+	r.Router.Static("/assets", "assets/install/static")
+	r.Router.GET("/", IndexController)
+	r.Router.GET("/database", SettingDatabaseController)
+	r.Router.GET("/mysql", SettingMysqlController)
+	r.Router.GET("/sqlite", SettingSqliteController)
+	r.Router.POST("/sqlite", SettingSqliteSubmitController)
+	r.Router.POST("/mysql", SettingMysqlSubmitController)
+	r.Router.GET("/store", SettingStoreController)
+	r.Router.POST("/store", SettingStoreSubmitController)
+	r.Router.GET("/security", SettingSecurityController)
+	r.Router.POST("/security", SettingSecuritySubmitController)
+	r.Router.GET("/application", SettingApplicationController)
+	r.Router.POST("/application", SettingApplicationSubmitController)
+	r.Router.GET("/complete", SettingCompleteController)
 	LogField.WithFields(logrus.Fields{
 		"signal": "need_install",
-		"port":8880,
+		"port":   8880,
 	}).Info("need install")
 	open := os.Getenv("Open")
-	if len(open) != 0{
+	if len(open) != 0 {
 		utils.OpenBrowserWithURL("http://localhost:8880")
 	}
-	r.Run(":8880")
+	r.RunAndListen("localhost:8880")
 }
 
 func generateSettingFile() {

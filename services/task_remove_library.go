@@ -60,7 +60,7 @@ func (t *RemoveLibraryTask) Start() error {
 			return
 		}
 		for _, book := range books {
-			os.RemoveAll(filepath.Join(appconfig.Config.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
+			os.RemoveAll(filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
 		}
 		t.Status = StatusComplete
 	}()

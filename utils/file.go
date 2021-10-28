@@ -17,7 +17,7 @@ func EncodeFileName(fileName string) string {
 }
 
 func GetBookStorePath(bookId uint) string {
-	return filepath.Join(config.Config.Store.Books, strconv.Itoa(int(bookId)))
+	return filepath.Join(config.Instance.Store.Books, strconv.Itoa(int(bookId)))
 }
 func CheckFileExist(target string) bool {
 	if _, err := os.Stat(target); os.IsNotExist(err) {

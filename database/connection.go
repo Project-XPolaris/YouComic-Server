@@ -15,7 +15,7 @@ import (
 var DB *gorm.DB
 
 func MysqlConnector() (err error) {
-	mysqlConfig := config.Config.Mysql
+	mysqlConfig := config.Instance.Mysql
 	connectString := fmt.Sprintf("%s:%s@(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 		mysqlConfig.Username,
 		mysqlConfig.Password,
@@ -30,12 +30,12 @@ func MysqlConnector() (err error) {
 	return nil
 }
 func SqliteConnector() (err error) {
-	DB, err = gorm.Open(sqlite.Open(config.Config.Sqlite.Path) ,&gorm.Config{})
+	DB, err = gorm.Open(sqlite.Open(config.Instance.Sqlite.Path), &gorm.Config{})
 	return
 }
 func ConnectDatabase() {
 	var err error
-	databaseType := config.Config.Database.Type
+	databaseType := config.Instance.Database.Type
 	if databaseType == "mysql" {
 		err = MysqlConnector()
 	} else if databaseType == "sqlite" {

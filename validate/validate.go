@@ -1,8 +1,8 @@
 package validate
 
 import (
+	"github.com/allentom/haruka"
 	ApplicationError "github.com/allentom/youcomic-api/error"
-	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
@@ -14,7 +14,7 @@ type Validator interface {
 // return false if is invalidate
 //
 // [validator] => error => response
-func RunValidatorsAndRaiseApiError(context *gin.Context, validators ...Validator) bool{
+func RunValidatorsAndRaiseApiError(context *haruka.Context, validators ...Validator) bool {
 	for _, validator := range validators {
 		info, isValidate := validator.Check()
 		if !isValidate {

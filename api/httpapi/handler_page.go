@@ -1,14 +1,15 @@
-package controller
+package httpapi
 
 import (
 	"fmt"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
 	"github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/gin-gonic/gin"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -17,25 +18,22 @@ import (
 )
 
 type UploadPageForm struct {
-	BookId int `form:"book_id"`
-	Order  int `form:"order"`
+	BookId int             `hsource:"form" hname:"book_id"`
+	Order  int             `hsource:"form" hname:"order"`
+	File   haruka.FormFile `hsource:"form" hname:"file"`
 }
 
-var PageUploadHandler gin.HandlerFunc = func(context *gin.Context) {
+var PageUploadHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	//parse request form
 	form := UploadPageForm{}
-	err = context.ShouldBind(&form)
+	err = context.BindingInput(&form)
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 
-	//get file from request form
-	file, _ := context.FormFile("file")
-
 	//store file
-	storePath, err := SavePageFile(context, file, form.BookId, form.Order)
+	storePath, err := SavePageFile(form.File.Header, form.BookId, form.Order)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
@@ -61,21 +59,27 @@ var PageUploadHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
-func SavePageFile(ctx *gin.Context, file *multipart.FileHeader, bookId int, order int) (string, error) {
+func SavePageFile(header *multipart.FileHeader, bookId int, order int) (string, error) {
 	var err error
 
-	storePath := filepath.Join(config.Config.Store.Books, strconv.Itoa(bookId))
+	storePath := filepath.Join(config.Instance.Store.Books, strconv.Itoa(bookId))
 	if _, err = os.Stat(storePath); os.IsNotExist(err) {
 		err = os.MkdirAll(storePath, os.ModePerm)
 		if err != nil {
 			return "", err
 		}
 	}
-	saveFileName := fmt.Sprintf("%s/%d%s", storePath, order, filepath.Ext(file.Filename))
-	err = ctx.SaveUploadedFile(file, saveFileName)
+	file, err := header.Open()
+	if err != nil {
+		return "", err
+	}
+	saveFileName := fmt.Sprintf("%s/%d%s", storePath, order, filepath.Ext(header.Filename))
+	f, err := os.OpenFile(saveFileName, os.O_WRONLY|os.O_CREATE, 0666)
+	defer f.Close()
+	_, err = io.Copy(f, file)
 	return saveFileName, err
 }
 
@@ -83,7 +87,7 @@ type UpdatePageRequestBody struct {
 	Order int `json:"order"`
 }
 
-var UpdatePageHandler gin.HandlerFunc = func(context *gin.Context) {
+var UpdatePageHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	requestBody := UpdatePageRequestBody{}
 	err = DecodeJsonBody(context, &requestBody)
@@ -121,10 +125,10 @@ var UpdatePageHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
-var DeletePageHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeletePageHandler haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -141,7 +145,7 @@ var DeletePageHandler gin.HandlerFunc = func(context *gin.Context) {
 	ServerSuccessResponse(context)
 }
 
-var PageListHandler gin.HandlerFunc = func(context *gin.Context) {
+var PageListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	//get page
 	pagination := DefaultPagination{}
 	pagination.Read(context)
@@ -179,7 +183,7 @@ var PageListHandler gin.HandlerFunc = func(context *gin.Context) {
 	}
 	var template serializer2.TemplateSerializer
 	template = &serializer2.BasePageTemplate{}
-	templateQueryParam := context.Query("template")
+	templateQueryParam := context.GetQueryString("template")
 	if len(templateQueryParam) != 0 {
 		if templateQueryParam == "withSize" {
 			template = &serializer2.PageTemplateWithSize{}
@@ -193,10 +197,10 @@ var PageListHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
-var BatchPageHandler gin.HandlerFunc = func(context *gin.Context) {
+var BatchPageHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := ModelsBatchView{
 		Context: context,
 		CreateModel: func() interface{} {

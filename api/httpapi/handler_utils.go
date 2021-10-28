@@ -1,17 +1,18 @@
-package controller
+package httpapi
 
 import (
+	"github.com/allentom/haruka"
 	"github.com/allentom/youcomic-api/services"
-	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
-var GetThumbnailGeneratorStatus gin.HandlerFunc = func(context *gin.Context) {
+var GetThumbnailGeneratorStatus haruka.RequestHandler = func(context *haruka.Context) {
 	status := services.DefaultThumbnailService.GetQueueStatus()
-	context.JSON(200, map[string]interface{}{
+	context.JSONWithStatus(map[string]interface{}{
 		"success":    true,
 		"total":      status.Total,
 		"maxQueue":   status.MaxQueue,
 		"inQueue":    status.InQueue,
 		"inProgress": status.InProgress,
-	})
+	}, http.StatusOK)
 }

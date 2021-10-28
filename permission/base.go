@@ -1,10 +1,10 @@
 package permission
 
 import (
+	"github.com/allentom/haruka"
 	"github.com/allentom/youcomic-api/database"
 	ApplicationError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/gin-gonic/gin"
 )
 
 func CheckUserHasPermission(userId uint, permissionName string) (error, bool) {
@@ -33,7 +33,7 @@ func CheckUserHasPermission(userId uint, permissionName string) (error, bool) {
 //run all permission checker,abort first permission which it isn't accessible
 //
 //[permission checker] => error? => response
-func CheckPermissionAndServerError(context *gin.Context, permissions ...PermissionChecker) bool{
+func CheckPermissionAndServerError(context *haruka.Context, permissions ...PermissionChecker) bool {
 	for _, permission := range permissions {
 		isValidate := permission.CheckPermission()
 		if !isValidate {

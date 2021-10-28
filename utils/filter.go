@@ -1,13 +1,13 @@
 package utils
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/allentom/haruka"
 	"reflect"
 )
 
-func FilterByParam(controller *gin.Context, name string, queryBuilder interface{}, methodName string, many bool) {
-	params := controller.QueryArray(name)
-	if params == nil  || len(params) == 0{
+func FilterByParam(controller *haruka.Context, name string, queryBuilder interface{}, methodName string, many bool) {
+	params := controller.GetQueryStrings(name)
+	if params == nil || len(params) == 0 {
 		return
 	}
 	builderRef := reflect.ValueOf(queryBuilder)

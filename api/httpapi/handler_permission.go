@@ -1,17 +1,17 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
-	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-var GetPermissionListHandler gin.HandlerFunc = func(context *gin.Context) {
+var GetPermissionListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	claims, err := auth.ParseAuthHeader(context)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -69,5 +69,5 @@ var GetPermissionListHandler gin.HandlerFunc = func(context *gin.Context) {
 		"count":    count,
 		"url":      context.Request.URL,
 	})
-	context.JSON(http.StatusOK, responseBody)
+	context.JSONWithStatus(responseBody, http.StatusOK)
 }

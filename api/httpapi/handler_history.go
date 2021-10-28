@@ -1,21 +1,21 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/services"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
-var HistoryListHandler gin.HandlerFunc = func(context *gin.Context) {
+var HistoryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	queryBuilder := &services.HistoryQueryBuilder{}
-	userClaimsInterface, _ := context.Get("claim")
+	userClaimsInterface, _ := context.Param["claim"]
 	userClaim := userClaimsInterface.(*auth.UserClaims)
 	queryBuilder.SetUserIdFilter(userClaim.UserId)
 
-	withBook := context.Query("withBook")
+	withBook := context.GetQueryString("withBook")
 
 	view := ListView{
 		Context:      context,
@@ -51,7 +51,7 @@ var HistoryListHandler gin.HandlerFunc = func(context *gin.Context) {
 // path: /history/:id
 //
 // method: delete
-var DeleteHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeleteHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	// read id look up
 	id, err := GetLookUpId(context, "id")
@@ -60,7 +60,7 @@ var DeleteHistoryHandler gin.HandlerFunc = func(context *gin.Context) {
 		return
 	}
 	// get user id
-	userClaimsInterface, _ := context.Get("claim")
+	userClaimsInterface, _ := context.Param["claim"]
 	userClaim := userClaimsInterface.(*auth.UserClaims)
 
 	//setup query builder

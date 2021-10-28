@@ -1,33 +1,32 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/validate"
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"strconv"
 )
 
 // decode json body(with error abort)
 //
 // response body => interface
-func DecodeJsonBody(context *gin.Context, requestBody interface{}) error {
-	err := context.ShouldBindJSON(&requestBody)
+func DecodeJsonBody(context *haruka.Context, requestBody interface{}) error {
+	err := context.ParseJson(&requestBody)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
 	}
 	return err
 }
 
-func RenderTemplate(context *gin.Context, template serializer2.TemplateSerializer, model interface{}) {
+func RenderTemplate(context *haruka.Context, template serializer2.TemplateSerializer, model interface{}) {
 	err := serializer2.DefaultSerializerModelByTemplate(model, template)
 	if err != nil {
 		logrus.Error(err)
@@ -42,28 +41,25 @@ func AssignUpdateModel(requestBody interface{}, model interface{}) error {
 func AssignRequestBodyToModel(requestBody interface{}, model interface{}) error {
 	return copier.Copy(model, requestBody)
 }
-func GetLookUpId(ctx *gin.Context, lookup string) (int, error) {
-	rawId := ctx.Param(lookup)
-	id, err := strconv.Atoi(rawId)
+func GetLookUpId(ctx *haruka.Context, lookup string) (int, error) {
+	id, err := ctx.GetPathParameterAsInt(lookup)
 	return id, err
 }
 
 type PageReader interface {
-	Read(ctx *gin.Context) (int, int)
+	Read(ctx *haruka.Context) (int, int)
 }
 type DefaultPagination struct {
 	Pagination
 }
 
-func (r *DefaultPagination) Read(ctx *gin.Context) (int, int) {
+func (r *DefaultPagination) Read(ctx *haruka.Context) (int, int) {
 	var err error
-	rawPage := ctx.Query("page")
-	rawPageSize := ctx.Query("page_size")
-	r.Page, err = strconv.Atoi(rawPage)
+	r.Page, err = ctx.GetQueryInt("page")
 	if err != nil {
 		r.Page = 1
 	}
-	r.PageSize, err = strconv.Atoi(rawPageSize)
+	r.PageSize, err = ctx.GetQueryInt("page_size")
 	if err != nil {
 		r.PageSize = 20
 	}
@@ -85,12 +81,12 @@ type SuccessResponse struct {
 	Success bool `json:"success"`
 }
 
-func ServerSuccessResponse(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, SuccessResponse{Success: true})
+func ServerSuccessResponse(ctx *haruka.Context) {
+	ctx.JSONWithStatus(SuccessResponse{Success: true}, http.StatusOK)
 }
 
 type ModelsBatchView struct {
-	Context          *gin.Context
+	Context          *haruka.Context
 	CreateModel      func() interface{}
 	AllowUpdateField []string
 	AllowOperations  []BatchOperation
@@ -208,7 +204,7 @@ func (v *ModelsBatchView) Run() {
 
 //create model view
 type CreateModelView struct {
-	Context          *gin.Context
+	Context          *haruka.Context
 	onAuthUser       func(v *CreateModelView) error
 	CreateModel      func() interface{}
 	ResponseTemplate serializer2.TemplateSerializer
@@ -265,7 +261,7 @@ func (v *CreateModelView) Run() {
 
 	//serializer response
 	RenderTemplate(v.Context, v.ResponseTemplate, createModel)
-	v.Context.JSON(http.StatusCreated, v.ResponseTemplate)
+	v.Context.JSONWithStatus(v.ResponseTemplate, http.StatusCreated)
 }
 
 type RequestBodyReader interface {
@@ -280,7 +276,7 @@ func (r *DefaultRequestBodyReader) Deserializer(source interface{}) error {
 }
 
 type ListView struct {
-	Context              *gin.Context
+	Context              *haruka.Context
 	Pagination           PageReader
 	QueryBuilder         interface{}
 	FilterMapping        []FilterMapping
@@ -343,11 +339,11 @@ func (v *ListView) Run() {
 		"count":    count,
 		"url":      v.Context.Request.URL,
 	})
-	v.Context.JSON(http.StatusOK, responseBody)
+	v.Context.JSONWithStatus(responseBody, http.StatusOK)
 }
 
 type ModelView struct {
-	Context     *gin.Context
+	Context     *haruka.Context
 	GetModels   func() interface{}
 	GetTemplate func() serializer2.TemplateSerializer
 	LookUpKey   string

@@ -1,13 +1,14 @@
-package controller
+package httpapi
 
 import (
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
-	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type CreateLibraryRequestBody struct {
@@ -15,10 +16,10 @@ type CreateLibraryRequestBody struct {
 	Path string `form:"path" json:"path" xml:"path"  binding:"required"`
 }
 
-var CreateLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
+var CreateLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody CreateLibraryRequestBody
 
-	rawUserClaims, _ := context.Get("claim")
+	rawUserClaims, _ := context.Param["claim"]
 	createLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.CreateLibraryPermissionName,
 		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
@@ -42,17 +43,17 @@ var CreateLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSON(200, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
-var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeleteLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	rawUserClaims, _ := context.Get("claim")
+	rawUserClaims, _ := context.Param["claim"]
 	deleteLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.DeleteLibraryPermissionName,
 		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
@@ -68,7 +69,7 @@ var DeleteLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 	ServerSuccessResponse(context)
 }
 
-var LibraryObjectHandler gin.HandlerFunc = func(context *gin.Context) {
+var LibraryObjectHandler haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
@@ -87,10 +88,10 @@ var LibraryObjectHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	context.JSON(200, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }
 
-var LibraryListHandler gin.HandlerFunc = func(context *gin.Context) {
+var LibraryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	queryBuilder := &services.LibraryQueryBuilder{}
 	view := ListView{
 		Context:      context,
@@ -123,7 +124,7 @@ var LibraryListHandler gin.HandlerFunc = func(context *gin.Context) {
 	view.Run()
 }
 
-var LibraryBatchHandler gin.HandlerFunc = func(context *gin.Context) {
+var LibraryBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := ModelsBatchView{
 		Context: context,
 		AllowUpdateField: []string{
@@ -156,14 +157,14 @@ var LibraryBatchHandler gin.HandlerFunc = func(context *gin.Context) {
 	view.Run()
 }
 
-var ScanLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
+var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	rawUserClaims, _ := context.Get("claim")
+	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
 		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
@@ -176,12 +177,12 @@ var ScanLibraryHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	context.JSON(200, task)
+	context.JSONWithStatus(task, http.StatusOK)
 }
 
-var StopLibraryScanHandler gin.HandlerFunc = func(context *gin.Context) {
-	id := context.Query("id")
-	rawUserClaims, _ := context.Get("claim")
+var StopLibraryScanHandler haruka.RequestHandler = func(context *haruka.Context) {
+	id := context.GetQueryString("id")
+	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
 		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
@@ -193,18 +194,18 @@ var StopLibraryScanHandler gin.HandlerFunc = func(context *gin.Context) {
 	ServerSuccessResponse(context)
 }
 
-var NewLibraryMatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
+var NewLibraryMatchTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	strategy := context.GetString("strategy")
+	strategy := context.GetQueryString("strategy")
 	if len(strategy) == 0 {
 		strategy = "fillEmpty"
 	}
-	rawUserClaims, _ := context.Get("claim")
+	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
 		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
@@ -217,5 +218,5 @@ var NewLibraryMatchTagHandler gin.HandlerFunc = func(context *gin.Context) {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-	context.JSON(200, task)
+	context.JSONWithStatus(task, http.StatusOK)
 }

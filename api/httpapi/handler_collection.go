@@ -1,15 +1,15 @@
-package controller
+package httpapi
 
 import (
 	"fmt"
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/haruka"
 	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/permission"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/validate"
-	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
@@ -17,7 +17,7 @@ type CreateCollectionRequestBody struct {
 	Name string `json:"name"`
 }
 
-var CreateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+var CreateCollectionHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view := CreateModelView{
 		Context: context,
 		CreateModel: func() interface{} {
@@ -44,14 +44,14 @@ var CreateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 	view.Run()
 }
 
-var CollectionsListHandler gin.HandlerFunc = func(context *gin.Context) {
+var CollectionsListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	getSerializerContext := func(v *ListView, result interface{}) map[string]interface{} {
 		serializerContext := map[string]interface{}{}
 
-		withBookContain := context.Query("withBookContain")
+		withBookContain := context.GetQueryString("withBookContain")
 		if len(withBookContain) > 0 {
 			queryBuilder := services.CollectionQueryBuilder{}
-			containBookIdsQuery := context.QueryArray("withBookContain")
+			containBookIdsQuery := context.GetQueryStrings("withBookContain")
 			containBookIds := make([]interface{}, 0)
 			for _, bookId := range containBookIdsQuery {
 				containBookIds = append(containBookIds, bookId)
@@ -123,7 +123,7 @@ var CollectionsListHandler gin.HandlerFunc = func(context *gin.Context) {
 			return &serializer2.DefaultListContainer{}
 		},
 		GetTemplate: func() serializer2.TemplateSerializer {
-			if _, exist := context.GetQuery("withBookContain"); exist {
+			if value := context.GetQueryString("withBookContain"); len(value) > 0 {
 				return &serializer2.CollectionWithBookContainTemplate{}
 			}
 			return &serializer2.BaseCollectionTemplate{}
@@ -137,7 +137,7 @@ type AddToCollectionRequestBody struct {
 	Books []int `json:"books"`
 }
 
-var AddToCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+var AddToCollectionHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody AddToCollectionRequestBody
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -161,7 +161,7 @@ type RemoveFromCollectionRequestBody struct {
 	Books []int `json:"books"`
 }
 
-var DeleteFromCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeleteFromCollectionHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody RemoveFromCollectionRequestBody
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -185,7 +185,7 @@ type AddUsersToCollectionRequestBody struct {
 	Users []int `json:"users"`
 }
 
-var AddUsersToCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+var AddUsersToCollectionHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody AddUsersToCollectionRequestBody
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -209,7 +209,7 @@ type RemoveUsersFromCollectionRequestBody struct {
 	Users []int `json:"users"`
 }
 
-var DeleteUsersFromCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeleteUsersFromCollectionHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var requestBody RemoveUsersFromCollectionRequestBody
 	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
@@ -229,7 +229,7 @@ var DeleteUsersFromCollectionHandler gin.HandlerFunc = func(context *gin.Context
 	ServerSuccessResponse(context)
 }
 
-var DeleteCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+var DeleteCollectionHandler haruka.RequestHandler = func(context *haruka.Context) {
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -252,7 +252,7 @@ type UpdateCollectionRequestBody struct {
 // path: /collection/:id
 //
 // method: patch
-var UpdateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
+var UpdateCollectionHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	id, err := GetLookUpId(context, "id")
 	if err != nil {
@@ -304,5 +304,5 @@ var UpdateCollectionHandler gin.HandlerFunc = func(context *gin.Context) {
 
 	template := &serializer2.BaseCollectionTemplate{}
 	RenderTemplate(context, template, *collection)
-	context.JSON(http.StatusOK, template)
+	context.JSONWithStatus(template, http.StatusOK)
 }

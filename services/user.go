@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/allentom/youcomic-api/api/auth"
+	"github.com/allentom/youcomic-api/auth"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"

@@ -3,27 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/allentom/youcomic-api/api/router"
+	"github.com/allentom/youcomic-api/api/httpapi"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/install"
 	applogger "github.com/allentom/youcomic-api/log"
-	"github.com/allentom/youcomic-api/middleware"
 	"github.com/allentom/youcomic-api/setup"
 	util "github.com/allentom/youcomic-api/utils"
 	"github.com/allentom/youcomic-api/youplus"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/location"
-	"github.com/gin-gonic/gin"
 	srv "github.com/kardianos/service"
 	entry "github.com/project-xpolaris/youplustoolkit/youplus/entity"
 	"github.com/sirupsen/logrus"
-	ginlogrus "github.com/toorop/gin-logrus"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 var MainLogger = applogger.Logger.WithField("scope", "main")
@@ -61,46 +55,23 @@ func Program() {
 	}
 
 	//init gin
-	r := gin.New()
-	r.Use(location.Default())
-	r.Use(gin.Recovery())
-	gin.SetMode(gin.ReleaseMode)
-
-	r.Use(ginlogrus.Logger(applogger.Logger), gin.Recovery())
-	corsConfig := cors.Config{
-		AllowMethods:           []string{"PUT", "PATCH", "GET", "POST", "PATCH", "DELETE", "OPTION"},
-		AllowHeaders:           []string{"Origin", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
-		ExposeHeaders:          []string{"Content-Length", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
-		AllowAllOrigins:        true,
-		AllowCredentials:       true,
-		AllowWebSockets:        true,
-		AllowBrowserExtensions: true,
-		AllowWildcard:          true,
-		AllowFiles:             true,
-		MaxAge:                 12 * time.Hour,
-	}
-	r.Use(cors.New(corsConfig))
-	r.Use(middleware.JWTAuth())
-	r.Use(middleware.StaticRouter())
-	r.Static("/assets", config.Config.Store.Root)
-	router.SetRouter(r)
 
 	// register rpc
-	if len(config.Config.YouPlus.RPCUrl) > 0 {
+	if len(config.Instance.YouPlus.RPCUrl) > 0 {
 		err = youplus.LoadYouPlusRPCClient()
 		if err != nil {
 			MainLogger.WithFields(logrus.Fields{
 				"signal": "rpc_connect_failed",
-				"url":    config.Config.YouPlus.RPCUrl,
+				"url":    config.Instance.YouPlus.RPCUrl,
 			}).Fatal("RPC connect success")
 		}
 		MainLogger.WithFields(logrus.Fields{
 			"signal": "rpc_connect_success",
-			"port":   config.Config.YouPlus.RPCUrl,
+			"port":   config.Instance.YouPlus.RPCUrl,
 		}).Info("RPC connect success")
 	}
 	// youplus entity
-	if config.Config.YouPlus.EntityConfig.Enable {
+	if config.Instance.YouPlus.EntityConfig.Enable {
 		youplus.InitEntity()
 		err = youplus.DefaultEntry.Register()
 		if err != nil {
@@ -112,7 +83,7 @@ func Program() {
 		addrs, err := util.GetHostIpList()
 		urls := make([]string, 0)
 		for _, addr := range addrs {
-			urls = append(urls, fmt.Sprintf("http://%s:%s", addr, config.Config.Application.Port))
+			urls = append(urls, fmt.Sprintf("http://%s:%s", addr, config.Instance.Application.Port))
 		}
 		if err != nil {
 			MainLogger.Fatal(err.Error())
@@ -131,12 +102,9 @@ func Program() {
 	}
 	MainLogger.WithFields(logrus.Fields{
 		"signal": "start_success",
-		"port":   config.Config.Application.Port,
+		"port":   config.Instance.Application.Port,
 	}).Info("Service start success!")
-	err = r.Run(fmt.Sprintf("%s:%s", config.Config.Application.Host, config.Config.Application.Port))
-	if err != nil {
-		MainLogger.Fatalf("start gin service with error of %s", err.Error())
-	}
+	httpapi.RunApiService()
 }
 
 type program struct{}
