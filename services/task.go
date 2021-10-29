@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+type TaskSignal struct {
+}
+
 var DefaultTaskPool = TaskPool{
 	Tasks: []Task{},
 }

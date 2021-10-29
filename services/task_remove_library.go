@@ -1,9 +1,7 @@
 package services
 
 import (
-	"errors"
 	"fmt"
-	"github.com/ahmetb/go-linq/v3"
 	appconfig "github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
@@ -12,11 +10,18 @@ import (
 	"path/filepath"
 )
 
+type RemoveLibraryTaskOption struct {
+	LibraryId int
+	OnError   func(task *RemoveLibraryTask, err error)
+	OnDone    func(task *RemoveLibraryTask)
+}
 type RemoveLibraryTask struct {
 	BaseTask
 	stopFlag  bool
 	LibraryId int
+	Library   *model.Library
 	Err       error
+	Option    RemoveLibraryTaskOption
 }
 
 func (t *RemoveLibraryTask) Stop() error {
@@ -26,15 +31,20 @@ func (t *RemoveLibraryTask) Stop() error {
 func (t *RemoveLibraryTask) AbortError(err error) {
 	t.Err = err
 	t.Status = StatusError
+	if t.Option.OnError != nil {
+		t.Option.OnError(t, err)
+	}
 	logrus.Error(err)
 }
 func (t *RemoveLibraryTask) Start() error {
 	go func() {
+		defer DefaultLibraryLockPool.TryToUnlock(uint(t.LibraryId))
 		library, err := GetLibraryById(uint(t.LibraryId))
 		if err != nil {
 			t.AbortError(err)
 			return
 		}
+		t.Library = &library
 		books := make([]model.Book, 0)
 		err = database.DB.Model(&library).Association("Books").Find(&books)
 		if err != nil {
@@ -53,54 +63,32 @@ func (t *RemoveLibraryTask) Start() error {
 			t.AbortError(err)
 			return
 		}
-
 		err = database.DB.Unscoped().Delete(&library).Error
 		if err != nil {
 			t.AbortError(err)
 			return
 		}
 		for _, book := range books {
-			os.RemoveAll(filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
+			err = os.RemoveAll(filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
+			if err != nil {
+				t.AbortError(err)
+			}
 		}
 		t.Status = StatusComplete
+		if t.Option.OnDone != nil {
+			t.Option.OnDone(t)
+		}
 	}()
 	return nil
 }
-func (p *TaskPool) NewRemoveLibraryTask(libraryId int) (*RemoveLibraryTask, error) {
-	exist := linq.From(p.Tasks).FirstWith(func(i interface{}) bool {
-		if task, ok := i.(*RemoveLibraryTask); ok {
-			if task.Status == StatusRunning && task.LibraryId == libraryId {
-				return true
-			}
-		}
-		if task, ok := i.(*MatchLibraryTagTask); ok {
-			if task.Status == StatusRunning && task.LibraryId == uint(libraryId) {
-				return true
-			}
-		}
-		if task, ok := i.(*ScanTask); ok {
-			if task.Status == StatusRunning && task.LibraryId == uint(libraryId) {
-				return true
-			}
-		}
-		if task, ok := i.(*RenameBookDirectoryTask); ok {
-			if task.Status == StatusRunning && task.LibraryId == uint(libraryId) {
-				return true
-			}
-		}
-		if task, ok := i.(*WriteBookMetaTask); ok {
-			if task.Status == StatusRunning && task.LibraryId == uint(libraryId) {
-				return true
-			}
-		}
-		return false
-	})
-	if exist != nil {
-		return nil, errors.New("library lock by other task")
+func (p *TaskPool) NewRemoveLibraryTask(option RemoveLibraryTaskOption) (*RemoveLibraryTask, error) {
+	if !DefaultLibraryLockPool.TryToLock(uint(option.LibraryId)) {
+		return nil, LibraryLockError
 	}
 	task := &RemoveLibraryTask{
 		BaseTask:  NewBaseTask(),
-		LibraryId: libraryId,
+		LibraryId: option.LibraryId,
+		Option:    option,
 	}
 	task.Status = StatusRunning
 	p.AddTask(task)

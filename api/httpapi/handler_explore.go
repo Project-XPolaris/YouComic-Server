@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/sirupsen/logrus"
@@ -18,7 +18,7 @@ var ReadDirectoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 	items, err := services.ReadDirectory(target)
-	data := serializer2.SerializeMultipleTemplate(items, &serializer2.FileItemSerializer{}, map[string]interface{}{"root": absPath})
+	data := serializer.SerializeMultipleTemplate(items, &serializer.FileItemSerializer{}, map[string]interface{}{"root": absPath})
 	context.JSONWithStatus(map[string]interface{}{
 		"sep":   filepath.Separator,
 		"items": data,

@@ -68,6 +68,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.POST("/library/batch", LibraryBatchHandler)
 	engine.Router.DELETE("/library/{id:[0-9]+}", DeleteLibraryHandler)
 	engine.Router.PUT("/library/{id:[0-9]+}/scan", ScanLibraryHandler)
+	engine.Router.PUT("/library/{id:[0-9]+}/thumbnails", NewLibraryGenerateThumbnailsHandler)
 	engine.Router.PUT("/library/{id:[0-9]+}/match", NewLibraryMatchTagHandler)
 	engine.Router.POST("/library/{id:[0-9]+}/task/writemeta", WriteBookMetaTaskHandler)
 	engine.Router.PUT("/library/{id:[0-9]+}/books/rename", NewRenameLibraryBookDirectoryHandler)

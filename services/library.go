@@ -161,10 +161,11 @@ func (b *LibraryQueryBuilder) ReadModels() (int64, interface{}, error) {
 	return count, md, err
 }
 
-func ScanLibrary(id uint) (*ScanTask, error) {
+func ScanLibrary(id uint, option ScanLibraryOption) (*ScanTask, error) {
 	library, err := GetLibraryById(id)
 	if err != nil {
 		return nil, err
 	}
-	return DefaultTaskPool.NewScanLibraryTask(&library)
+	option.Library = &library
+	return DefaultTaskPool.NewScanLibraryTask(option)
 }

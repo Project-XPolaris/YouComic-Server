@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -30,7 +30,7 @@ var CreateTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 		CreateModel: func() interface{} {
 			return &model.Tag{}
 		},
-		ResponseTemplate: &serializer2.BaseTagTemplate{},
+		ResponseTemplate: &serializer.BaseTagTemplate{},
 		RequestBody:      &CreateTagRequestBody{},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
@@ -128,11 +128,11 @@ var TagListHandler haruka.RequestHandler = func(context *haruka.Context) {
 				Many:   false,
 			},
 		},
-		GetContainer: func() serializer2.ListContainerSerializer {
-			return &serializer2.DefaultListContainer{}
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer2.TemplateSerializer {
-			return &serializer2.BaseTagTemplate{}
+		GetTemplate: func() serializer.TemplateSerializer {
+			return &serializer.BaseTagTemplate{}
 		},
 	}
 	view.Run()
@@ -154,8 +154,8 @@ var TagBooksHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	result := serializer2.SerializeMultipleTemplate(books, &serializer2.BaseBookTemplate{}, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	result := serializer.SerializeMultipleTemplate(books, &serializer.BaseBookTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -286,7 +286,7 @@ var GetTag haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	template := &serializer2.BaseTagTemplate{}
+	template := &serializer.BaseTagTemplate{}
 	RenderTemplate(context, template, tag)
 	context.JSONWithStatus(template, http.StatusOK)
 }

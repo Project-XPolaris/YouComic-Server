@@ -3,7 +3,7 @@ package httpapi
 import (
 	"fmt"
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -23,7 +23,7 @@ var CreateCollectionHandler haruka.RequestHandler = func(context *haruka.Context
 		CreateModel: func() interface{} {
 			return &model.Collection{}
 		},
-		ResponseTemplate: &serializer2.BaseCollectionTemplate{},
+		ResponseTemplate: &serializer.BaseCollectionTemplate{},
 		RequestBody:      &CreateCollectionRequestBody{},
 		OnBeforeCreate: func(v *CreateModelView, modelToCreate interface{}) {
 			dataModel := modelToCreate.(*model.Collection)
@@ -119,14 +119,14 @@ var CollectionsListHandler haruka.RequestHandler = func(context *haruka.Context)
 				Many:   true,
 			},
 		},
-		GetContainer: func() serializer2.ListContainerSerializer {
-			return &serializer2.DefaultListContainer{}
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer2.TemplateSerializer {
+		GetTemplate: func() serializer.TemplateSerializer {
 			if value := context.GetQueryString("withBookContain"); len(value) > 0 {
-				return &serializer2.CollectionWithBookContainTemplate{}
+				return &serializer.CollectionWithBookContainTemplate{}
 			}
-			return &serializer2.BaseCollectionTemplate{}
+			return &serializer.BaseCollectionTemplate{}
 		},
 		GetSerializerContext: getSerializerContext,
 	}
@@ -302,7 +302,7 @@ var UpdateCollectionHandler haruka.RequestHandler = func(context *haruka.Context
 		return
 	}
 
-	template := &serializer2.BaseCollectionTemplate{}
+	template := &serializer.BaseCollectionTemplate{}
 	RenderTemplate(context, template, *collection)
 	context.JSONWithStatus(template, http.StatusOK)
 }

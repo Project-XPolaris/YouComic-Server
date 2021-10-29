@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/services"
@@ -33,14 +33,14 @@ var HistoryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 				Many:   false,
 			},
 		},
-		GetContainer: func() serializer2.ListContainerSerializer {
-			return &serializer2.DefaultListContainer{}
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer2.TemplateSerializer {
+		GetTemplate: func() serializer.TemplateSerializer {
 			if withBook == "True" {
-				return &serializer2.HistoryWithBookTemplate{}
+				return &serializer.HistoryWithBookTemplate{}
 			}
-			return &serializer2.BaseHistoryTemplate{}
+			return &serializer.BaseHistoryTemplate{}
 		},
 	}
 	view.Run()

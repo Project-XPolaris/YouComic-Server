@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	"github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
@@ -65,7 +65,7 @@ var NewScannerHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if err != nil {
 		return
 	}
-	services.DefaultTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath))
+	services.DefaultTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath), services.ScanLibraryOption{})
 	ServerSuccessResponse(context)
 }
 

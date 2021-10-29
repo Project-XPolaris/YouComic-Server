@@ -3,7 +3,7 @@ package httpapi
 import (
 	"fmt"
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -53,7 +53,7 @@ var PageUploadHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	template := serializer2.BasePageTemplate{}
+	template := serializer.BasePageTemplate{}
 	err = template.Serializer(&modelToCreate, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -119,7 +119,7 @@ var UpdatePageHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 	//render
-	template := serializer2.BasePageTemplate{}
+	template := serializer.BasePageTemplate{}
 	err = template.Serializer(&modelToUpdate, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -181,16 +181,16 @@ var PageListHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	var template serializer2.TemplateSerializer
-	template = &serializer2.BasePageTemplate{}
+	var template serializer.TemplateSerializer
+	template = &serializer.BasePageTemplate{}
 	templateQueryParam := context.GetQueryString("template")
 	if len(templateQueryParam) != 0 {
 		if templateQueryParam == "withSize" {
-			template = &serializer2.PageTemplateWithSize{}
+			template = &serializer.PageTemplateWithSize{}
 		}
 	}
-	result := serializer2.SerializeMultipleTemplate(pages, template, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	result := serializer.SerializeMultipleTemplate(pages, template, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,

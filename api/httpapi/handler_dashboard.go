@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/services"
 	"github.com/allentom/youcomic-api/utils"
@@ -74,8 +74,8 @@ var BookCountDailySummaryHandler haruka.RequestHandler = func(context *haruka.Co
 		return
 	}
 
-	serializerTemplates := serializer2.SerializeMultipleTemplate(result, &serializer2.BookDailySummaryTemplate{}, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	serializerTemplates := serializer.SerializeMultipleTemplate(result, &serializer.BookDailySummaryTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(serializerTemplates, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -134,8 +134,8 @@ var TagBooksCountHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	serializerTemplates := serializer2.SerializeMultipleTemplate(result, &serializer2.TagCountTemplate{}, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	serializerTemplates := serializer.SerializeMultipleTemplate(result, &serializer.TagCountTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(serializerTemplates, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -194,8 +194,8 @@ var TagTypeCountHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	serializerTemplates := serializer2.SerializeMultipleTemplate(result, &serializer2.TagTypeCountTemplate{}, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	serializerTemplates := serializer.SerializeMultipleTemplate(result, &serializer.TagTypeCountTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(serializerTemplates, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,

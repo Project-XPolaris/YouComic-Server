@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -37,7 +37,7 @@ var CreateLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	template := serializer2.BaseLibraryTemplate{}
+	template := serializer.BaseLibraryTemplate{}
 	err = template.Serializer(*library, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -61,7 +61,21 @@ var DeleteLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if hasPermission := permission.CheckPermissionAndServerError(context, &deleteLibraryPermission); !hasPermission {
 		return
 	}
-	_, err = services.DefaultTaskPool.NewRemoveLibraryTask(id)
+	_, err = services.DefaultTaskPool.NewRemoveLibraryTask(services.RemoveLibraryTaskOption{
+		LibraryId: id,
+		OnError: func(task *services.RemoveLibraryTask, taskError error) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventRemoveLibraryTaskError,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+		OnDone: func(task *services.RemoveLibraryTask) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventRemoveLibraryTaskDone,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+	})
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
@@ -82,7 +96,7 @@ var LibraryObjectHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	template := serializer2.BaseLibraryTemplate{}
+	template := serializer.BaseLibraryTemplate{}
 	err = template.Serializer(library, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
@@ -114,11 +128,11 @@ var LibraryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 				Many:   true,
 			},
 		},
-		GetContainer: func() serializer2.ListContainerSerializer {
-			return &serializer2.DefaultListContainer{}
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer2.TemplateSerializer {
-			return &serializer2.BaseLibraryTemplate{}
+		GetTemplate: func() serializer.TemplateSerializer {
+			return &serializer.BaseLibraryTemplate{}
 		},
 	}
 	view.Run()
@@ -172,7 +186,32 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
 	}
-	task, err := services.ScanLibrary(uint(id))
+	task, err := services.ScanLibrary(uint(id), services.ScanLibraryOption{
+		OnDone: func(task *services.ScanTask) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventScanTaskDone,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+		OnError: func(task *services.ScanTask, err error) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventScanTaskError,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+		OnStop: func(task *services.ScanTask) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventScanTaskStop,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+		OnDirError: func(task *services.ScanTask, syncErr services.SyncError) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventScanTaskFileError,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+	})
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
@@ -214,6 +253,49 @@ var NewLibraryMatchTagHandler haruka.RequestHandler = func(context *haruka.Conte
 		return
 	}
 	task, err := services.DefaultTaskPool.NewMatchLibraryTagTask(uint(id), strategy)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	context.JSONWithStatus(task, http.StatusOK)
+}
+
+var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	rawUserClaims, _ := context.Param["claim"]
+	scanLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.ScanLibraryPermissionName,
+		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
+		return
+	}
+	task, err := services.DefaultTaskPool.NewGenerateThumbnailTask(services.GenerateThumbnailTaskOption{
+		LibraryId: id,
+		OnError: func(task *services.GenerateThumbnailTask, err error) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventGenerateThumbnailTaskError,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+		OnBookError: func(task *services.GenerateThumbnailTask, err services.GenerateError) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventGenerateThumbnailTaskFileError,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+		OnDone: func(task *services.GenerateThumbnailTask) {
+			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+				"event": EventGenerateThumbnailTaskDone,
+				"data":  serializer.NewTaskTemplate(task),
+			})
+		},
+	})
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	serializer2 "github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	appconfig "github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"

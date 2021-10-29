@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	"github.com/allentom/youcomic-api/config"
 	ApiError "github.com/allentom/youcomic-api/error"
@@ -119,7 +119,7 @@ var GetUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	template := serializer2.BaseUserTemplate{}
+	template := serializer.BaseUserTemplate{}
 	err = template.Serializer(user, nil)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
@@ -148,8 +148,8 @@ var GetUserUserGroupsHandler haruka.RequestHandler = func(context *haruka.Contex
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	result := serializer2.SerializeMultipleTemplate(usergroups, &serializer2.BaseUserGroupTemplate{}, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	result := serializer.SerializeMultipleTemplate(usergroups, &serializer.BaseUserGroupTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     1,
 		"pageSize": 10,
@@ -220,8 +220,8 @@ var GetUserUserListHandler haruka.RequestHandler = func(context *haruka.Context)
 
 	count, users, err := userQueryBuilder.ReadModels()
 
-	result := serializer2.SerializeMultipleTemplate(users, &serializer2.ManagerUserTemplate{}, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	result := serializer.SerializeMultipleTemplate(users, &serializer.ManagerUserTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
@@ -343,11 +343,11 @@ var UserHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 				Many:   false,
 			},
 		},
-		GetContainer: func() serializer2.ListContainerSerializer {
-			return &serializer2.DefaultListContainer{}
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
 		},
-		GetTemplate: func() serializer2.TemplateSerializer {
-			return &serializer2.BaseHistoryTemplate{}
+		GetTemplate: func() serializer.TemplateSerializer {
+			return &serializer.BaseHistoryTemplate{}
 		},
 	}
 	view.Run()

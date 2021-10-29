@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/model"
@@ -33,11 +33,11 @@ var GetUserGroupListHandler haruka.RequestHandler = func(context *haruka.Context
 				Many:   false,
 			},
 		},
-		GetTemplate: func() serializer2.TemplateSerializer {
-			return &serializer2.BaseUserGroupTemplate{}
+		GetTemplate: func() serializer.TemplateSerializer {
+			return &serializer.BaseUserGroupTemplate{}
 		},
-		GetContainer: func() serializer2.ListContainerSerializer {
-			return &serializer2.DefaultListContainer{}
+		GetContainer: func() serializer.ListContainerSerializer {
+			return &serializer.DefaultListContainer{}
 		},
 		GetPermissions: func(v *ListView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
@@ -58,7 +58,7 @@ var CreateUserGroupHandler haruka.RequestHandler = func(context *haruka.Context)
 		CreateModel: func() interface{} {
 			return &model.UserGroup{}
 		},
-		ResponseTemplate: &serializer2.BaseUserGroupTemplate{},
+		ResponseTemplate: &serializer.BaseUserGroupTemplate{},
 		RequestBody:      &CreateUserGroupRequestBody{},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{

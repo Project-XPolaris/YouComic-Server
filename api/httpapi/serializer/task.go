@@ -12,6 +12,12 @@ type TaskSerializer struct {
 	Data    interface{} `json:"data"`
 }
 
+func NewTaskTemplate(dataModel interface{}) *TaskSerializer {
+	template := &TaskSerializer{}
+	template.Serializer(dataModel, map[string]interface{}{})
+	return template
+}
+
 func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]interface{}) error {
 	task := dataModel.(services.Task)
 	t.ID = task.GetBaseInfo().ID
@@ -36,17 +42,25 @@ func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]in
 	case *services.WriteBookMetaTask:
 		t.Data = SerializeWriteBookMetaTask(dataModel)
 		t.Type = "WriteBookMeta"
+	case *services.RemoveLibraryTask:
+		t.Data = SerializeRemoveLibraryTask(dataModel)
+		t.Type = "RemoveLibrary"
+	case *services.GenerateThumbnailTask:
+		t.Data = SerializeGenerateThumbnailsTask(dataModel)
+		t.Type = "GenerateThumbnail"
 	}
 	return nil
 }
 
 type ScanLibrarySerialize struct {
-	TargetDir  string `json:"targetDir"`
-	LibraryId  uint   `json:"libraryId"`
-	Name       string `json:"name"`
-	Total      int64  `json:"total"`
-	Current    int64  `json:"current"`
-	CurrentDir string `json:"currentDir"`
+	TargetDir  string               `json:"targetDir"`
+	LibraryId  uint                 `json:"libraryId"`
+	Name       string               `json:"name"`
+	Total      int64                `json:"total"`
+	Current    int64                `json:"current"`
+	CurrentDir string               `json:"currentDir"`
+	Err        string               `json:"err"`
+	ErrorFile  []services.SyncError `json:"errorFiles"`
 }
 
 func SerializeScanTask(dataModel interface{}) ScanLibrarySerialize {
@@ -58,6 +72,10 @@ func SerializeScanTask(dataModel interface{}) ScanLibrarySerialize {
 	t.Total = model.Total
 	t.Current = model.Current
 	t.CurrentDir = model.CurrentDir
+	t.ErrorFile = model.SyncError
+	if model.Err != nil {
+		t.Err = model.Err.Error()
+	}
 	return t
 }
 
@@ -147,6 +165,54 @@ func SerializeWriteBookMetaTask(dataModel interface{}) WriteBookMetaSerializer {
 		Total:       model.Total,
 		Current:     model.Total,
 		CurrentBook: model.CurrentBook,
+	}
+	return t
+}
+
+type RemoveLibrarySerializer struct {
+	LibraryId int    `json:"libraryId"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Err       string `json:"err"`
+}
+
+func SerializeRemoveLibraryTask(dataModel interface{}) RemoveLibrarySerializer {
+	model := dataModel.(*services.RemoveLibraryTask)
+	t := RemoveLibrarySerializer{
+		LibraryId: model.LibraryId,
+	}
+	if model.Err != nil {
+		t.Err = model.Err.Error()
+	}
+	if model.Library != nil {
+		t.Name = model.Library.Name
+		t.Path = model.Library.Path
+	}
+	return t
+}
+
+type GenerateThumbnailsSerializer struct {
+	LibraryId   int                      `json:"libraryId"`
+	Total       int64                    `json:"total"`
+	Current     int64                    `json:"current"`
+	Skip        int64                    `json:"skip"`
+	Err         error                    `json:"err"`
+	FileErrors  []services.GenerateError `json:"fileErrors"`
+	LibraryName string                   `json:"libraryName"`
+}
+
+func SerializeGenerateThumbnailsTask(dataModel interface{}) GenerateThumbnailsSerializer {
+	model := dataModel.(*services.GenerateThumbnailTask)
+	t := GenerateThumbnailsSerializer{
+		LibraryId:  model.LibraryId,
+		Total:      model.Total,
+		Current:    model.Current,
+		Skip:       model.Skip,
+		Err:        model.Err,
+		FileErrors: model.FileErrors,
+	}
+	if model.Library != nil {
+		t.LibraryName = model.Library.Name
 	}
 	return t
 }

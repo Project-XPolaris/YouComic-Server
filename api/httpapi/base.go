@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
@@ -26,8 +26,8 @@ func DecodeJsonBody(context *haruka.Context, requestBody interface{}) error {
 	return err
 }
 
-func RenderTemplate(context *haruka.Context, template serializer2.TemplateSerializer, model interface{}) {
-	err := serializer2.DefaultSerializerModelByTemplate(model, template)
+func RenderTemplate(context *haruka.Context, template serializer.TemplateSerializer, model interface{}) {
+	err := serializer.DefaultSerializerModelByTemplate(model, template)
 	if err != nil {
 		logrus.Error(err)
 		ApiError.RaiseApiError(context, err, nil)
@@ -207,7 +207,7 @@ type CreateModelView struct {
 	Context          *haruka.Context
 	onAuthUser       func(v *CreateModelView) error
 	CreateModel      func() interface{}
-	ResponseTemplate serializer2.TemplateSerializer
+	ResponseTemplate serializer.TemplateSerializer
 	RequestBody      interface{}
 	Claims           *auth.UserClaims
 	OnBeforeCreate   func(v *CreateModelView, modelToCreate interface{})
@@ -281,8 +281,8 @@ type ListView struct {
 	QueryBuilder         interface{}
 	FilterMapping        []FilterMapping
 	GetSerializerContext func(v *ListView, result interface{}) map[string]interface{}
-	GetTemplate          func() serializer2.TemplateSerializer
-	GetContainer         func() serializer2.ListContainerSerializer
+	GetTemplate          func() serializer.TemplateSerializer
+	GetContainer         func() serializer.ListContainerSerializer
 	GetPermissions       func(v *ListView) []permission.PermissionChecker
 	OnApplyQuery         func()
 	Claims               *auth.UserClaims
@@ -331,7 +331,7 @@ func (v *ListView) Run() {
 		serializerContext = v.GetSerializerContext(v, modelList)
 	}
 
-	result := serializer2.SerializeMultipleTemplate(modelList, v.GetTemplate(), serializerContext)
+	result := serializer.SerializeMultipleTemplate(modelList, v.GetTemplate(), serializerContext)
 	responseBody := v.GetContainer()
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     page,
@@ -345,7 +345,7 @@ func (v *ListView) Run() {
 type ModelView struct {
 	Context     *haruka.Context
 	GetModels   func() interface{}
-	GetTemplate func() serializer2.TemplateSerializer
+	GetTemplate func() serializer.TemplateSerializer
 	LookUpKey   string
 	SetFilter   func(v *ModelView, lookupValue interface{})
 }

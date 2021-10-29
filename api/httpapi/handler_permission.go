@@ -2,7 +2,7 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	serializer2 "github.com/allentom/youcomic-api/api/serializer"
+	"github.com/allentom/youcomic-api/api/httpapi/serializer"
 	"github.com/allentom/youcomic-api/auth"
 	ApiError "github.com/allentom/youcomic-api/error"
 	"github.com/allentom/youcomic-api/permission"
@@ -61,8 +61,8 @@ var GetPermissionListHandler haruka.RequestHandler = func(context *haruka.Contex
 
 	count, permissions, err := permissionQueryBuilder.ReadModels()
 
-	result := serializer2.SerializeMultipleTemplate(permissions, &serializer2.BasePermissionTemplate{}, nil)
-	responseBody := serializer2.DefaultListContainer{}
+	result := serializer.SerializeMultipleTemplate(permissions, &serializer.BasePermissionTemplate{}, nil)
+	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
 		"page":     pagination.Page,
 		"pageSize": pagination.PageSize,
