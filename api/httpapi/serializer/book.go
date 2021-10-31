@@ -3,7 +3,6 @@ package serializer
 import (
 	"fmt"
 	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/services"
 	"github.com/jinzhu/copier"
 	"path"
 	"path/filepath"
@@ -39,11 +38,11 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 	if len(b.OriginalName) == 0 {
 		b.OriginalName = b.DirName
 	}
-	tags, err := services.GetBookTagsByTypes(serializerModel.ID, "artist", "translator", "series", "theme")
-	if err != nil {
-		return err
-	}
-	serializedTags := SerializeMultipleTemplate(tags, &BaseTagTemplate{}, nil)
+	//tags, err := services.GetBookTagsByTypes(serializerModel.ID, "artist", "translator", "series", "theme")
+	//if err != nil {
+	//	return err
+	//}
+	serializedTags := SerializeMultipleTemplate(serializerModel.Tags, &BaseTagTemplate{}, nil)
 	b.Tags = serializedTags
 	return nil
 }

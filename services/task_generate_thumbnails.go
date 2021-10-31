@@ -84,7 +84,7 @@ func (t *GenerateThumbnailTask) Start() error {
 				bookCoverPath := filepath.Join(library.Path, book.Path, book.Cover)
 				option := ThumbnailTaskOption{
 					Input:   bookCoverPath,
-					Output:  thumbnailPath,
+					Output:  utils.GetThumbnailStorePath(book.ID),
 					ErrChan: make(chan error),
 				}
 				DefaultThumbnailService.Resource <- option

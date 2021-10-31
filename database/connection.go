@@ -45,8 +45,9 @@ func ConnectDatabase() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	DB.AutoMigrate(
+	DB.DisableForeignKeyConstraintWhenMigrating = true
+	err = DB.AutoMigrate(
+		&model.Library{},
 		&model.Book{},
 		&model.Tag{},
 		&model.Page{},
@@ -55,6 +56,8 @@ func ConnectDatabase() {
 		&model.UserGroup{},
 		&model.Permission{},
 		&model.History{},
-		&model.Library{},
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

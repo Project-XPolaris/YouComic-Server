@@ -205,12 +205,12 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 				"data":  serializer.NewTaskTemplate(task),
 			})
 		},
-		OnDirError: func(task *services.ScanTask, syncErr services.SyncError) {
-			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
-				"event": EventScanTaskFileError,
-				"data":  serializer.NewTaskTemplate(task),
-			})
-		},
+		//OnDirError: func(task *services.ScanTask, syncErr services.SyncError) {
+		//	DefaultNotificationManager.sendJSONToAll(haruka.JSON{
+		//		"event": EventScanTaskFileError,
+		//		"data":  serializer.NewTaskTemplate(task),
+		//	})
+		//},
 	})
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)

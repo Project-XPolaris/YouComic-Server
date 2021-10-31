@@ -43,8 +43,10 @@ var BookContentHandler haruka.RequestHandler = func(context *haruka.Context) {
 		http.ServeFile(context.Writer, context.Request, path.Join(library.Path, book.Path, book.Cover))
 		return
 	}
+
 	if fileName == path.Base(book.Cover) {
-		http.ServeFile(context.Writer, context.Request, path.Join(library.Path, book.Path, book.Cover))
+		coverPath := path.Join(library.Path, book.Path, book.Cover)
+		http.ServeFile(context.Writer, context.Request, coverPath)
 		return
 	}
 

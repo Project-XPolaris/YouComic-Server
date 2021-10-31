@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"github.com/allentom/youcomic-api/config"
 	"github.com/nfnt/resize"
@@ -14,9 +15,9 @@ import (
 	"sync"
 )
 
-const MaxThumbnailGeneratorQueue = 100000
+const MaxThumbnailGeneratorQueue = 10
 
-var DefaultThumbnailService = NewThumbnailService(10)
+var DefaultThumbnailService = NewThumbnailService(100)
 
 type ThumbnailTaskOption struct {
 	Input   string
@@ -88,10 +89,20 @@ func (s *ThumbnailService) GetQueueStatus() *ThumbnailServiceStatus {
 
 //generate thumbnail image
 func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			if er, ok := r.(error); ok {
+				err = er
+			} else {
+				err = errors.New("unknown panic error")
+			}
+		}
+	}()
 	// setup image decoder
 	fileExt := filepath.Ext(coverImageFilePath)
 	// mkdir
-	err := os.MkdirAll(storePath, os.ModePerm)
+	err = os.MkdirAll(storePath, os.ModePerm)
 	if err != nil {
 		return "", err
 	}

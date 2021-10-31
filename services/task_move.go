@@ -67,9 +67,12 @@ func (t *MoveBookTask) Start() error {
 			t.From = library
 			sourcePath := filepath.Join(library.Path, book.Path)
 			toPath := filepath.Join(t.To.Path, book.Path)
-
+			if utils.CheckFileExist(toPath) {
+				logrus.Warn("move target exist,skip")
+				continue
+			}
 			// try to move
-			err = os.Rename(sourcePath+"/", toPath+"/")
+			err = os.Rename(sourcePath, toPath)
 			if err != nil {
 				// failed to move,try to copy
 				err = os.MkdirAll(toPath, 0644)

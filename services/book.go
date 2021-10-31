@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/allentom/youcomic-api/application"
+	"github.com/allentom/youcomic-api/config"
 	"github.com/allentom/youcomic-api/database"
 	"github.com/allentom/youcomic-api/model"
 	"github.com/allentom/youcomic-api/utils"
@@ -214,10 +215,14 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
 	if b.random {
-		query = query.Order("random()")
+		if config.Instance.Database.Type == "mysql" {
+			query = query.Order("rand()")
+		} else {
+			query = query.Order("random()")
+		}
 	}
 	var count int64 = 0
-	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Preload("Tags").Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
 		return 0, nil
