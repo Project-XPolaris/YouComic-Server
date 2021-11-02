@@ -44,9 +44,9 @@ func (b *PageQueryBuilder) ReadModels(models interface{}) (int64, error) {
 	query := database.DB
 	query = ApplyFilters(b, query)
 	var count int64 = 0
-	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
+	err := query.Unscoped().Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
 	if err == sql.ErrNoRows {
-		return 0,nil
+		return 0, nil
 	}
 	return count, err
 }
