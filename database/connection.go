@@ -60,4 +60,5 @@ func ConnectDatabase() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	DB = DB.Unscoped()
 }
