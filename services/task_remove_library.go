@@ -46,24 +46,24 @@ func (t *RemoveLibraryTask) Start() error {
 		}
 		t.Library = &library
 		books := make([]model.Book, 0)
-		err = database.DB.Model(&library).Association("Books").Find(&books)
+		err = database.Instance.Model(&library).Association("Books").Find(&books)
 		if err != nil {
 			t.AbortError(err)
 			return
 		}
 		for _, book := range books {
-			err = database.DB.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
+			err = database.Instance.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
 			if err != nil {
 				t.AbortError(err)
 				return
 			}
 		}
-		err = database.DB.Unscoped().Delete(model.Book{}, "library_id = ?", library.ID).Error
+		err = database.Instance.Unscoped().Delete(model.Book{}, "library_id = ?", library.ID).Error
 		if err != nil {
 			t.AbortError(err)
 			return
 		}
-		err = database.DB.Unscoped().Delete(&library).Error
+		err = database.Instance.Unscoped().Delete(&library).Error
 		if err != nil {
 			t.AbortError(err)
 			return

@@ -70,7 +70,7 @@ func (t *GenerateThumbnailTask) Start() error {
 		}
 		t.Library = &library
 		books := make([]model.Book, 0)
-		err = database.DB.Model(&library).Association("Books").Find(&books)
+		err = database.Instance.Model(&library).Association("Books").Find(&books)
 		if err != nil {
 			t.AbortError(err)
 			return

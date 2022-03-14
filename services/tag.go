@@ -62,7 +62,7 @@ func (f *TagSubscriptionQueryFilter) SetTagSubscriptionQueryFilter(subscriptions
 }
 
 func (b *TagQueryBuilder) ReadModels() (int64, interface{}, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	if b.random {
 		query = query.Order("random()")
@@ -79,10 +79,10 @@ func (b *TagQueryBuilder) ReadModels() (int64, interface{}, error) {
 func GetTagBooks(tagId uint, page int, pageSize int) (int64, []model.Book, error) {
 	var books []model.Book
 	var count int64 = 0
-	err := database.DB.Model(
+	err := database.Instance.Model(
 		&model.Tag{Model: gorm.Model{ID: tagId}},
 	).Limit(pageSize).Offset((page - 1) * pageSize).Preload("Books").Error
-	count = database.DB.Model(
+	count = database.Instance.Model(
 		&model.Tag{Model: gorm.Model{ID: tagId}},
 	).Association("Books").Count()
 	return count, books, err
@@ -94,7 +94,7 @@ func AddBooksToTag(tagId int, bookIds []int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err = database.DB.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Append(books)
+	err = database.Instance.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Append(books)
 	return err
 }
 
@@ -104,7 +104,7 @@ func RemoveBooksFromTag(tagId int, bookIds []int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err = database.DB.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Delete(books)
+	err = database.Instance.Model(&model.Tag{Model: gorm.Model{ID: uint(tagId)}}).Association("Books").Delete(books)
 	return err
 }
 
@@ -119,12 +119,12 @@ const (
 
 func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag, strategy TagStrategy) (err error) {
 	for _, tag := range tags {
-		err = database.DB.FirstOrCreate(tag, model.Tag{Name: tag.Name, Type: tag.Type}).Error
+		err = database.Instance.FirstOrCreate(tag, model.Tag{Name: tag.Name, Type: tag.Type}).Error
 		if err != nil {
 			return err
 		}
 	}
-	ass := database.DB.Model(book).Association("Tags")
+	ass := database.Instance.Model(book).Association("Tags")
 	if strategy == Overwrite {
 		err = ass.Clear()
 		if err != nil {
@@ -174,7 +174,7 @@ func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag, strategy TagStrat
 		}
 	}
 	for _, tag := range appendTag {
-		err = database.DB.Model(tag).Association("Books").Append(book)
+		err = database.Instance.Model(tag).Association("Books").Append(book)
 		if err != nil {
 			return err
 		}
@@ -185,21 +185,21 @@ func AddOrCreateTagToBook(book *model.Book, tags []*model.Tag, strategy TagStrat
 // add users to tag
 func AddTagSubscription(tagId uint, users ...interface{}) error {
 	tag := &model.Tag{Model: gorm.Model{ID: tagId}}
-	err := database.DB.Model(tag).Association("Subscriptions").Append(users...)
+	err := database.Instance.Model(tag).Association("Subscriptions").Append(users...)
 	return err
 }
 
 // remove users from tag
 func RemoveTagSubscription(tagId uint, users ...interface{}) error {
 	tag := &model.Tag{Model: gorm.Model{ID: tagId}}
-	err := database.DB.Model(tag).Association("Subscriptions").Delete(users...)
+	err := database.Instance.Model(tag).Association("Subscriptions").Delete(users...)
 	return err
 }
 
 //get tag with tag id
 func GetTagById(id uint) (*model.Tag, error) {
 	tag := &model.Tag{Model: gorm.Model{ID: id}}
-	err := database.DB.Find(tag).Error
+	err := database.Instance.Find(tag).Error
 	return tag, err
 }
 
@@ -209,7 +209,7 @@ type TagCount struct {
 }
 
 func (b *TagQueryBuilder) GetTagCount() (int64, interface{}, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	rows, err := query.Model(&model.Tag{}).Select(
@@ -225,7 +225,7 @@ func (b *TagQueryBuilder) GetTagCount() (int64, interface{}, error) {
 	result := make([]TagCount, 0)
 	for rows.Next() {
 		var tagCount TagCount
-		err = database.DB.ScanRows(rows, &tagCount)
+		err = database.Instance.ScanRows(rows, &tagCount)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -240,7 +240,7 @@ type TagTypeCount struct {
 }
 
 func (b *TagQueryBuilder) GetTagTypeCount() (int64, []TagTypeCount, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	rows, err := query.Model(&model.Tag{}).Select(
@@ -254,7 +254,7 @@ func (b *TagQueryBuilder) GetTagTypeCount() (int64, []TagTypeCount, error) {
 	result := make([]TagTypeCount, 0)
 	for rows.Next() {
 		var tagCount TagTypeCount
-		err = database.DB.ScanRows(rows, &tagCount)
+		err = database.Instance.ScanRows(rows, &tagCount)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -265,20 +265,20 @@ func (b *TagQueryBuilder) GetTagTypeCount() (int64, []TagTypeCount, error) {
 
 func TagAdd(fromTagId uint, toTargetId uint) error {
 	var fromTag, toTag model.Tag
-	err := database.DB.First(&fromTag, fromTagId).Error
+	err := database.Instance.First(&fromTag, fromTagId).Error
 	if err != nil {
 		return err
 	}
-	err = database.DB.First(&toTag, toTargetId).Error
+	err = database.Instance.First(&toTag, toTargetId).Error
 	if err != nil {
 		return err
 	}
 	var deltaBooks []model.Book
-	err = database.DB.Model(&fromTag).Association("Books").Find(&deltaBooks)
+	err = database.Instance.Model(&fromTag).Association("Books").Find(&deltaBooks)
 	if err != nil {
 		return err
 	}
-	err = database.DB.Model(&toTag).Association("Books").Append(deltaBooks)
+	err = database.Instance.Model(&toTag).Association("Books").Append(deltaBooks)
 	if err != nil {
 		return err
 	}
@@ -323,7 +323,7 @@ func MatchTag(raw string, pattern string) []*RawTag {
 	rawTagStrings := utils.MatchTagTextFromText(raw)
 	var queryTags []model.Tag
 	if len(rawTagStrings) > 0 {
-		query := database.DB.Model(&model.Tag{})
+		query := database.Instance.Model(&model.Tag{})
 		for idx, tagString := range rawTagStrings {
 			if len(tagString) == 0 {
 				continue
@@ -361,11 +361,11 @@ func MatchTag(raw string, pattern string) []*RawTag {
 
 func ClearEmptyTag() error {
 	var tags []model.Tag
-	database.DB.Find(&tags)
+	database.Instance.Find(&tags)
 	for _, tag := range tags {
-		ass := database.DB.Model(&tag).Association("Books")
+		ass := database.Instance.Model(&tag).Association("Books")
 		if ass.Count() == 0 {
-			err := database.DB.Unscoped().Delete(&tag).Error
+			err := database.Instance.Unscoped().Delete(&tag).Error
 			if err != nil {
 				logrus.Error(err)
 			}

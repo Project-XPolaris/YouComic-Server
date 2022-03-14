@@ -23,14 +23,14 @@ func (t *RemoveEmptyTagTask) Stop() error {
 func (t *RemoveEmptyTagTask) Start() error {
 	go func() {
 		var tags []model.Tag
-		database.DB.Find(&tags)
+		database.Instance.Find(&tags)
 		t.Total = len(tags)
 		for _, tag := range tags {
 			t.Current += 1
 			t.CurrentTag = &tag
-			ass := database.DB.Model(&tag).Association("Books")
+			ass := database.Instance.Model(&tag).Association("Books")
 			if ass.Count() == 0 {
-				err := database.DB.Unscoped().Delete(&tag).Error
+				err := database.Instance.Unscoped().Delete(&tag).Error
 				if err != nil {
 					logrus.Error(err)
 				}

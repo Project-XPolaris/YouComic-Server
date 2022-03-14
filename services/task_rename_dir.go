@@ -38,7 +38,7 @@ func (t *RenameBookDirectoryTask) Stop() error {
 }
 func (t *RenameBookDirectoryTask) Start() error {
 	books := make([]model.Book, 0)
-	err := database.DB.Preload("Tags").Find(&books, "library_id = ?", t.Library.ID).Error
+	err := database.Instance.Preload("Tags").Find(&books, "library_id = ?", t.Library.ID).Error
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (p *TaskPool) NewRenameBookDirectoryLibraryTask(libraryId uint, pattern str
 		return exist.(*RenameBookDirectoryTask), nil
 	}
 	var library model.Library
-	err := database.DB.First(&library, libraryId).Error
+	err := database.Instance.First(&library, libraryId).Error
 	if err != nil {
 		return nil, err
 	}

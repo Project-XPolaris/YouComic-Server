@@ -20,6 +20,7 @@
     "PermanentlyDeleteBook",
     "CreateLibrary",
     "UpdateLibrary",
-    "DeleteLibrary"
+    "DeleteLibrary",
+    "ScanLibrary"
   ]
 }

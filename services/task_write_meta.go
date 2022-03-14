@@ -47,13 +47,13 @@ func (t *WriteBookMetaTask) Start() error {
 		}()
 		t.Status = StatusRunning
 		var library model.Library
-		err := database.DB.Where("id = ?", t.LibraryId).Find(&library).Error
+		err := database.Instance.Where("id = ?", t.LibraryId).Find(&library).Error
 		if err != nil {
 			t.RaiseError(err)
 			return
 		}
 		var books []*model.Book
-		err = database.DB.Where("library_id = ?", t.LibraryId).Preload("Tags").Find(&books).Error
+		err = database.Instance.Where("library_id = ?", t.LibraryId).Preload("Tags").Find(&books).Error
 		if err != nil {
 			t.RaiseError(err)
 			return

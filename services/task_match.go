@@ -34,7 +34,7 @@ func (t *MatchLibraryTagTask) Stop() error {
 }
 func (t *MatchLibraryTagTask) Start() error {
 	books := make([]model.Book, 0)
-	err := database.DB.Find(&books, "library_id = ?", t.Library.ID).Error
+	err := database.Instance.Find(&books, "library_id = ?", t.Library.ID).Error
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (t *MatchLibraryTagTask) Start() error {
 			}
 			if len(result.Name) > 0 {
 				book.Name = result.Name
-				database.DB.Save(&book)
+				database.Instance.Save(&book)
 			}
 			tags := make([]*model.Tag, 0)
 			if len(result.Artist) > 0 {
@@ -96,7 +96,7 @@ func (p *TaskPool) NewMatchLibraryTagTask(libraryId uint, strategy string) (*Mat
 		return exist.(*MatchLibraryTagTask), nil
 	}
 	var library model.Library
-	err := database.DB.First(&library, libraryId).Error
+	err := database.Instance.First(&library, libraryId).Error
 	if err != nil {
 		return nil, err
 	}

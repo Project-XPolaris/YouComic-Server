@@ -1,0 +1,35 @@
+addr: ':7700'
+application: "YouMusic Core Service"
+instance: "main"
+datasource: "sqlite"
+service:
+  name: "YouComicCoreService"
+  display: "YouComic Core Service"
+sqlite:
+  path: './data/database.db'
+youplus:
+  auth: true
+  enablepath: false
+  enablerpc: true
+  url: 'http://localhost:8999'
+  rpc: 'localhost:50055'
+  entity:
+    enable: false
+    name: "youcomiccore"
+    version: 1
+log:
+  youlog:
+    application: "YouComic Core Service"
+    instance: "main"
+    addr: "localhost:50052"
+    retry: 3000
+    remote: false
+thumbnail:
+  type: ""
+  target: ""
+store:
+  root: "./data/static"
+  books: "./data/books"
+security:
+  salt: "L99B0wF4o7B6DPQHO0qaBdgWuFzMITq0"
+  app_secret: "6egSG0ZPmBiwrI3g9TCtnZnUDIX0pFD8"

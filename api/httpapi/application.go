@@ -7,7 +7,7 @@ import (
 	"github.com/rs/cors"
 )
 
-func RunApiService() {
+func GetEngine() *haruka.Engine {
 	engine := haruka.NewEngine()
 	engine.UseCors(cors.AllowAll())
 	engine.UseMiddleware(middleware.NewLoggerMiddleware())
@@ -15,5 +15,5 @@ func RunApiService() {
 	engine.UseMiddleware(StaticMiddleware{})
 	SetRouter(engine)
 	engine.Router.Static("/assets", config.Instance.Store.Root)
-	engine.RunAndListen(config.Instance.Application.Host + ":" + config.Instance.Application.Port)
+	return engine
 }

@@ -9,7 +9,7 @@ import (
 
 func CheckUserHasPermission(userId uint, permissionName string) (error, bool) {
 	permission := model.Permission{Name: permissionName}
-	err := database.DB.Model(
+	err := database.Instance.Model(
 		&permission,
 	).Select(
 		"permissions.*",

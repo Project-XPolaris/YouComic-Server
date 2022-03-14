@@ -15,7 +15,7 @@ import (
 
 func GetLibraryById(id uint) (model.Library, error) {
 	var library model.Library
-	err := database.DB.Find(&library, id).Error
+	err := database.Instance.Find(&library, id).Error
 	return library, err
 }
 
@@ -27,7 +27,7 @@ func CreateLibrary(name string, path string) (*model.Library, error) {
 	}
 
 	newLibrary := &model.Library{Name: name, Path: path}
-	err = database.DB.Create(newLibrary).Error
+	err = database.Instance.Create(newLibrary).Error
 	return newLibrary, err
 }
 
@@ -68,7 +68,7 @@ func ImportLibrary(libraryPath string) error {
 	// add library book
 	for _, bookConfig := range config.Books {
 		book := model.Book{Name: bookConfig.Name, Path: bookConfig.Path, LibraryId: library.ID, Cover: bookConfig.Cover}
-		err = database.DB.Create(&book).Error
+		err = database.Instance.Create(&book).Error
 		if err != nil {
 			return err
 		}
@@ -81,15 +81,15 @@ func ImportLibrary(libraryPath string) error {
 		}
 		for _, tagConfig := range bookConfig.Tags {
 			tag := model.Tag{}
-			err = database.DB.FirstOrCreate(&tag, model.Tag{Name: tagConfig.Name, Type: tagConfig.Type}).Error
+			err = database.Instance.FirstOrCreate(&tag, model.Tag{Name: tagConfig.Name, Type: tagConfig.Type}).Error
 			if err != nil {
 				return err
 			}
-			database.DB.Model(&book).Association("Tags").Append(&tag)
+			database.Instance.Model(&book).Association("Tags").Append(&tag)
 		}
 		for _, pageConfig := range bookConfig.Pages {
 			page := model.Page{PageOrder: pageConfig.Order, Path: pageConfig.Path, BookId: int(book.ID)}
-			err = database.DB.Create(&page).Error
+			err = database.Instance.Create(&page).Error
 			if err != nil {
 				return err
 			}
@@ -105,22 +105,22 @@ func DeleteLibrary(libraryId uint) error {
 	}
 
 	books := make([]model.Book, 0)
-	err = database.DB.Model(&library).Association("Books").Find(&books)
+	err = database.Instance.Model(&library).Association("Books").Find(&books)
 	if err != nil {
 		return err
 	}
 	for _, book := range books {
-		err = database.DB.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
+		err = database.Instance.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
 		if err != nil {
 			return err
 		}
 	}
-	err = database.DB.Unscoped().Delete(model.Book{}, "library_id = ?", library.ID).Error
+	err = database.Instance.Unscoped().Delete(model.Book{}, "library_id = ?", library.ID).Error
 	if err != nil {
 		return err
 	}
 
-	err = database.DB.Unscoped().Delete(&library).Error
+	err = database.Instance.Unscoped().Delete(&library).Error
 	if err != nil {
 		return err
 	}
@@ -143,14 +143,14 @@ func (b *LibraryQueryBuilder) SetId(id interface{}) {
 }
 
 func (b *LibraryQueryBuilder) Update(valueMapping map[string]interface{}) error {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	err := query.Table("libraries").Updates(valueMapping).Error
 	return err
 }
 
 func (b *LibraryQueryBuilder) ReadModels() (int64, interface{}, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	md := make([]model.Library, 0)

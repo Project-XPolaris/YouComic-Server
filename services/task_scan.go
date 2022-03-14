@@ -98,7 +98,7 @@ func (t *ScanTask) AbortFileError(path string, err error) {
 func (t *ScanTask) scannerDir() {
 	// sync with exist book
 	var library model.Library
-	err := database.DB.Where("id = ?", t.LibraryId).Preload("Books").Find(&library).Error
+	err := database.Instance.Where("id = ?", t.LibraryId).Preload("Books").Find(&library).Error
 	if err != nil {
 		t.AbortTaskError(err)
 		return
@@ -121,15 +121,17 @@ func (t *ScanTask) scannerDir() {
 		PageExt:      utils.DefaultScanPageExt,
 		MinPageCount: 4,
 	}
-	err = scanner.Scan()
+	var count int64 = 0
+	err = scanner.Scan(func(result utils.ScannerResult) {
+		count++
+	})
+	t.Total = count
 	if err != nil {
 		t.AbortTaskError(err)
 		return
 	}
-	t.Total = scanner.Total
 	t.Status = ScanStatusAdd
-	// create library
-	for _, item := range scanner.Result {
+	err = scanner.Scan(func(item utils.ScannerResult) {
 		if t.stopFlag {
 			t.Status = StatusStop
 			if t.Option.OnStop != nil {
@@ -148,7 +150,7 @@ func (t *ScanTask) scannerDir() {
 			}
 		}
 		if isExist {
-			continue
+			return
 		}
 		// try to find out meta file
 		metaFilePath := filepath.Join(item.DirPath, "youcomic_meta.json")
@@ -160,7 +162,7 @@ func (t *ScanTask) scannerDir() {
 			if err != nil {
 				t.AbortFileError(item.DirPath, err)
 				jsonFile.Close()
-				continue
+				return
 			}
 			jsonFile.Close()
 		}
@@ -179,27 +181,30 @@ func (t *ScanTask) scannerDir() {
 		if len(meta.Title) > 0 {
 			book.Name = meta.Title
 		}
-		err = database.DB.Save(&book).Error
+		err = database.Instance.Save(&book).Error
 		if err != nil {
 			t.AbortFileError(item.DirPath, err)
-			continue
+			return
 		}
-
+		thumbnailsSource := make([]string, 0)
+		thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TargetDir, book.Path, book.Cover))
 		// for pages
 		savePages := make([]model.Page, 0)
+
 		for idx, pageName := range item.Pages {
 			page := model.Page{
 				Path:      pageName,
 				BookId:    int(book.Model.ID),
 				PageOrder: idx + 1,
 			}
+			thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TargetDir, book.Path, pageName))
 			savePages = append(savePages, page)
 
 		}
-		err = database.DB.Save(savePages).Error
+		err = database.Instance.Save(savePages).Error
 		if err != nil {
 			t.AbortFileError(item.DirPath, err)
-			continue
+			return
 		}
 		// for tags
 		if meta.Tags != nil && len(meta.Tags) > 0 {
@@ -213,34 +218,18 @@ func (t *ScanTask) scannerDir() {
 			err = AddOrCreateTagToBook(&book, tags, FillEmpty)
 			if err != nil {
 				t.AbortFileError(item.DirPath, err)
+				return
 			}
 		}
-		coverThumbnailStorePath := utils.GetThumbnailStorePath(book.ID)
-		option := ThumbnailTaskOption{
-			Input:   filepath.Join(t.TargetDir, book.Path, book.Cover),
-			Output:  coverThumbnailStorePath,
-			ErrChan: make(chan error),
-		}
-		go func(item utils.ScannerResult) {
-			DefaultThumbnailService.Resource <- option
-			err = <-option.ErrChan
-			if err != nil {
-				// use page as cover
-				for _, page := range item.Pages {
-					option.Input = filepath.Join(t.TargetDir, book.Path, page)
-					DefaultThumbnailService.Resource <- option
-					err = <-option.ErrChan
-					if err == nil {
-						break
-					}
-				}
-			}
-			if err != nil {
-				t.AbortFileError(item.DirPath, err)
-			}
-		}(item)
 
-	}
+		coverThumbnailStorePath := utils.GetThumbnailStorePath(book.ID)
+		for _, sourcePath := range thumbnailsSource {
+			_, err := GenerateCoverThumbnail(sourcePath, coverThumbnailStorePath)
+			if err == nil {
+				break
+			}
+		}
+	})
 	t.Status = StatusComplete
 	if t.Option.OnDone != nil {
 		t.Option.OnDone(t)

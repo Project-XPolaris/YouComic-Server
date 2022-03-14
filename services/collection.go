@@ -21,7 +21,7 @@ type CollectionQueryBuilder struct {
 }
 
 func (b *CollectionQueryBuilder) ReadModels() (int64, interface{}, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var collections []model.Collection
 	var count int64 = 0
@@ -111,7 +111,7 @@ func AddBooksToCollection(collectionId uint, bookIds ...int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Append(books)
+	err := database.Instance.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Append(books)
 	return err
 }
 
@@ -120,7 +120,7 @@ func RemoveBooksFromCollection(collectionId uint, bookIds ...int) error {
 	for _, bookId := range bookIds {
 		books = append(books, model.Book{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Delete(books)
+	err := database.Instance.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Books").Delete(books)
 	return err
 }
 func AddUsersToCollection(collectionId uint, userIds ...int) error {
@@ -128,7 +128,7 @@ func AddUsersToCollection(collectionId uint, userIds ...int) error {
 	for _, bookId := range userIds {
 		users = append(users, model.User{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Append(users)
+	err := database.Instance.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Append(users)
 	return err
 }
 
@@ -137,12 +137,12 @@ func RemoveUsersFromCollection(collectionId uint, userIds ...int) error {
 	for _, bookId := range userIds {
 		users = append(users, model.User{Model: gorm.Model{ID: uint(bookId)}})
 	}
-	err := database.DB.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Delete(users)
+	err := database.Instance.Model(&model.Collection{Model: gorm.Model{ID: collectionId}}).Association("Users").Delete(users)
 	return err
 }
 
 func GetCollectionById(collectionId uint) (error, *model.Collection) {
 	collection := model.Collection{Model: gorm.Model{ID: collectionId}}
-	err := database.DB.First(&collection).Error
+	err := database.Instance.First(&collection).Error
 	return err, &collection
 }

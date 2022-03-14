@@ -25,11 +25,11 @@ func RegisterUser(user *model.User) error {
 	if err != nil {
 		return err
 	}
-	err = database.DB.Save(user).Error
+	err = database.Instance.Save(user).Error
 	if err != nil {
 		return err
 	}
-	err = database.DB.Model(user).Update("nickname", fmt.Sprintf("user_%d", user.ID)).Error
+	err = database.Instance.Model(user).Update("nickname", fmt.Sprintf("user_%d", user.ID)).Error
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 		return nil, "", err
 	}
 	var user model.User
-	err = database.DB.Where(&model.User{Username: username, Password: password}).Find(&user).Error
+	err = database.Instance.Where(&model.User{Username: username, Password: password}).Find(&user).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, "", UserPasswordInvalidate
 	}
@@ -57,7 +57,11 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 	return &user, sign, nil
 }
 func YouPlusLogin(username string, rawPassword string) (*model.User, string, error) {
-	result, err := youplus.DefaultRPCClient.Client.GenerateToken(context.Background(), &rpc.GenerateTokenRequest{
+	client, err := youplus.DefaultYouPlusPlugin.RPCClient.GetClient()
+	if err != nil {
+		return nil, "", err
+	}
+	result, err := client.GenerateToken(context.Background(), &rpc.GenerateTokenRequest{
 		Username: &username,
 		Password: &rawPassword,
 	})
@@ -68,14 +72,14 @@ func YouPlusLogin(username string, rawPassword string) (*model.User, string, err
 		return nil, "", errors.New(*result.Reason)
 	}
 	var accountCount int64
-	err = database.DB.Model(&model.User{}).Where("username = ?", username).Count(&accountCount).Error
+	err = database.Instance.Model(&model.User{}).Where("username = ?", username).Count(&accountCount).Error
 	if err != nil {
 		return nil, "", err
 	}
 	var account model.User
 	if accountCount == 0 {
 		var defaultUserGroup model.UserGroup
-		err = database.DB.Where("name = ?", DefaultUserGroupName).First(&defaultUserGroup).Error
+		err = database.Instance.Where("name = ?", DefaultUserGroupName).First(&defaultUserGroup).Error
 		if err != nil {
 			return nil, "", err
 		}
@@ -87,12 +91,12 @@ func YouPlusLogin(username string, rawPassword string) (*model.User, string, err
 				&defaultUserGroup,
 			},
 		}
-		err = database.DB.Create(&account).Error
+		err = database.Instance.Create(&account).Error
 		if err != nil {
 			return nil, "", err
 		}
 	} else {
-		err = database.DB.Where("username = ?", username).First(&account).Error
+		err = database.Instance.Where("username = ?", username).First(&account).Error
 		if err != nil {
 			return nil, "", err
 		}
@@ -117,7 +121,7 @@ type UserQueryBuilder struct {
 }
 
 func (b *UserQueryBuilder) ReadModels() (int64, interface{}, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	md := make([]model.User, 0)
@@ -205,22 +209,22 @@ func (f UserNameQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 func ChangeUserPassword(userId uint, oldRawPassword string, newRawPassword string) error {
 	oldPassword, err := utils.EncryptSha1WithSalt(oldRawPassword)
 	var user model.User
-	err = database.DB.Where(&model.User{Model: gorm.Model{ID: userId}, Password: oldPassword}).Find(&user).Error
+	err = database.Instance.Where(&model.User{Model: gorm.Model{ID: userId}, Password: oldPassword}).Find(&user).Error
 	if err == gorm.ErrRecordNotFound {
 		return UserPasswordInvalidate
 	}
 	newPassword, err := utils.EncryptSha1WithSalt(newRawPassword)
-	err = database.DB.Model(&user).Update("password", newPassword).Error
+	err = database.Instance.Model(&user).Update("password", newPassword).Error
 	return err
 }
 
 //change user nickname
 func ChangeUserNickname(userId uint, nickname string) error {
 	var user model.User
-	err := database.DB.Where(&model.User{Model: gorm.Model{ID: userId}}).Find(&user).Error
+	err := database.Instance.Where(&model.User{Model: gorm.Model{ID: userId}}).Find(&user).Error
 	if err == gorm.ErrRecordNotFound {
 		return UserNotFoundError
 	}
-	err = database.DB.Model(&user).Update("nickname", nickname).Error
+	err = database.Instance.Model(&user).Update("nickname", nickname).Error
 	return err
 }

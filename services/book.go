@@ -26,7 +26,7 @@ func CreateBook(name string, libraryId uint) (error, *model.Book) {
 	// use default library if it not specific
 	if libraryId == 0 {
 		var library model.Library
-		err := database.DB.Where("name = ?", application.DEFAULT_LIBRARY_NAME).Find(&library).Error
+		err := database.Instance.Where("name = ?", application.DEFAULT_LIBRARY_NAME).Find(&library).Error
 		if err != nil {
 			return DefaultLibraryNotFound, nil
 		}
@@ -38,17 +38,17 @@ func CreateBook(name string, libraryId uint) (error, *model.Book) {
 		LibraryId: libraryId,
 	}
 
-	result := database.DB.Create(&book)
+	result := database.Instance.Create(&book)
 	err := result.Error
 	if err != nil {
 		return err, nil
 	}
-	err = database.DB.Model(&model.Book{}).Where("id = ?", book.ID).Update("path", fmt.Sprintf("/%d", book.ID)).Error
+	err = database.Instance.Model(&model.Book{}).Where("id = ?", book.ID).Update("path", fmt.Sprintf("/%d", book.ID)).Error
 	return err, &book
 }
 
 func GetBook(book *model.Book) error {
-	err := database.DB.First(book, book.ID).Error
+	err := database.Instance.First(book, book.ID).Error
 	if err == gorm.ErrRecordNotFound {
 		return RecordNotFoundError
 	}
@@ -66,7 +66,7 @@ func UpdateBook(book *model.Book, allowFields ...string) error {
 
 		updateMap[propertyName] = value.Interface()
 	}
-	err := database.DB.Model(book).Updates(updateMap).Error
+	err := database.Instance.Model(book).Updates(updateMap).Error
 	return err
 }
 
@@ -212,10 +212,10 @@ func (f *BookCollectionQueryFilter) SetCollectionQueryFilter(collectionIds ...in
 	}
 }
 func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	if b.random {
-		if config.Instance.Database.Type == "mysql" {
+		if config.Instance.Database == "mysql" {
 			query = query.Order("rand()")
 		} else {
 			query = query.Order("random()")
@@ -234,7 +234,7 @@ func CreateBooks(books []model.Book) error {
 	var err error
 
 	for _, book := range books {
-		err = database.DB.Create(&book).Error
+		err = database.Instance.Create(&book).Error
 		if err != nil {
 			return err
 		}
@@ -251,7 +251,7 @@ func UpdateBooks(Books []model.Book, allowFields ...string) error {
 			value := r.FieldByName(propertyName)
 			updateMap[propertyName] = value.Interface()
 		}
-		err := database.DB.Model(&book).Updates(updateMap).Error
+		err := database.Instance.Model(&book).Updates(updateMap).Error
 		if err != nil {
 			return err
 		}
@@ -264,7 +264,7 @@ func DeleteBooks(ids ...int) error {
 	for _, id := range ids {
 		book := model.Book{}
 		book.ID = uint(id)
-		err = database.DB.Delete(&book).Error
+		err = database.Instance.Delete(&book).Error
 		if err != nil {
 			return err
 		}
@@ -277,7 +277,7 @@ func DeleteBooksPermanently(tx *gorm.DB, ids ...int) error {
 	for _, id := range ids {
 		book := model.Book{}
 		book.ID = uint(id)
-		err = database.DB.Unscoped().Delete(&book).Error
+		err = database.Instance.Unscoped().Delete(&book).Error
 		if err != nil {
 			return err
 		}
@@ -290,7 +290,7 @@ func AddTagToBook(bookId int, tagIds ...int) error {
 	for _, tagId := range tagIds {
 		tagsToAdd = append(tagsToAdd, &model.Tag{Model: gorm.Model{ID: uint(tagId)}})
 	}
-	return database.DB.Model(&model.Book{Model: gorm.Model{ID: uint(bookId)}}).Association("Tags").Append(tagsToAdd...)
+	return database.Instance.Model(&model.Book{Model: gorm.Model{ID: uint(bookId)}}).Association("Tags").Append(tagsToAdd...)
 }
 
 func GetBookPath(bookPath string, libraryId uint) (error, string) {
@@ -306,7 +306,7 @@ func GetBookPath(bookPath string, libraryId uint) (error, string) {
 
 func GetBookTagsByType(bookId uint, tagType string) ([]model.Tag, error) {
 	tags := make([]model.Tag, 0)
-	err := database.DB.Table(
+	err := database.Instance.Table(
 		"tags",
 	).Select(
 		"tags.*",
@@ -320,7 +320,7 @@ func GetBookTagsByType(bookId uint, tagType string) ([]model.Tag, error) {
 
 func GetBookTagsByTypes(bookId uint, tagTypes ...string) ([]model.Tag, error) {
 	tags := make([]model.Tag, 0)
-	err := database.DB.Table(
+	err := database.Instance.Table(
 		"tags",
 	).Select(
 		"tags.*",
@@ -334,13 +334,13 @@ func GetBookTagsByTypes(bookId uint, tagTypes ...string) ([]model.Tag, error) {
 
 func GetBookTag(bookId uint) ([]model.Tag, error) {
 	tags := make([]model.Tag, 0)
-	err := database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Find(&tags)
+	err := database.Instance.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Find(&tags)
 	return tags, err
 }
 
 func GetBookById(bookId uint) (model.Book, error) {
 	var book model.Book
-	err := database.DB.Find(&book, bookId).Error
+	err := database.Instance.Find(&book, bookId).Error
 	return book, err
 }
 
@@ -350,7 +350,7 @@ type BookDailyResult struct {
 }
 
 func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int64, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	rawRows, err := query.Model(
@@ -373,7 +373,7 @@ func (b *BooksQueryBuilder) GetDailyCount() ([]BookDailyResult, int64, error) {
 	result := make([]BookDailyResult, 0)
 	for rawRows.Next() {
 		var dailyResult BookDailyResult
-		err = database.DB.ScanRows(rawRows, &dailyResult)
+		err = database.Instance.ScanRows(rawRows, &dailyResult)
 		if err != nil {
 			return nil, count, err
 		}
@@ -413,12 +413,12 @@ func RenderBookDirectoryRenameText(book *model.Book, Pattern string, Slots []Ren
 }
 func RenameBookDirectoryById(bookId int, pattern string, slots []RenameSlot) (*model.Book, error) {
 	var book model.Book
-	err := database.DB.Preload("Tags").First(&book, bookId).Error
+	err := database.Instance.Preload("Tags").First(&book, bookId).Error
 	if err != nil {
 		return nil, err
 	}
 	var library model.Library
-	err = database.DB.First(&library, book.LibraryId).Error
+	err = database.Instance.First(&library, book.LibraryId).Error
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +432,7 @@ func RenameBookDirectoryById(bookId int, pattern string, slots []RenameSlot) (*m
 		return nil, err
 	}
 	book.Path = newPath
-	err = database.DB.Save(&book).Error
+	err = database.Instance.Save(&book).Error
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +448,7 @@ func RenameBookDirectory(book *model.Book, library *model.Library, name string) 
 		return nil, err
 	}
 	book.Path = newPath
-	err = database.DB.Save(&book).Error
+	err = database.Instance.Save(&book).Error
 	if err != nil {
 		return nil, err
 	}
@@ -457,7 +457,7 @@ func RenameBookDirectory(book *model.Book, library *model.Library, name string) 
 
 func GenerateBookCoverById(id uint) error {
 	var book model.Book
-	err := database.DB.Preload("Page").Where("id = ?", id).First(&book).Error
+	err := database.Instance.Preload("Page").Where("id = ?", id).First(&book).Error
 	if err != nil {
 		return err
 	}

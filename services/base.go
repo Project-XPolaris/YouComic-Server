@@ -50,7 +50,7 @@ type ModelsReader interface {
 
 //delete model by model's id
 func DeleteById(model interface{}) error {
-	return database.DB.Delete(model).Error
+	return database.Instance.Delete(model).Error
 }
 
 //update models with allow fields
@@ -62,13 +62,13 @@ func UpdateModel(model interface{}, allowFields ...string) error {
 
 		updateMap[propertyName] = value.Interface()
 	}
-	err := database.DB.Model(model).Updates(updateMap).Error
+	err := database.Instance.Model(model).Updates(updateMap).Error
 	return err
 }
 
 //get model by id
 func GetModelById(model interface{}, id int) error {
-	err := database.DB.First(model, id).Error
+	err := database.Instance.First(model, id).Error
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (f *NameSearchQueryFilter) SetNameSearchQueryFilter(nameSearch interface{})
 func CreateModels(models []interface{}) error {
 	var err error
 	for _, modelToCreate := range models {
-		err = database.DB.Create(modelToCreate).Error
+		err = database.Instance.Create(modelToCreate).Error
 		if err != nil {
 			return err
 		}
@@ -189,7 +189,7 @@ func UpdateModels(updateModel interface{}, updateModels []interface{}, allowFiel
 		for _, key := range allowFields {
 			updateMap[key] = rawUpdateMap[key]
 		}
-		err := database.DB.Model(updateModel).Where("id = ?", rawUpdateMap["id"]).Updates(updateMap).Error
+		err := database.Instance.Model(updateModel).Where("id = ?", rawUpdateMap["id"]).Updates(updateMap).Error
 		if err != nil {
 			return err
 		}
@@ -200,7 +200,7 @@ func UpdateModels(updateModel interface{}, updateModels []interface{}, allowFiel
 func DeleteModels(deleteModel interface{}, ids ...int) error {
 	var err error
 
-	err = database.DB.Where("id in (?)", ids).Delete(deleteModel).Error
+	err = database.Instance.Where("id in (?)", ids).Delete(deleteModel).Error
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func DeleteModels(deleteModel interface{}, ids ...int) error {
 }
 
 func CreateModel(modelToCreate interface{}) error {
-	result := database.DB.Create(modelToCreate)
+	result := database.Instance.Create(modelToCreate)
 	err := result.Error
 	if err != nil {
 		return err
@@ -218,7 +218,7 @@ func CreateModel(modelToCreate interface{}) error {
 }
 
 func RemoveTagFromBook(bookId uint, tagId uint) error {
-	return database.DB.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Delete(model.Tag{Model: gorm.Model{ID: tagId}})
+	return database.Instance.Model(&model.Book{Model: gorm.Model{ID: bookId}}).Association("Tags").Delete(model.Tag{Model: gorm.Model{ID: tagId}})
 }
 
 func DeleteBookFile(bookId uint) (err error) {

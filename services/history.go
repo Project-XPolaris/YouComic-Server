@@ -11,12 +11,12 @@ import (
 
 func AddBookHistory(userId uint, bookId uint) error {
 	var count int64 = 0
-	database.DB.Model(&model.History{}).Where(&model.History{UserId: userId, BookId: bookId}).Count(&count)
+	database.Instance.Model(&model.History{}).Where(&model.History{UserId: userId, BookId: bookId}).Count(&count)
 	fmt.Println(count)
 	if count > 0 {
-		return database.DB.Model(&model.History{}).Where(&model.History{UserId: userId, BookId: bookId}).Update("UpdatedAt", time.Now()).Error
+		return database.Instance.Model(&model.History{}).Where(&model.History{UserId: userId, BookId: bookId}).Update("UpdatedAt", time.Now()).Error
 	} else {
-		return database.DB.Create(&model.History{UserId: userId, BookId: bookId}).Error
+		return database.Instance.Create(&model.History{UserId: userId, BookId: bookId}).Error
 	}
 }
 
@@ -28,7 +28,7 @@ type HistoryQueryBuilder struct {
 }
 
 func (b *HistoryQueryBuilder) ReadModels() (int64, interface{}, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	md := make([]model.History, 0)
@@ -39,7 +39,7 @@ func (b *HistoryQueryBuilder) ReadModels() (int64, interface{}, error) {
 	return count, md, err
 }
 func (b *HistoryQueryBuilder) DeleteModels(permanently bool) error {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	if permanently {
 		query = query.Unscoped()

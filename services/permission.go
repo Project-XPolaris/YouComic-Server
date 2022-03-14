@@ -17,7 +17,7 @@ type PermissionQueryBuilder struct {
 }
 
 func (b *PermissionQueryBuilder) ReadModels() (int64, interface{}, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	md := make([]model.Permission, 0)

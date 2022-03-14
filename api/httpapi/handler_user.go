@@ -84,7 +84,7 @@ var LoginUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	var user *model.User
 	var sign string
-	if config.Instance.YouPlus.Auth {
+	if config.Instance.AuthEnable {
 		user, sign, err = services.YouPlusLogin(requestBody.Username, requestBody.Password)
 	} else {
 		user, sign, err = services.UserLogin(requestBody.Username, requestBody.Password)

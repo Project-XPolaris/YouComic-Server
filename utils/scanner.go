@@ -20,11 +20,9 @@ type Scanner struct {
 	PageExt      []string
 	MinPageCount int
 	Result       []ScannerResult
-	Total        int64
 }
 
-func (s *Scanner) Scan() error {
-	s.Result = []ScannerResult{}
+func (s *Scanner) Scan(onScan func(result ScannerResult)) error {
 	err := godirwalk.Walk(s.TargetPath, &godirwalk.Options{
 		AllowNonDirectory: false,
 		PostChildrenCallback: func(osPathname string, directoryEntry *godirwalk.Dirent) error {
@@ -48,17 +46,15 @@ func (s *Scanner) Scan() error {
 				}
 			}
 			if targetCount >= s.MinPageCount {
-				s.Result = append(s.Result, ScannerResult{
+				onScan(ScannerResult{
 					DirPath:   osPathname,
 					CoverName: coverName,
 					Pages:     pages,
 				})
-				s.Total += 1
 			}
 			return nil
 		},
 		Callback: func(osPathname string, directoryEntry *godirwalk.Dirent) error {
-
 			return nil
 		},
 	})

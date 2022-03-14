@@ -39,7 +39,7 @@ func (t *MoveBookTask) Start() error {
 			}
 			t.Current += 1
 			var book model.Book
-			err := database.DB.First(&book, id).Error
+			err := database.Instance.First(&book, id).Error
 			if err != nil {
 				logrus.Error(err)
 				continue
@@ -57,7 +57,7 @@ func (t *MoveBookTask) Start() error {
 				}
 			}
 			if library == nil {
-				err = database.DB.First(&library, book.LibraryId).Error
+				err = database.Instance.First(&library, book.LibraryId).Error
 				libraries = append(libraries, library)
 				if err != nil {
 					logrus.Error(err)
@@ -92,7 +92,7 @@ func (t *MoveBookTask) Start() error {
 				}
 			}
 			book.LibraryId = t.To.ID
-			err = database.DB.Save(&book).Error
+			err = database.Instance.Save(&book).Error
 			if err != nil {
 				logrus.Error(err)
 				continue
@@ -126,7 +126,7 @@ func (p *TaskPool) NewMoveBookTask(bookIds []int, toLibraryId int) (*MoveBookTas
 		return exist.(*MoveBookTask), nil
 	}
 	var library model.Library
-	err := database.DB.First(&library, toLibraryId).Error
+	err := database.Instance.First(&library, toLibraryId).Error
 	if err != nil {
 		return nil, err
 	}

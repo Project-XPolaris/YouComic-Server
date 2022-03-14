@@ -24,7 +24,7 @@ func (m StaticMiddleware) OnRequest(c *haruka.Context) {
 			return
 		}
 		book := &model.Book{}
-		database.DB.First(book, bookId)
+		database.Instance.First(book, bookId)
 		url := ""
 		if book.Cover == fileName {
 			// get cover

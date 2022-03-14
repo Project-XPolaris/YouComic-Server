@@ -9,7 +9,7 @@ import (
 )
 
 func CreatePage(page *model.Page) error {
-	return database.DB.Create(page).Error
+	return database.Instance.Create(page).Error
 }
 
 type PageQueryBuilder struct {
@@ -41,7 +41,7 @@ func (f *BookIdFilter) SetBookIdFilter(bookIds ...interface{}) {
 }
 
 func (b *PageQueryBuilder) ReadModels(models interface{}) (int64, error) {
-	query := database.DB
+	query := database.Instance
 	query = ApplyFilters(b, query)
 	var count int64 = 0
 	err := query.Unscoped().Limit(b.getLimit()).Offset(b.getOffset()).Find(models).Offset(-1).Count(&count).Error
