@@ -3,7 +3,7 @@ package httpapi
 import (
 	"github.com/allentom/haruka"
 	"github.com/allentom/haruka/middleware"
-	"github.com/allentom/youcomic-api/config"
+	"github.com/projectxpolaris/youcomic/config"
 	"github.com/rs/cors"
 )
 

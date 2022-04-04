@@ -2,9 +2,9 @@ package permission
 
 import (
 	"github.com/allentom/haruka"
-	"github.com/allentom/youcomic-api/database"
-	ApplicationError "github.com/allentom/youcomic-api/error"
-	"github.com/allentom/youcomic-api/model"
+	"github.com/projectxpolaris/youcomic/database"
+	ApplicationError "github.com/projectxpolaris/youcomic/error"
+	"github.com/projectxpolaris/youcomic/model"
 )
 
 func CheckUserHasPermission(userId uint, permissionName string) (error, bool) {

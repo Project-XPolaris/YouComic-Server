@@ -3,7 +3,7 @@ package utils
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/allentom/youcomic-api/config"
+	"github.com/projectxpolaris/youcomic/config"
 	"io"
 )
 

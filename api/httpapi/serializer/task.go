@@ -1,7 +1,7 @@
 package serializer
 
 import (
-	"github.com/allentom/youcomic-api/services"
+	"github.com/projectxpolaris/youcomic/services"
 )
 
 type TaskSerializer struct {

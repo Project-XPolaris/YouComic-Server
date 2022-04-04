@@ -2,7 +2,7 @@ package validate
 
 import (
 	"github.com/allentom/haruka"
-	ApplicationError "github.com/allentom/youcomic-api/error"
+	ApplicationError "github.com/projectxpolaris/youcomic/error"
 	"net/http"
 )
 

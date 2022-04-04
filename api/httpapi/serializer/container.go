@@ -1,7 +1,7 @@
 package serializer
 
 import (
-	"github.com/allentom/youcomic-api/utils"
+	"github.com/projectxpolaris/youcomic/utils"
 	"net/url"
 )
 
@@ -10,7 +10,7 @@ type ListContainerSerializer interface {
 }
 
 type DefaultListContainer struct {
-	Count    int64         `json:"count"`
+	Count    int64       `json:"count"`
 	Next     string      `json:"next"`
 	Previous string      `json:"previous"`
 	Page     int         `json:"page"`

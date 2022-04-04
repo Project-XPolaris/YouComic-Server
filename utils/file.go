@@ -3,7 +3,7 @@ package utils
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/allentom/youcomic-api/config"
+	"github.com/projectxpolaris/youcomic/config"
 	"os"
 	"path/filepath"
 	"strconv"

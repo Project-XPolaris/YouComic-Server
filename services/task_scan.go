@@ -2,9 +2,9 @@ package services
 
 import (
 	"encoding/json"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/utils"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/utils"
 	"io/ioutil"
 	"os"
 	"path/filepath"

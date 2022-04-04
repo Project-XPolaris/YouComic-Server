@@ -2,7 +2,7 @@ package database
 
 import (
 	"github.com/allentom/harukap/datasource"
-	"github.com/allentom/youcomic-api/model"
+	"github.com/projectxpolaris/youcomic/model"
 	"gorm.io/gorm"
 )
 

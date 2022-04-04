@@ -2,12 +2,13 @@ package services
 
 import (
 	"database/sql"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
 	"gorm.io/gorm"
 )
 
 var DefaultUserGroupName = "Default"
+var DefaultSuperUserGroupName = "admin"
 
 type UserGroupQueryBuilder struct {
 	IdQueryFilter

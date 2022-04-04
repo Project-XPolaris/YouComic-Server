@@ -7,5 +7,5 @@ services:
         ports:
             - "8880:8880"
         volumes: 
-            - ./conf:/home/app/conf
+            - ./conf-init:/home/app/conf-init
             - ./static:/home/app/static

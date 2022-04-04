@@ -3,8 +3,8 @@ package httpapi
 import (
 	"fmt"
 	"github.com/allentom/haruka"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
 	"regexp"
 	"strconv"
 	"strings"

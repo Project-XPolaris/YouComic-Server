@@ -2,8 +2,8 @@ package serializer
 
 import (
 	"fmt"
-	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/copier"
+	"github.com/projectxpolaris/youcomic/model"
 	"path"
 	"path/filepath"
 	"strconv"

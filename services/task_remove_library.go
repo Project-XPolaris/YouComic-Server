@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
-	appconfig "github.com/allentom/youcomic-api/config"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
+	appconfig "github.com/projectxpolaris/youcomic/config"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
 	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"

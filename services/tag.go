@@ -3,9 +3,9 @@ package services
 import (
 	"database/sql"
 	"fmt"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/utils"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"

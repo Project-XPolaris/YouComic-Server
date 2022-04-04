@@ -3,12 +3,14 @@ package main
 import (
 	"github.com/allentom/harukap"
 	"github.com/allentom/harukap/cli"
-	"github.com/allentom/youcomic-api/api/httpapi"
-	"github.com/allentom/youcomic-api/config"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/plugin"
-	"github.com/allentom/youcomic-api/youlog"
-	"github.com/allentom/youcomic-api/youplus"
+	thumbnail2 "github.com/allentom/harukap/thumbnail"
+	"github.com/projectxpolaris/youcomic/api/httpapi"
+	"github.com/projectxpolaris/youcomic/config"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/plugin"
+	"github.com/projectxpolaris/youcomic/thumbnail"
+	"github.com/projectxpolaris/youcomic/youlog"
+	"github.com/projectxpolaris/youcomic/youplus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,6 +28,14 @@ func main() {
 	appEngine.LoggerPlugin = youlog.DefaultYouLogPlugin
 	appEngine.UsePlugin(&youplus.DefaultYouPlusPlugin)
 	appEngine.UsePlugin(database.DefaultPlugin)
+	appEngine.UsePlugin(&thumbnail.DefaultThumbnailServicePlugin)
+	if config.Instance.Thumbnail.Type == "thumbnailservice" {
+		thumbnail.DefaultThumbnailServicePlugin.SetConfig(&thumbnail2.ThumbnailServiceConfig{
+			Enable:     true,
+			ServiceUrl: config.Instance.Thumbnail.ServiceUrl,
+		})
+	}
+	appEngine.UsePlugin(&plugin.DefaultRegisterPlugin)
 	appEngine.UsePlugin(&plugin.InitPlugin{})
 	appEngine.HttpService = httpapi.GetEngine()
 	if err != nil {

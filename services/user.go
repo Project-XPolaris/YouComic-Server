@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/allentom/youcomic-api/auth"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/utils"
-	"github.com/allentom/youcomic-api/youplus"
 	"github.com/project-xpolaris/youplustoolkit/youplus/rpc"
+	"github.com/projectxpolaris/youcomic/auth"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/utils"
+	"github.com/projectxpolaris/youcomic/youplus"
 	"gorm.io/gorm"
 )
 
@@ -57,10 +57,11 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 	return &user, sign, nil
 }
 func YouPlusLogin(username string, rawPassword string) (*model.User, string, error) {
-	client, err := youplus.DefaultYouPlusPlugin.RPCClient.GetClient()
+	client, conn, err := youplus.DefaultYouPlusPlugin.RPCClient.GetClient()
 	if err != nil {
 		return nil, "", err
 	}
+	defer conn.Close()
 	result, err := client.GenerateToken(context.Background(), &rpc.GenerateTokenRequest{
 		Username: &username,
 		Password: &rawPassword,

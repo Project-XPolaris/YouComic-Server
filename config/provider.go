@@ -1,14 +1,24 @@
 package config
 
-import "github.com/allentom/harukap/config"
+import (
+	"errors"
+	"github.com/allentom/harukap/config"
+	"os"
+	"path/filepath"
+)
 
 var DefaultConfigProvider *config.Provider
 
 func InitConfigProvider() error {
 	var err error
+	customConfigPath := os.Getenv("YOUCOMIC_CONFIG_PATH")
 	DefaultConfigProvider, err = config.NewProvider(func(provider *config.Provider) {
 		ReadConfig(provider)
-	})
+	}, customConfigPath)
+	storeRootPath := Instance.Store.Root
+	if _, err := os.Stat(filepath.Dir(storeRootPath)); os.IsNotExist(err) {
+		return errors.New("store root path not exists,path = " + filepath.Dir(storeRootPath))
+	}
 	return err
 }
 
@@ -28,8 +38,9 @@ type Config struct {
 	AuthEnable bool
 	Database   string
 	Thumbnail  struct {
-		Type   string `json:"type"`
-		Target string `json:"target"`
+		Type       string `json:"type"`
+		Target     string `json:"target"`
+		ServiceUrl string `json:"serviceUrl"`
 	} `json:"thumbnail"`
 	Store struct {
 		Root  string `json:"root"`
@@ -46,16 +57,17 @@ func ReadConfig(provider *config.Provider) {
 	configer.SetDefault("addr", ":7600")
 	configer.SetDefault("application", "YouComic Core Service")
 	configer.SetDefault("instance", "main")
-
 	Instance = Config{
 		AuthEnable: configer.GetBool("youplus.auth"),
 		Database:   configer.GetString("datasource"),
 		Thumbnail: struct {
-			Type   string `json:"type"`
-			Target string `json:"target"`
+			Type       string `json:"type"`
+			Target     string `json:"target"`
+			ServiceUrl string `json:"serviceUrl"`
 		}{
-			Type:   configer.GetString("thumbnail.type"),
-			Target: configer.GetString("thumbnail.target"),
+			Type:       configer.GetString("thumbnail.type"),
+			Target:     configer.GetString("thumbnail.target"),
+			ServiceUrl: configer.GetString("thumbnail.service_url"),
 		},
 		Store: struct {
 			Root  string `json:"root"`
@@ -72,4 +84,5 @@ func ReadConfig(provider *config.Provider) {
 			AppSecret: configer.GetString("security.app_secret"),
 		},
 	}
+	os.Mkdir(Instance.Store.Root, 0777)
 }

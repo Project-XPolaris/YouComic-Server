@@ -1,0 +1,48 @@
+addr: ':7700'
+application: "YouComic Core Service"
+instance: "main"
+service:
+  name: "YouComicCoreService"
+  display: "YouComic Core Service"
+datasource:
+  sqlite:
+    type: sqlite
+    path: './data/database.db'
+youplus:
+  auth: false
+  enablepath: false
+  enablerpc: false
+  url: 'http://localhost:8999'
+  rpc: 'localhost:50055'
+  entity:
+    enable: false
+    name: "youcomiccore"
+    version: 1
+log:
+  youlog:
+    application: "YouComic"
+    instance: "main"
+    engine:
+      local:
+        type: logrus
+#      logservice:
+#        type: youlogservice
+#        address: "localhost:60376"
+#      fluentd:
+#        type: fluentd
+#        url:  "http://localhost:53373"
+thumbnail:
+  type: "local"
+  target: ""
+  service_url: "http://localhost:8020"
+store:
+  root: "./data/static"
+  books: "./data/books"
+security:
+  salt: "L99B0wF4o7B6DPQHO0qaBdgWuFzMITq0"
+  app_secret: "6egSG0ZPmBiwrI3g9TCtnZnUDIX0pFD8"
+register:
+  enable: false
+  endpoints:
+    - localhost:12379
+  regpath: ./reg.yml

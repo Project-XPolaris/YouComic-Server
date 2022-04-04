@@ -7,4 +7,5 @@ type Page struct {
 	PageOrder int
 	Path      string
 	BookId    int
+	Md5       string
 }

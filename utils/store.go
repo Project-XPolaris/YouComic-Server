@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"github.com/allentom/youcomic-api/config"
+	"github.com/projectxpolaris/youcomic/config"
 	"path"
 )
 

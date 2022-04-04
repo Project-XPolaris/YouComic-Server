@@ -1,8 +1,8 @@
 package serializer
 
 import (
-	"github.com/allentom/youcomic-api/model"
 	"github.com/jinzhu/copier"
+	"github.com/projectxpolaris/youcomic/model"
 )
 
 type BaseCollectionTemplate struct {

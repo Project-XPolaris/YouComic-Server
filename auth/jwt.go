@@ -3,9 +3,9 @@ package auth
 import (
 	"errors"
 	"github.com/allentom/haruka"
-	"github.com/allentom/youcomic-api/config"
-	"github.com/allentom/youcomic-api/model"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/projectxpolaris/youcomic/config"
+	"github.com/projectxpolaris/youcomic/model"
 )
 
 type UserClaims struct {

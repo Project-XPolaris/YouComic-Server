@@ -2,7 +2,7 @@ package error
 
 import (
 	"github.com/allentom/haruka"
-	"github.com/allentom/youcomic-api/services"
+	"github.com/projectxpolaris/youcomic/services"
 )
 
 //error => ApiError

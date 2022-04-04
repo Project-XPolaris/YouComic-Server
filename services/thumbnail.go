@@ -3,8 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
-	"github.com/allentom/youcomic-api/config"
+	"github.com/allentom/harukap/thumbnail"
 	"github.com/nfnt/resize"
+	"github.com/projectxpolaris/youcomic/config"
+	thumbnail2 "github.com/projectxpolaris/youcomic/thumbnail"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -109,9 +111,12 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 	thumbnailImagePath := filepath.Join(storePath, fmt.Sprintf("cover_thumbnail%s", fileExt))
 
 	var generator ThumbnailEngine
-	if config.Instance.Thumbnail.Type == "vips" {
+	switch config.Instance.Thumbnail.Type {
+	case "vips":
 		generator = NewVipsThumbnailEngine(config.Instance.Thumbnail.Target)
-	} else {
+	case "thumbnailservice":
+		generator = &ThumbnailServiceEngine{}
+	default:
 		generator = &DefaultThumbnailsEngine{}
 	}
 	abs, err := filepath.Abs(thumbnailImagePath)
@@ -181,6 +186,20 @@ func (e *DefaultThumbnailsEngine) Generate(input string, output string, maxWidth
 
 	// save result
 	err = jpeg.Encode(outputImage, resizeImage, nil)
+	if err != nil {
+		return "", err
+	}
+	return output, nil
+}
+
+type ThumbnailServiceEngine struct {
+}
+
+func (t *ThumbnailServiceEngine) Generate(input string, output string, maxWidth int) (path string, err error) {
+	err = thumbnail2.DefaultThumbnailServicePlugin.Client.Generate(input, output, thumbnail.ThumbnailOption{
+		MaxWidth: maxWidth,
+		Mode:     "width",
+	})
 	if err != nil {
 		return "", err
 	}

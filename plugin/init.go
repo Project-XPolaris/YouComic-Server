@@ -3,13 +3,13 @@ package plugin
 import (
 	"fmt"
 	"github.com/allentom/harukap"
-	"github.com/allentom/youcomic-api/application"
-	appconfig "github.com/allentom/youcomic-api/config"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/services"
-	"github.com/allentom/youcomic-api/utils"
 	youlog2 "github.com/project-xpolaris/youplustoolkit/youlog"
+	"github.com/projectxpolaris/youcomic/application"
+	appconfig "github.com/projectxpolaris/youcomic/config"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/services"
+	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/spf13/viper"
 	"os"
 )
@@ -37,18 +37,26 @@ func InitApplication() (err error) {
 	if !needInit {
 		return
 	}
-
 	Logger.Info("initial...")
-	superUserGroupName := config.GetString("superUserGroupName")
-	superUserUsername := config.GetString("adminAccount.username")
-	superUserPassword := config.GetString("adminAccount.password")
+	var superUserUsername, superUserPassword string
+
+	superUserUsername = os.Getenv("YOUCOMIC_SUPERUSER_USERNAME")
+	if superUserUsername == "" {
+		superUserUsername = config.GetString("adminAccount.username")
+	}
+	superUserPassword = os.Getenv("YOUCOMIC_SUPERUSER_PASSWORD")
+	if superUserPassword == "" {
+		superUserPassword = config.GetString("adminAccount.password")
+	}
 	// create user group
-	superUserGroup, err := CreateUserGroupIfNotExist(superUserGroupName)
+	Logger.Info(fmt.Sprintf("create user group with name = %s", services.DefaultSuperUserGroupName))
+	superUserGroup, err := CreateUserGroupIfNotExist(services.DefaultSuperUserGroupName)
 	if err != nil {
 		return
 	}
 
 	// create default user group
+	Logger.Info(fmt.Sprintf("create user group with name = %s", services.DefaultUserGroupName))
 	_, err = CreateUserGroupIfNotExist(services.DefaultUserGroupName)
 	if err != nil {
 		return err
@@ -163,10 +171,6 @@ func initPermissions(config *viper.Viper) error {
 // superuser group will granted all permission
 func initSuperuserPermission() error {
 	Logger.Info("init super user permission")
-	initConfig, err := utils.ReadConfig("init")
-	if err != nil {
-		return err
-	}
 
 	setupConfig, err := utils.ReadConfig("setup")
 	if err != nil {
@@ -174,40 +178,38 @@ func initSuperuserPermission() error {
 	}
 	permissionNames := setupConfig.GetStringSlice("permissions")
 
-	superUserGroupName := initConfig.GetString("superusergroupname")
-	if len(superUserGroupName) > 0 {
-		userGroupQueryBuilder := services.UserGroupQueryBuilder{}
-		userGroupQueryBuilder.SetPageFilter(1, 1)
-		userGroupQueryBuilder.SetNameFilter(superUserGroupName)
-		count, userResult, err := userGroupQueryBuilder.ReadModels()
-		if err != nil {
-			return err
-		}
-		if count == 0 {
-			return nil
-		}
-		userGroups := userResult.([]model.UserGroup)
-		userGroup := userGroups[0]
+	superUserGroupName := services.DefaultSuperUserGroupName
+	userGroupQueryBuilder := services.UserGroupQueryBuilder{}
+	userGroupQueryBuilder.SetPageFilter(1, 1)
+	userGroupQueryBuilder.SetNameFilter(superUserGroupName)
+	count, userResult, err := userGroupQueryBuilder.ReadModels()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return nil
+	}
+	userGroups := userResult.([]model.UserGroup)
+	userGroup := userGroups[0]
 
-		//queryPermission
-		permissionQueryBuilder := services.PermissionQueryBuilder{}
-		permissionQueryBuilder.SetPageFilter(1, len(permissionNames))
-		for _, permissionName := range permissionNames {
-			permissionQueryBuilder.SetNameFilter(permissionName)
-		}
-		count, permissionResult, err := permissionQueryBuilder.ReadModels()
-		if err != nil {
-			return err
-		}
-		permissionPtrs := make([]*model.Permission, 0)
-		permissions := permissionResult.([]model.Permission)
-		for idx := range permissions {
-			permissionPtrs = append(permissionPtrs, &permissions[idx])
-		}
-		err = services.AddPermissionsToUserGroup(&userGroup, permissionPtrs...)
-		if err != nil {
-			return err
-		}
+	//queryPermission
+	permissionQueryBuilder := services.PermissionQueryBuilder{}
+	permissionQueryBuilder.SetPageFilter(1, len(permissionNames))
+	for _, permissionName := range permissionNames {
+		permissionQueryBuilder.SetNameFilter(permissionName)
+	}
+	count, permissionResult, err := permissionQueryBuilder.ReadModels()
+	if err != nil {
+		return err
+	}
+	permissionPtrs := make([]*model.Permission, 0)
+	permissions := permissionResult.([]model.Permission)
+	for idx := range permissions {
+		permissionPtrs = append(permissionPtrs, &permissions[idx])
+	}
+	err = services.AddPermissionsToUserGroup(&userGroup, permissionPtrs...)
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -3,9 +3,9 @@ package services
 import (
 	"encoding/json"
 	"github.com/ahmetb/go-linq/v3"
-	"github.com/allentom/youcomic-api/database"
-	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/utils"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"

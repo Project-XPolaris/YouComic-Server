@@ -2,10 +2,10 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
-	"github.com/allentom/youcomic-api/api/httpapi/serializer"
-	"github.com/allentom/youcomic-api/auth"
-	ApiError "github.com/allentom/youcomic-api/error"
-	"github.com/allentom/youcomic-api/services"
+	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
+	"github.com/projectxpolaris/youcomic/auth"
+	ApiError "github.com/projectxpolaris/youcomic/error"
+	"github.com/projectxpolaris/youcomic/services"
 	"github.com/sirupsen/logrus"
 )
 

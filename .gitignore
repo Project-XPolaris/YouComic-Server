@@ -1,4 +1,4 @@
-./conf/confog.develop.json
+data/conf/confog.develop.json
 .idea
 /dist/
 release/

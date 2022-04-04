@@ -2,10 +2,10 @@ package serializer
 
 import (
 	"fmt"
-	"github.com/allentom/youcomic-api/model"
-	"github.com/allentom/youcomic-api/services"
-	"github.com/allentom/youcomic-api/utils"
 	"github.com/jinzhu/copier"
+	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/services"
+	"github.com/projectxpolaris/youcomic/utils"
 	"os"
 	"path"
 	"time"
