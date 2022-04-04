@@ -66,18 +66,19 @@ func InitApplication() (err error) {
 	userQueryBuilder := services.UserQueryBuilder{}
 	userQueryBuilder.SetPageFilter(1, 1)
 	userQueryBuilder.SetUserNameFilter(superUserUsername)
-	count, _, err := userQueryBuilder.ReadModels()
+	count, existUsers, err := userQueryBuilder.ReadModels()
 	if err != nil {
 		return
 	}
-	superuser := &model.User{Username: superUserUsername, Password: superUserPassword}
-	if count == 0 {
-		err = services.RegisterUser(superuser)
+	superuser := model.User{Username: superUserUsername, Password: superUserPassword}
+	if count != 0 {
+		err = services.RegisterUser(&superuser)
 		if err != nil {
 			return
 		}
 	}
-	err = services.AddUsersToUserGroup(superUserGroup, superuser)
+	superuser = existUsers.([]model.User)[0]
+	err = services.AddUsersToUserGroup(superUserGroup, &superuser)
 	if err != nil {
 		return err
 	}
@@ -95,7 +96,7 @@ func CreateUserGroupIfNotExist(userGroupName string) (userGroup *model.UserGroup
 	userGroupQueryBuilder := services.UserGroupQueryBuilder{}
 	userGroupQueryBuilder.SetPageFilter(1, 1)
 	userGroupQueryBuilder.SetNameFilter(userGroupName)
-	count, _, err := userGroupQueryBuilder.ReadModels()
+	count, groups, err := userGroupQueryBuilder.ReadModels()
 	if err != nil {
 		return
 	}
@@ -106,6 +107,7 @@ func CreateUserGroupIfNotExist(userGroupName string) (userGroup *model.UserGroup
 			return
 		}
 	}
+	userGroup = &(groups.([]model.UserGroup)[0])
 	return userGroup, nil
 }
 func SetupApplication() error {
