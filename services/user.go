@@ -119,11 +119,25 @@ type UserQueryBuilder struct {
 	NicknameSearchQueryFilter
 	UserNameQueryFilter
 	OrderQueryFilter
+	Preload []string
 }
 
-func (b *UserQueryBuilder) ReadModels() (int64, interface{}, error) {
+func (b *UserQueryBuilder) WithPreload(preload ...string) *UserQueryBuilder {
+	b.Preload = append(b.Preload, preload...)
+	return b
+}
+func (b *UserQueryBuilder) build() *gorm.DB {
 	query := database.Instance
 	query = ApplyFilters(b, query)
+	if b.Preload != nil && len(b.Preload) > 0 {
+		for _, key := range b.Preload {
+			query = query.Preload(key)
+		}
+	}
+	return query
+}
+func (b *UserQueryBuilder) ReadModels() (int64, interface{}, error) {
+	query := b.build()
 	var count int64 = 0
 	md := make([]model.User, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
@@ -131,6 +145,16 @@ func (b *UserQueryBuilder) ReadModels() (int64, interface{}, error) {
 		return 0, query, nil
 	}
 	return count, md, err
+}
+
+func (b *UserQueryBuilder) FirstOrNil() (*model.User, error) {
+	query := b.build()
+	var user model.User
+	err := query.First(&user).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &user, err
 }
 
 type UserToUserGroupQueryFilter struct {

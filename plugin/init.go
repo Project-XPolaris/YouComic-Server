@@ -33,10 +33,6 @@ func InitApplication() (err error) {
 	if err != nil {
 		return err
 	}
-	needInit := config.GetBool("init")
-	if !needInit {
-		return
-	}
 	Logger.Info("initial...")
 	var superUserUsername, superUserPassword string
 
@@ -66,23 +62,32 @@ func InitApplication() (err error) {
 	userQueryBuilder := services.UserQueryBuilder{}
 	userQueryBuilder.SetPageFilter(1, 1)
 	userQueryBuilder.SetUserNameFilter(superUserUsername)
-	count, existUsers, err := userQueryBuilder.ReadModels()
+	userQueryBuilder.WithPreload("UserGroups")
+
+	existUser, err := userQueryBuilder.FirstOrNil()
 	if err != nil {
 		return
 	}
-	superuser := model.User{Username: superUserUsername, Password: superUserPassword}
-	if count != 0 {
-		err = services.RegisterUser(&superuser)
+	if existUser == nil {
+		existUser = &model.User{Username: superUserUsername, Password: superUserPassword}
+		err = services.RegisterUser(existUser)
 		if err != nil {
 			return
 		}
 	}
-	superuser = existUsers.([]model.User)[0]
-	err = services.AddUsersToUserGroup(superUserGroup, &superuser)
-	if err != nil {
-		return err
+	inSuperuserGroup := false
+	for _, group := range existUser.UserGroups {
+		if group.Name == superUserGroup.Name {
+			inSuperuserGroup = true
+			break
+		}
 	}
-
+	if !inSuperuserGroup {
+		err = services.AddUsersToUserGroup(superUserGroup, existUser)
+		if err != nil {
+			return err
+		}
+	}
 	//init done close
 	config.Set("init", false)
 	err = config.WriteConfig()
