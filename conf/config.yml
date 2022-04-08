@@ -7,7 +7,14 @@ service:
 datasource:
   sqlite:
     type: sqlite
-    path: './data/database.db'
+    path: './data/database.sqlite'
+#  mysql:
+#    type: mysql
+#    host: localhost
+#    po9rt: 52629
+#    username: root
+#    password: password
+#    database: youcomic
 youplus:
   auth: false
   enablepath: false
@@ -34,7 +41,8 @@ log:
 thumbnail:
   type: "local"
   target: ""
-  service_url: "http://localhost:8020"
+  enable: true
+  service_url: "http://localhost:50407"
 store:
   root: "./data/static"
   books: "./data/books"
@@ -46,3 +54,11 @@ register:
   endpoints:
     - localhost:12379
   regpath: ./reg.yml
+scanner:
+  minPageCount: 3
+  minPageSize: 10240 # 10KB
+  extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".bmp"

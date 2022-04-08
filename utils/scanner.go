@@ -2,13 +2,11 @@ package utils
 
 import (
 	"github.com/karrick/godirwalk"
+	"github.com/projectxpolaris/youcomic/config"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 )
-
-var DefaultScanPageExt = []string{
-	".jpg", ".png", ".jpeg",
-}
 
 type ScannerResult struct {
 	DirPath   string
@@ -16,10 +14,8 @@ type ScannerResult struct {
 	Pages     []string
 }
 type Scanner struct {
-	TargetPath   string
-	PageExt      []string
-	MinPageCount int
-	Result       []ScannerResult
+	TargetPath string
+	Result     []ScannerResult
 }
 
 func (s *Scanner) Scan(onScan func(result ScannerResult)) error {
@@ -32,20 +28,24 @@ func (s *Scanner) Scan(onScan func(result ScannerResult)) error {
 			pages := make([]string, 0)
 			for _, fileInfo := range fileNames {
 				if !fileInfo.IsDir() {
-					ext := filepath.Ext(fileInfo.Name())
-					for _, targetExt := range s.PageExt {
-						if targetExt == ext {
+					ext := strings.ToLower(filepath.Ext(fileInfo.Name()))
+					for _, targetExt := range config.Instance.ScannerConfig.Extensions {
+						if targetExt == ext &&
+							len(fileInfo.Name()) > 0 &&
+							fileInfo.Size() > config.Instance.ScannerConfig.MinPageSize &&
+							!strings.HasPrefix(fileInfo.Name(), ".") {
 							if coverName == "" {
 								coverName = fileInfo.Name()
 							}
 							targetCount += 1
 							pages = append(pages, fileInfo.Name())
+							fileInfo.Name()
 							break
 						}
 					}
 				}
 			}
-			if targetCount >= s.MinPageCount {
+			if targetCount >= int(config.Instance.ScannerConfig.MinPageCount) {
 				onScan(ScannerResult{
 					DirPath:   osPathname,
 					CoverName: coverName,

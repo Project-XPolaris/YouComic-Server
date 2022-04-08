@@ -117,9 +117,7 @@ func (t *ScanTask) scannerDir() {
 		}
 	}
 	scanner := utils.Scanner{
-		TargetPath:   t.TargetDir,
-		PageExt:      utils.DefaultScanPageExt,
-		MinPageCount: 4,
+		TargetPath: t.TargetDir,
 	}
 	var count int64 = 0
 	err = scanner.Scan(func(result utils.ScannerResult) {
