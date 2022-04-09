@@ -101,7 +101,7 @@ func CreateUserGroupIfNotExist(userGroupName string) (userGroup *model.UserGroup
 	userGroupQueryBuilder := services.UserGroupQueryBuilder{}
 	userGroupQueryBuilder.SetPageFilter(1, 1)
 	userGroupQueryBuilder.SetNameFilter(userGroupName)
-	count, _, err := userGroupQueryBuilder.ReadModels()
+	count, groups, err := userGroupQueryBuilder.ReadModels()
 	if err != nil {
 		return
 	}
@@ -111,6 +111,8 @@ func CreateUserGroupIfNotExist(userGroupName string) (userGroup *model.UserGroup
 		if err != nil {
 			return
 		}
+	} else {
+		userGroup = &(groups.([]model.UserGroup))[0]
 	}
 	return userGroup, nil
 }

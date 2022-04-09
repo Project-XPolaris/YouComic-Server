@@ -44,12 +44,23 @@ var BookContentHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	if fileName == path.Base(book.Cover) {
-		coverPath := path.Join(library.Path, book.Path, book.Cover)
-		http.ServeFile(context.Writer, context.Request, coverPath)
+	//if fileName == path.Base(book.Cover) {
+	//	coverPath := path.Join(library.Path, book.Path, book.Cover)
+	//	http.ServeFile(context.Writer, context.Request, coverPath)
+	//	return
+	//}
+
+	// for compress image
+	compress, _ := context.GetQueryInt("compress")
+	if compress > 0 {
+		out, err := services.ResizeImageWithSizeCap(path.Join(library.Path, book.Path, fileName), int64(compress))
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
+		context.Writer.Write(out)
 		return
 	}
-
 	//handle with page
 	http.ServeFile(context.Writer, context.Request, path.Join(library.Path, book.Path, fileName))
 }
