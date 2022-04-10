@@ -8,6 +8,8 @@ import (
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"regexp"
 )
@@ -65,7 +67,12 @@ func (b *TagQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.Instance
 	query = ApplyFilters(b, query)
 	if b.random {
-		query = query.Order("random()")
+		if _, ok := query.Config.Dialector.(*mysql.Dialector); ok {
+			query = query.Order("rand()")
+		}
+		if _, ok := query.Config.Dialector.(*sqlite.Dialector); ok {
+			query = query.Order("random()")
+		}
 	}
 	var count int64 = 0
 	md := make([]model.Tag, 0)

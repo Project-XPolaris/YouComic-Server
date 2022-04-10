@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/projectxpolaris/youcomic/application"
-	"github.com/projectxpolaris/youcomic/config"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/utils"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
 	"path"
@@ -215,9 +216,10 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 	query := database.Instance
 	query = ApplyFilters(b, query)
 	if b.random {
-		if config.Instance.Database == "mysql" {
+		if _, ok := query.Config.Dialector.(*mysql.Dialector); ok {
 			query = query.Order("rand()")
-		} else {
+		}
+		if _, ok := query.Config.Dialector.(*sqlite.Dialector); ok {
 			query = query.Order("random()")
 		}
 	}

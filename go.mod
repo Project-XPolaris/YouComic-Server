@@ -23,5 +23,7 @@ require (
 	golang.org/x/sys v0.0.0-20220408201424-a24fb2fb8a0f // indirect
 	google.golang.org/genproto v0.0.0-20220407144326-9054f6ed7bac // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	gorm.io/driver/mysql v1.1.3
+	gorm.io/driver/sqlite v1.2.3
 	gorm.io/gorm v1.22.0
 )
