@@ -153,17 +153,17 @@ var LibraryBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 		Permissions: map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker{
 			Create: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateLibraryPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.CreateLibraryPermissionName},
 				}
 			},
 			Update: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.UpdateLibraryPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.UpdateLibraryPermissionName},
 				}
 			},
 			Delete: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.DeleteLibraryPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.DeleteLibraryPermissionName},
 				}
 			},
 		},

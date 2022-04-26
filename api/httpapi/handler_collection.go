@@ -27,7 +27,7 @@ var CreateCollectionHandler haruka.RequestHandler = func(context *haruka.Context
 		RequestBody:      &CreateCollectionRequestBody{},
 		OnBeforeCreate: func(v *CreateModelView, modelToCreate interface{}) {
 			dataModel := modelToCreate.(*model.Collection)
-			dataModel.Owner = int(v.Claims.UserId)
+			dataModel.Owner = int(v.Claims.GetUserId())
 		},
 		GetValidators: func(v *CreateModelView) []validate.Validator {
 			responseBody := v.RequestBody.(*CreateCollectionRequestBody)
@@ -37,7 +37,7 @@ var CreateCollectionHandler haruka.RequestHandler = func(context *haruka.Context
 		},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
-				&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateCollectionPermissionName},
+				&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.CreateCollectionPermissionName},
 			}
 		},
 	}
@@ -285,7 +285,7 @@ var UpdateCollectionHandler haruka.RequestHandler = func(context *haruka.Context
 		return
 	}
 
-	if collection.Owner != int(claims.UserId) {
+	if collection.Owner != int(claims.GetUserId()) {
 		ApiError.RaiseApiError(context, ApiError.PermissionError, nil)
 		return
 	}

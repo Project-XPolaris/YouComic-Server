@@ -10,9 +10,20 @@ import (
 type AuthMiddleware struct {
 }
 
+var NoAuthPaths = []string{
+	"/user/auth",
+	"/user/auth2",
+	"/oauth/youauth",
+	"/oauth/token",
+	"/info",
+	"/oauth/youplus",
+}
+
 func (m AuthMiddleware) OnRequest(c *haruka.Context) {
-	if c.Request.URL.Path == "/user/auth" {
-		return
+	for _, path := range NoAuthPaths {
+		if c.Request.URL.Path == path {
+			return
+		}
 	}
 	claim, err := auth.ParseAuthHeader(c)
 	if err != nil {

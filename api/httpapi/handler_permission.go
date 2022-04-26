@@ -19,7 +19,7 @@ var GetPermissionListHandler haruka.RequestHandler = func(context *haruka.Contex
 	}
 
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.GetPermissionListPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.GetPermissionListPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}

@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"fmt"
 	"github.com/allentom/haruka"
+	"github.com/project-xpolaris/youplustoolkit/youlink"
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
 	"github.com/projectxpolaris/youcomic/auth"
 	"github.com/projectxpolaris/youcomic/config"
@@ -11,6 +13,7 @@ import (
 	"github.com/projectxpolaris/youcomic/services"
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/projectxpolaris/youcomic/validate"
+	"github.com/projectxpolaris/youcomic/youauthplugin"
 	"net/http"
 )
 
@@ -84,6 +87,34 @@ var LoginUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	var user *model.User
 	var sign string
+	user, sign, err = services.UserLogin(requestBody.Username, requestBody.Password)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	context.JSONWithStatus(UserAuthResponse{
+		Id:   user.ID,
+		Sign: sign,
+	}, http.StatusOK)
+}
+var LoginUserHandler2 haruka.RequestHandler = func(context *haruka.Context) {
+	var err error
+	requestBody := LoginUserRequestBody{}
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+
+	//validate value
+	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
+		&validate.StringLengthValidator{Value: requestBody.Username, FieldName: "username", LessThan: 16, GreaterThan: 4},
+		&validate.StringLengthValidator{Value: requestBody.Password, FieldName: "password", LessThan: 16, GreaterThan: 4},
+	); !isValidate {
+		return
+	}
+
+	var user *model.User
+	var sign string
 	if config.Instance.AuthEnable {
 		user, sign, err = services.YouPlusLogin(requestBody.Username, requestBody.Password)
 	} else {
@@ -94,9 +125,53 @@ var LoginUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSONWithStatus(UserAuthResponse{
-		Id:   user.ID,
-		Sign: sign,
+	context.JSONWithStatus(haruka.JSON{
+		"success": true,
+		"uid":     fmt.Sprintf("%d", user.ID),
+		"token":   sign,
+	}, http.StatusOK)
+}
+var YouPlusLoginHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var err error
+	requestBody := LoginUserRequestBody{}
+	err = DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+
+	//validate value
+	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
+		&validate.StringLengthValidator{Value: requestBody.Username, FieldName: "username", LessThan: 16, GreaterThan: 4},
+		&validate.StringLengthValidator{Value: requestBody.Password, FieldName: "password", LessThan: 16, GreaterThan: 4},
+	); !isValidate {
+		return
+	}
+	var user *model.User
+	var sign string
+	if config.Instance.AuthEnable {
+		user, sign, err = services.YouPlusLogin(requestBody.Username, requestBody.Password)
+	}
+
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	context.JSONWithStatus(haruka.JSON{
+		"success": true,
+		"uid":     fmt.Sprintf("%d", user.ID),
+		"token":   sign,
+	}, http.StatusOK)
+}
+var GetCurrentHandler2 haruka.RequestHandler = func(context *haruka.Context) {
+	tokenString := context.GetQueryString("token")
+	token, err := auth.ParseToken(tokenString)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	context.JSONWithStatus(haruka.JSON{
+		"success": true,
+		"uid":     fmt.Sprintf("%d", token.GetUserId()),
 	}, http.StatusOK)
 }
 
@@ -125,7 +200,6 @@ var GetUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-
 	context.JSONWithStatus(template, http.StatusOK)
 }
 
@@ -172,7 +246,7 @@ var GetUserUserListHandler haruka.RequestHandler = func(context *haruka.Context)
 	}
 
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.GetUserListPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.GetUserListPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -263,7 +337,7 @@ var ChangeUserPasswordHandler haruka.RequestHandler = func(context *haruka.Conte
 		return
 	}
 
-	err = services.ChangeUserPassword(claims.UserId, requestBody.OldPassword, requestBody.NewPassword)
+	err = services.ChangeUserPassword(claims.GetUserId(), requestBody.OldPassword, requestBody.NewPassword)
 	if err != nil {
 		if err == services.UserPasswordInvalidate {
 			ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -305,7 +379,7 @@ var ChangeUserNicknameHandler haruka.RequestHandler = func(context *haruka.Conte
 		return
 	}
 
-	err = services.ChangeUserNickname(claims.UserId, requestBody.Nickname)
+	err = services.ChangeUserNickname(claims.GetUserId(), requestBody.Nickname)
 	if err != nil {
 		if err == services.UserNotFoundError {
 			ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -368,4 +442,33 @@ var DeleteUserHistoryHandler haruka.RequestHandler = func(context *haruka.Contex
 		return
 	}
 	ServerSuccessResponse(context)
+}
+
+var generateAccessCodeWithYouAuthHandler haruka.RequestHandler = func(context *haruka.Context) {
+	code := context.GetQueryString("code")
+	accessToken, username, err := services.GenerateYouAuthToken(code)
+	if err != nil {
+		youlink.AbortErrorWithStatus(err, context, http.StatusInternalServerError)
+		return
+	}
+	context.JSON(haruka.JSON{
+		"success": true,
+		"data": haruka.JSON{
+			"accessToken": accessToken,
+			"username":    username,
+		},
+	})
+}
+
+var youAuthTokenHandler haruka.RequestHandler = func(context *haruka.Context) {
+	// check token is valid
+	token := context.GetQueryString("token")
+	_, err := youauthplugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(token)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+		return
+	}
+	context.JSON(haruka.JSON{
+		"success": true,
+	})
 }

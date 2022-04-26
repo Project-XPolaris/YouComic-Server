@@ -14,7 +14,7 @@ datasource:
 #    po9rt: 52629
 #    username: root
 #    password: password
-#    database: youcomic
+#    database: youcomic-dev
 youplus:
   auth: false
   enablepath: false
@@ -62,3 +62,16 @@ scanner:
     - ".jpeg"
     - ".png"
     - ".bmp"
+auth:
+  youauth:
+    type: youauth
+    enable: true
+    url: "http://localhost:8602"
+    appid: "appid"
+    secret: "secret"
+  youplus:
+    type: youplus
+    enable: true
+  self:
+    type: origin
+    enable: true

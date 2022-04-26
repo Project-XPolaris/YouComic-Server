@@ -94,7 +94,7 @@ type ModelsBatchView struct {
 	RequestBody      ModelBatchRequestBody
 	Permissions      map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker
 	Validators       map[BatchOperation]func(v *ModelsBatchView) []validate.Validator
-	Claims           *auth.UserClaims
+	Claims           auth.JwtClaims
 }
 
 type BatchOperation string
@@ -209,7 +209,7 @@ type CreateModelView struct {
 	CreateModel      func() interface{}
 	ResponseTemplate serializer.TemplateSerializer
 	RequestBody      interface{}
-	Claims           *auth.UserClaims
+	Claims           auth.JwtClaims
 	OnBeforeCreate   func(v *CreateModelView, modelToCreate interface{})
 	GetPermissions   func(v *CreateModelView) []permission.PermissionChecker
 	GetValidators    func(v *CreateModelView) []validate.Validator
@@ -285,7 +285,7 @@ type ListView struct {
 	GetContainer         func() serializer.ListContainerSerializer
 	GetPermissions       func(v *ListView) []permission.PermissionChecker
 	OnApplyQuery         func()
-	Claims               *auth.UserClaims
+	Claims               auth.JwtClaims
 }
 
 func (v *ListView) Run() {

@@ -19,6 +19,7 @@ var DefaultPlugin = &datasource.Plugin{
 			&model.UserGroup{},
 			&model.Permission{},
 			&model.History{},
+			&model.Oauth{},
 		)
 	},
 }

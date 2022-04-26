@@ -1,17 +1,22 @@
 package services
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/project-xpolaris/youplustoolkit/youplus/rpc"
 	"github.com/projectxpolaris/youcomic/auth"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/projectxpolaris/youcomic/youplus"
+	"github.com/rs/xid"
 	"gorm.io/gorm"
+)
+
+const (
+	ProviderYouAuth = "youauth"
+	ProviderYouPlus = "YouPlusService"
+	ProviderSelf    = "self"
 )
 
 var (
@@ -43,7 +48,7 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 		return nil, "", err
 	}
 	var user model.User
-	err = database.Instance.Where(&model.User{Username: username, Password: password}).Find(&user).Error
+	err = database.Instance.Where(&model.User{Username: username, Password: password}).First(&user).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, "", UserPasswordInvalidate
 	}
@@ -51,63 +56,60 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 		return nil, "", err
 	}
 	sign, err := auth.GenerateJWTSign(&user)
+	oauth := model.Oauth{
+		UserId:   user.ID,
+		Uid:      fmt.Sprintf("%d", user.ID),
+		Provider: ProviderSelf,
+	}
+	err = database.Instance.Create(&oauth).Error
 	if err != nil {
 		return nil, "", err
 	}
 	return &user, sign, nil
 }
 func YouPlusLogin(username string, rawPassword string) (*model.User, string, error) {
-	client, conn, err := youplus.DefaultYouPlusPlugin.RPCClient.GetClient()
+	authResult, err := youplus.DefaultYouPlusPlugin.Client.FetchUserAuth(username, rawPassword)
 	if err != nil {
 		return nil, "", err
 	}
-	defer conn.Close()
-	result, err := client.GenerateToken(context.Background(), &rpc.GenerateTokenRequest{
-		Username: &username,
-		Password: &rawPassword,
-	})
-	if err != nil {
-		return nil, "", err
+	if !authResult.Success {
+		return nil, "", errors.New("user auth failed")
 	}
-	if !*result.Success {
-		return nil, "", errors.New(*result.Reason)
+	var oauthRecord model.Oauth
+	err = database.Instance.Preload("User").Where("uid = ?", authResult.Uid).
+		Where("provider = ?", "YouPlusServer").
+		First(&oauthRecord).Error
+	var user *model.User
+	if oauthRecord.User != nil {
+		user = oauthRecord.User
 	}
-	var accountCount int64
-	err = database.Instance.Model(&model.User{}).Where("username = ?", username).Count(&accountCount).Error
-	if err != nil {
-		return nil, "", err
-	}
-	var account model.User
-	if accountCount == 0 {
-		var defaultUserGroup model.UserGroup
-		err = database.Instance.Where("name = ?", DefaultUserGroupName).First(&defaultUserGroup).Error
-		if err != nil {
-			return nil, "", err
+	if err == gorm.ErrRecordNotFound {
+		// create new user
+		uid := xid.New().String()
+		user = &model.User{
+			Username: uid,
+			Nickname: username,
 		}
-		account = model.User{
-			Username:       username,
-			Nickname:       username,
-			YouPlusAccount: true,
-			UserGroups: []*model.UserGroup{
-				&defaultUserGroup,
-			},
-		}
-		err = database.Instance.Create(&account).Error
+		err = database.Instance.Create(&user).Error
 		if err != nil {
 			return nil, "", err
 		}
 	} else {
-		err = database.Instance.Where("username = ?", username).First(&account).Error
 		if err != nil {
 			return nil, "", err
 		}
 	}
-	sign, err := auth.GenerateJWTSign(&account)
+	newOauth := model.Oauth{
+		Uid:         authResult.Uid,
+		Provider:    "YouPlusServer",
+		AccessToken: authResult.Token,
+		UserId:      user.ID,
+	}
+	err = database.Instance.Create(&newOauth).Error
 	if err != nil {
 		return nil, "", err
 	}
-	return &account, sign, nil
-
+	return oauthRecord.User, authResult.Token, nil
 }
 
 type UserQueryBuilder struct {

@@ -34,7 +34,7 @@ var CreateTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 		RequestBody:      &CreateTagRequestBody{},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
-				&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateTagPermissionName},
+				&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.CreateTagPermissionName},
 			}
 		},
 		GetValidators: func(v *CreateModelView) []validate.Validator {
@@ -68,17 +68,17 @@ var BatchTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 		Permissions: map[BatchOperation]func(v *ModelsBatchView) []permission.PermissionChecker{
 			Create: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateTagPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.CreateTagPermissionName},
 				}
 			},
 			Update: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.UpdateTagPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.UpdateTagPermissionName},
 				}
 			},
 			Delete: func(v *ModelsBatchView) []permission.PermissionChecker {
 				return []permission.PermissionChecker{
-					&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.DeleteTagPermissionName},
+					&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.DeleteTagPermissionName},
 				}
 			},
 		},

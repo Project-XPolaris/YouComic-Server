@@ -38,6 +38,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.GET("/tag/{id:[0-9]+}", GetTag)
 	engine.Router.POST("/user/register", RegisterUserHandler)
 	engine.Router.POST("/user/auth", LoginUserHandler)
+	engine.Router.GET("/user/auth", GetCurrentHandler2)
 	engine.Router.GET("/user/{id:[0-9]+}", GetUserHandler)
 	engine.Router.GET("/user/{id:[0-9]+}/groups", GetUserUserGroupsHandler)
 	engine.Router.GET("/users", GetUserUserListHandler)
@@ -82,5 +83,9 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.POST("/task/bookMove", NewMoveBookTaskHandler)
 	engine.Router.GET("/explore/read", ReadDirectoryHandler)
 	engine.Router.GET("/thumbnail/status", GetThumbnailGeneratorStatus)
+	engine.Router.GET("/oauth/youauth", generateAccessCodeWithYouAuthHandler)
+	engine.Router.POST("/oauth/youplus", YouPlusLoginHandler)
+	engine.Router.GET("/oauth/token", youAuthTokenHandler)
+	engine.Router.GET("/info", serviceInfoHandler)
 	engine.Router.GET("/ws", WShandler)
 }

@@ -41,7 +41,7 @@ var GetUserGroupListHandler haruka.RequestHandler = func(context *haruka.Context
 		},
 		GetPermissions: func(v *ListView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
-				&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.GetUserGroupListPermissionName},
+				&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.GetUserGroupListPermissionName},
 			}
 		},
 	}
@@ -62,7 +62,7 @@ var CreateUserGroupHandler haruka.RequestHandler = func(context *haruka.Context)
 		RequestBody:      &CreateUserGroupRequestBody{},
 		GetPermissions: func(v *CreateModelView) []permission.PermissionChecker {
 			return []permission.PermissionChecker{
-				&permission.StandardPermissionChecker{UserId: v.Claims.UserId, PermissionName: permission.CreateUserGroupPermissionName},
+				&permission.StandardPermissionChecker{UserId: v.Claims.GetUserId(), PermissionName: permission.CreateUserGroupPermissionName},
 			}
 		},
 		GetValidators: func(v *CreateModelView) []validate.Validator {
@@ -100,7 +100,7 @@ var AddUserToUserGroupHandler haruka.RequestHandler = func(context *haruka.Conte
 
 	//check permission
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.AddUserToUserGroupPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.AddUserToUserGroupPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -148,7 +148,7 @@ var AddPermissionToUserGroupHandler haruka.RequestHandler = func(context *haruka
 
 	//check permission
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.AddPermissionToUserGroupPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.AddPermissionToUserGroupPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -196,7 +196,7 @@ var RemoveUserFromUserGroupHandler haruka.RequestHandler = func(context *haruka.
 
 	//check permission
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.RemoveUserFromUserGroupPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.RemoveUserFromUserGroupPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -244,7 +244,7 @@ var RemovePermissionFromUserGroupHandler haruka.RequestHandler = func(context *h
 
 	//check permission
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.AddPermissionToUserGroupPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.AddPermissionToUserGroupPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}

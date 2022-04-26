@@ -51,7 +51,7 @@ var CreateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.CreateBookPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.CreateBookPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -105,7 +105,7 @@ var UpdateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	//check permission
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -272,7 +272,7 @@ var DeleteBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	//check permission
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.DeleteBookPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.DeleteBookPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -281,7 +281,7 @@ var DeleteBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 	permanently := context.GetQueryString("permanently") == "true"
 	if permanently {
 		if hasPermission := permission.CheckPermissionAndServerError(context,
-			&permission.StandardPermissionChecker{PermissionName: permission.PermanentlyDeleteBookPermissionName, UserId: claims.UserId},
+			&permission.StandardPermissionChecker{PermissionName: permission.PermanentlyDeleteBookPermissionName, UserId: claims.GetUserId()},
 		); !hasPermission {
 			return
 		}
@@ -330,7 +330,7 @@ var BookBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.CreateBookPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.CreateBookPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -352,7 +352,7 @@ var BookBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	//update
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}
@@ -400,7 +400,7 @@ var BookBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	//delete
 	if hasPermission := permission.CheckPermissionAndServerError(context,
-		&permission.StandardPermissionChecker{PermissionName: permission.DeleteBookPermissionName, UserId: claims.UserId},
+		&permission.StandardPermissionChecker{PermissionName: permission.DeleteBookPermissionName, UserId: claims.GetUserId()},
 	); !hasPermission {
 		return
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/allentom/harukap"
 	"github.com/allentom/harukap/cli"
 	thumbnail2 "github.com/allentom/harukap/thumbnail"
@@ -9,6 +10,7 @@ import (
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/thumbnail"
+	"github.com/projectxpolaris/youcomic/youauthplugin"
 	"github.com/projectxpolaris/youcomic/youlog"
 	"github.com/projectxpolaris/youcomic/youplus"
 	"github.com/sirupsen/logrus"
@@ -34,6 +36,14 @@ func main() {
 			Enable:     true,
 			ServiceUrl: config.Instance.Thumbnail.ServiceUrl,
 		})
+	}
+	rawAuth := config.DefaultConfigProvider.Manager.GetStringMap("auth")
+	for key, _ := range rawAuth {
+		rawAuthContent := config.DefaultConfigProvider.Manager.GetString(fmt.Sprintf("auth.%s.type", key))
+		if rawAuthContent == "youauth" {
+			youauthplugin.DefaultYouAuthOauthPlugin.ConfigPrefix = fmt.Sprintf("auth.%s", key)
+			appEngine.UsePlugin(youauthplugin.DefaultYouAuthOauthPlugin)
+		}
 	}
 	appEngine.UsePlugin(&plugin.DefaultRegisterPlugin)
 	appEngine.UsePlugin(&plugin.InitPlugin{})
