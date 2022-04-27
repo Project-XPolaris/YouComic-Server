@@ -12,8 +12,8 @@ import (
 var HistoryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	queryBuilder := &services.HistoryQueryBuilder{}
 	userClaimsInterface, _ := context.Param["claim"]
-	userClaim := userClaimsInterface.(*auth.UserClaims)
-	queryBuilder.SetUserIdFilter(userClaim.UserId)
+	userClaim := userClaimsInterface.(auth.JwtClaims)
+	queryBuilder.SetUserIdFilter(userClaim.GetUserId())
 
 	withBook := context.GetQueryString("withBook")
 
@@ -61,11 +61,11 @@ var DeleteHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 	// get user id
 	userClaimsInterface, _ := context.Param["claim"]
-	userClaim := userClaimsInterface.(*auth.UserClaims)
+	userClaim := userClaimsInterface.(auth.JwtClaims)
 
 	//setup query builder
 	queryBuilder := &services.HistoryQueryBuilder{}
-	queryBuilder.SetUserIdFilter(userClaim.UserId)
+	queryBuilder.SetUserIdFilter(userClaim.GetUserId())
 	queryBuilder.InId(id)
 
 	err = queryBuilder.DeleteModels(true)

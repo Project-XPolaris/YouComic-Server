@@ -745,8 +745,8 @@ var GetBook haruka.RequestHandler = func(context *haruka.Context) {
 	if context.GetQueryString("history") == "True" {
 		userClaimsInterface, exist := context.Param["claim"]
 		if exist {
-			claims := userClaimsInterface.(*auth.UserClaims)
-			err = services.AddBookHistory(claims.UserId, uint(id))
+			claims := userClaimsInterface.(auth.JwtClaims)
+			err = services.AddBookHistory(claims.GetUserId(), uint(id))
 			if err != nil {
 				logrus.Error(err)
 				ApiError.RaiseApiError(context, err, nil)

@@ -22,7 +22,7 @@ var CreateLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	rawUserClaims, _ := context.Param["claim"]
 	createLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.CreateLibraryPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         (rawUserClaims.(auth.JwtClaims)).GetUserId(),
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &createLibraryPermission); !hasPermission {
 		return
@@ -56,7 +56,7 @@ var DeleteLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	rawUserClaims, _ := context.Param["claim"]
 	deleteLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.DeleteLibraryPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         (rawUserClaims.(auth.JwtClaims)).GetUserId(),
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &deleteLibraryPermission); !hasPermission {
 		return
@@ -181,7 +181,7 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         (rawUserClaims.(auth.JwtClaims)).GetUserId(),
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
@@ -224,7 +224,7 @@ var StopLibraryScanHandler haruka.RequestHandler = func(context *haruka.Context)
 	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         (rawUserClaims.(auth.JwtClaims)).GetUserId(),
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
@@ -247,7 +247,7 @@ var NewLibraryMatchTagHandler haruka.RequestHandler = func(context *haruka.Conte
 	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         (rawUserClaims.(auth.JwtClaims)).GetUserId(),
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
@@ -270,7 +270,7 @@ var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *ha
 	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
-		UserId:         (rawUserClaims.(*auth.UserClaims)).UserId,
+		UserId:         (rawUserClaims.(auth.JwtClaims)).GetUserId(),
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
