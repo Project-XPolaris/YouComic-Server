@@ -76,7 +76,6 @@ var LoginUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if err != nil {
 		return
 	}
-
 	//validate value
 	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
 		&validate.StringLengthValidator{Value: requestBody.Username, FieldName: "username", LessThan: 16, GreaterThan: 4},
@@ -92,44 +91,23 @@ var LoginUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSONWithStatus(UserAuthResponse{
-		Id:   user.ID,
-		Sign: sign,
-	}, http.StatusOK)
-}
-var LoginUserHandler2 haruka.RequestHandler = func(context *haruka.Context) {
-	var err error
-	requestBody := LoginUserRequestBody{}
-	err = DecodeJsonBody(context, &requestBody)
-	if err != nil {
-		return
+	accessType := context.GetQueryString("type")
+	switch accessType {
+	case "accessToken":
+		context.JSONWithStatus(haruka.JSON{
+			"success": true,
+			"data": haruka.JSON{
+				"accessToken": sign,
+				"username":    user.Username,
+			},
+		}, http.StatusOK)
+	default:
+		context.JSONWithStatus(haruka.JSON{
+			"success": true,
+			"uid":     fmt.Sprintf("%d", user.ID),
+			"token":   sign,
+		}, http.StatusOK)
 	}
-
-	//validate value
-	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
-		&validate.StringLengthValidator{Value: requestBody.Username, FieldName: "username", LessThan: 16, GreaterThan: 4},
-		&validate.StringLengthValidator{Value: requestBody.Password, FieldName: "password", LessThan: 16, GreaterThan: 4},
-	); !isValidate {
-		return
-	}
-
-	var user *model.User
-	var sign string
-	if config.Instance.AuthEnable {
-		user, sign, err = services.YouPlusLogin(requestBody.Username, requestBody.Password)
-	} else {
-		user, sign, err = services.UserLogin(requestBody.Username, requestBody.Password)
-	}
-
-	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
-		return
-	}
-	context.JSONWithStatus(haruka.JSON{
-		"success": true,
-		"uid":     fmt.Sprintf("%d", user.ID),
-		"token":   sign,
-	}, http.StatusOK)
 }
 var YouPlusLoginHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
@@ -156,11 +134,23 @@ var YouPlusLoginHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	context.JSONWithStatus(haruka.JSON{
-		"success": true,
-		"uid":     fmt.Sprintf("%d", user.ID),
-		"token":   sign,
-	}, http.StatusOK)
+	accessType := context.GetQueryString("type")
+	switch accessType {
+	case "accessToken":
+		context.JSON(haruka.JSON{
+			"success": true,
+			"data": haruka.JSON{
+				"accessToken": sign,
+				"username":    user.Username,
+			},
+		})
+	default:
+		context.JSONWithStatus(haruka.JSON{
+			"success": true,
+			"uid":     fmt.Sprintf("%d", user.ID),
+			"token":   sign,
+		}, http.StatusOK)
+	}
 }
 var GetCurrentHandler2 haruka.RequestHandler = func(context *haruka.Context) {
 	tokenString := context.GetQueryString("token")
