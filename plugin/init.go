@@ -29,21 +29,10 @@ func (p *InitPlugin) OnInit(e *harukap.HarukaAppEngine) error {
 }
 
 func InitApplication() (err error) {
-	config, err := utils.ReadConfig("init")
-	if err != nil {
-		return err
-	}
 	Logger.Info("initial...")
 	var superUserUsername, superUserPassword string
-
 	superUserUsername = os.Getenv("YOUCOMIC_SUPERUSER_USERNAME")
-	if superUserUsername == "" {
-		superUserUsername = config.GetString("adminAccount.username")
-	}
 	superUserPassword = os.Getenv("YOUCOMIC_SUPERUSER_PASSWORD")
-	if superUserPassword == "" {
-		superUserPassword = config.GetString("adminAccount.password")
-	}
 	// create user group
 	Logger.Info(fmt.Sprintf("create user group with name = %s", services.DefaultSuperUserGroupName))
 	superUserGroup, err := CreateUserGroupIfNotExist(services.DefaultSuperUserGroupName)
@@ -89,11 +78,6 @@ func InitApplication() (err error) {
 		}
 	}
 	//init done close
-	config.Set("init", false)
-	err = config.WriteConfig()
-	if err != nil {
-		return
-	}
 	return
 }
 
