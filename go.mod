@@ -8,10 +8,7 @@ require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/allentom/haruka v0.0.0-20211105095347-07d9bf2b815d
 	github.com/allentom/harukap v0.0.0-20220422160752-9cfbdff97970
-	github.com/cncf/udpa/go v0.0.0-20220112060539-c52dc94e7fbe // indirect
-	github.com/cncf/xds/go v0.0.0-20220330162227-eded343319d0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/envoyproxy/protoc-gen-validate v0.6.7 // indirect
 	github.com/fsnotify/fsnotify v1.5.3 // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/jinzhu/copier v0.2.3

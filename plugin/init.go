@@ -9,11 +9,33 @@ import (
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/services"
-	"github.com/projectxpolaris/youcomic/utils"
-	"github.com/spf13/viper"
 	"os"
 )
 
+var permissionNames = []string{
+	"CreateBook",
+	"UpdateBook",
+	"DeleteBook",
+	"CreateTag",
+	"UpdateTag",
+	"DeleteTag",
+	"AddTagToBook",
+	"CreateCollection",
+	"UpdateCollection",
+	"DeleteCollection",
+	"GetUserList",
+	"GetPermissionList",
+	"GetUserGroupList",
+	"CreateUserGroup",
+	"AddUserToUserGroup",
+	"AddPermissionToUserGroup",
+	"RemoveUserFromUserGroup",
+	"PermanentlyDeleteBook",
+	"CreateLibrary",
+	"UpdateLibrary",
+	"DeleteLibrary",
+	"ScanLibrary",
+}
 var Logger *youlog2.Scope
 
 type InitPlugin struct {
@@ -108,13 +130,7 @@ func SetupApplication() error {
 	}
 	// setup service
 	Logger.Info("init service,please wait")
-	Logger.Info("read setup file")
-	config, err := utils.ReadConfig("setup")
-	if err != nil {
-		return err
-	}
-	// init permission
-	err = initPermissions(config)
+	err = initPermissions()
 	if err != nil {
 		return err
 	}
@@ -135,9 +151,8 @@ func SetupApplication() error {
 }
 
 // init permission
-func initPermissions(config *viper.Viper) error {
+func initPermissions() error {
 	Logger.Info("init permissions")
-	permissionNames := config.GetStringSlice("permissions")
 	//create permission if is NOT exist
 	for _, permissionName := range permissionNames {
 		builder := services.PermissionQueryBuilder{}
@@ -163,13 +178,6 @@ func initPermissions(config *viper.Viper) error {
 // superuser group will granted all permission
 func initSuperuserPermission() error {
 	Logger.Info("init super user permission")
-
-	setupConfig, err := utils.ReadConfig("setup")
-	if err != nil {
-		return err
-	}
-	permissionNames := setupConfig.GetStringSlice("permissions")
-
 	superUserGroupName := services.DefaultSuperUserGroupName
 	userGroupQueryBuilder := services.UserGroupQueryBuilder{}
 	userGroupQueryBuilder.SetPageFilter(1, 1)
