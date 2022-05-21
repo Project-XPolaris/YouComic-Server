@@ -4,12 +4,11 @@ ARG GOPROXY=https://goproxy.cn
 WORKDIR ${GOPATH}/src/github.com/projectxpolaris/youcomic
 
 COPY go.mod .
-COPY go.sum .
 
 RUN go mod download
 
 COPY . .
-
+RUN go mod tidy
 RUN go build -o ${GOPATH}/bin/youcomic ./main.go
 
 FROM debian:buster-slim
