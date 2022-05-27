@@ -44,8 +44,10 @@ var CreateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if err != nil {
 		return
 	}
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApplicationError.UserAuthFailError, nil)
 		return
 	}
@@ -97,9 +99,11 @@ var UpdateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
+		ApiError.RaiseApiError(context, ApplicationError.UserAuthFailError, nil)
 		return
 	}
 
@@ -264,9 +268,11 @@ var DeleteBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 		return
 	}
 
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
+		ApiError.RaiseApiError(context, ApplicationError.UserAuthFailError, nil)
 		return
 	}
 
@@ -323,9 +329,11 @@ var BookBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 
 	//create action
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
+		ApiError.RaiseApiError(context, ApplicationError.UserAuthFailError, nil)
 		return
 	}
 

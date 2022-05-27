@@ -229,8 +229,10 @@ var GetUserUserGroupsHandler haruka.RequestHandler = func(context *haruka.Contex
 //
 // method: get
 var GetUserUserListHandler haruka.RequestHandler = func(context *haruka.Context) {
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
@@ -283,6 +285,10 @@ var GetUserUserListHandler haruka.RequestHandler = func(context *haruka.Context)
 	}
 
 	count, users, err := userQueryBuilder.ReadModels()
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
 
 	result := serializer.SerializeMultipleTemplate(users, &serializer.ManagerUserTemplate{}, nil)
 	responseBody := serializer.DefaultListContainer{}
@@ -306,14 +312,16 @@ type ChangeUserPasswordRequestBody struct {
 //
 // method: put
 var ChangeUserPasswordHandler haruka.RequestHandler = func(context *haruka.Context) {
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
 
 	requestBody := ChangeUserPasswordRequestBody{}
-	err = DecodeJsonBody(context, &requestBody)
+	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
 		return
 	}
@@ -349,14 +357,16 @@ type ChangeUserNicknameRequestBody struct {
 //
 // method: put
 var ChangeUserNicknameHandler haruka.RequestHandler = func(context *haruka.Context) {
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
 
 	requestBody := ChangeUserNicknameRequestBody{}
-	err = DecodeJsonBody(context, &requestBody)
+	err := DecodeJsonBody(context, &requestBody)
 	if err != nil {
 		return
 	}

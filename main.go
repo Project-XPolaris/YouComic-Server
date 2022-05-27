@@ -8,6 +8,7 @@ import (
 	"github.com/projectxpolaris/youcomic/api/httpapi"
 	"github.com/projectxpolaris/youcomic/config"
 	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/module"
 	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/thumbnail"
 	"github.com/projectxpolaris/youcomic/youauthplugin"
@@ -28,7 +29,8 @@ func main() {
 	appEngine := harukap.NewHarukaAppEngine()
 	appEngine.ConfigProvider = config.DefaultConfigProvider
 	appEngine.LoggerPlugin = youlog.DefaultYouLogPlugin
-	appEngine.UsePlugin(&youplus.DefaultYouPlusPlugin)
+	youplus.CreateDefaultYouPlusPlugin()
+	appEngine.UsePlugin(youplus.DefaultYouPlusPlugin)
 	appEngine.UsePlugin(database.DefaultPlugin)
 	appEngine.UsePlugin(&thumbnail.DefaultThumbnailServicePlugin)
 	if config.Instance.Thumbnail.Type == "thumbnailservice" {
@@ -41,11 +43,13 @@ func main() {
 	for key, _ := range rawAuth {
 		rawAuthContent := config.DefaultConfigProvider.Manager.GetString(fmt.Sprintf("auth.%s.type", key))
 		if rawAuthContent == "youauth" {
+			youauthplugin.CreateYouAuthPlugin()
 			youauthplugin.DefaultYouAuthOauthPlugin.ConfigPrefix = fmt.Sprintf("auth.%s", key)
 			appEngine.UsePlugin(youauthplugin.DefaultYouAuthOauthPlugin)
 		}
 	}
 	appEngine.UsePlugin(&plugin.DefaultRegisterPlugin)
+	module.CreateAuthModule()
 	appEngine.UsePlugin(&plugin.InitPlugin{})
 	appEngine.HttpService = httpapi.GetEngine()
 	if err != nil {

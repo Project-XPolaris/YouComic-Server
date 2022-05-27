@@ -92,8 +92,10 @@ var AddUserToUserGroupHandler haruka.RequestHandler = func(context *haruka.Conte
 		return
 	}
 
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
@@ -140,8 +142,10 @@ var AddPermissionToUserGroupHandler haruka.RequestHandler = func(context *haruka
 		return
 	}
 
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
@@ -188,8 +192,10 @@ var RemoveUserFromUserGroupHandler haruka.RequestHandler = func(context *haruka.
 		return
 	}
 
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
@@ -236,8 +242,10 @@ var RemovePermissionFromUserGroupHandler haruka.RequestHandler = func(context *h
 		return
 	}
 
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}

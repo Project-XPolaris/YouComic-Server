@@ -7,6 +7,7 @@ import (
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
 	"github.com/projectxpolaris/youcomic/auth"
 	ApiError "github.com/projectxpolaris/youcomic/error"
+	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/permission"
 	"github.com/projectxpolaris/youcomic/services"
 	"github.com/projectxpolaris/youcomic/utils"
@@ -151,11 +152,8 @@ var DefaultBatchFunctionMap = map[BatchOperation]func(v *ModelsBatchView) error{
 
 func (v *ModelsBatchView) Run() {
 	var err error
-	claims, err := auth.ParseAuthHeader(v.Context)
-	if err != nil {
-		err = nil
-	} else {
-		v.Claims = claims
+	if claims, ok := v.Context.Param["claim"]; ok {
+		v.Claims = claims.(*model.User)
 	}
 	var requestBody ModelBatchRequestBody
 	err = DecodeJsonBody(v.Context, &requestBody)
@@ -221,11 +219,8 @@ func (v *CreateModelView) Run() {
 	if err != nil {
 		return
 	}
-	claims, err := auth.ParseAuthHeader(v.Context)
-	if err != nil {
-		err = nil
-	} else {
-		v.Claims = claims
+	if claims, ok := v.Context.Param["claim"]; ok {
+		v.Claims = claims.(*model.User)
 	}
 
 	//check permission
@@ -290,11 +285,8 @@ type ListView struct {
 
 func (v *ListView) Run() {
 
-	claims, err := auth.ParseAuthHeader(v.Context)
-	if err != nil {
-		err = nil
-	} else {
-		v.Claims = claims
+	if claims, ok := v.Context.Param["claim"]; ok {
+		v.Claims = claims.(*model.User)
 	}
 
 	//check permission

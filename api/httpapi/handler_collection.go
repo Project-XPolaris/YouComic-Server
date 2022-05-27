@@ -260,8 +260,10 @@ var UpdateCollectionHandler haruka.RequestHandler = func(context *haruka.Context
 		return
 	}
 
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}

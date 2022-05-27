@@ -5,18 +5,16 @@ import (
 	"github.com/allentom/haruka"
 	"github.com/projectxpolaris/youcomic/config"
 	ApiError "github.com/projectxpolaris/youcomic/error"
-	"github.com/projectxpolaris/youcomic/youauthplugin"
+	"github.com/projectxpolaris/youcomic/module"
 )
 
 var serviceInfoHandler haruka.RequestHandler = func(context *haruka.Context) {
 	// get oauth addr
-	oauthUrl, err := youauthplugin.DefaultYouAuthOauthPlugin.GetOauthUrl()
+	authMaps, err := module.Auth.GetAuthConfig()
 	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
-
-	authMaps := []haruka.JSON{}
 	configManager := config.DefaultConfigProvider.Manager
 	for key := range configManager.GetStringMap("auth") {
 		authType := configManager.GetString(fmt.Sprintf("auth.%s.type", key))
@@ -25,23 +23,6 @@ var serviceInfoHandler haruka.RequestHandler = func(context *haruka.Context) {
 			continue
 		}
 		switch authType {
-		case "youauth":
-			oauthUrl, err = youauthplugin.DefaultYouAuthOauthPlugin.GetOauthUrl()
-			if err != nil {
-				ApiError.RaiseApiError(context, err, nil)
-				return
-			}
-			authMaps = append(authMaps, haruka.JSON{
-				"name": "YouAuth",
-				"type": "weboauth",
-				"url":  oauthUrl,
-			})
-		case "youplus":
-			authMaps = append(authMaps, haruka.JSON{
-				"type": "base",
-				"url":  "/oauth/youplus",
-				"name": "YouPlus",
-			})
 		case "origin":
 			authMaps = append(authMaps, haruka.JSON{
 				"type": "base",

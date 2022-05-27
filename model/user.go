@@ -10,8 +10,12 @@ type User struct {
 	Nickname         string
 	Avatar           string
 	YouPlusAccount   bool         `gorm:"default:false"`
-	UserGroups       []*UserGroup    `gorm:"many2many:usergroup_users;"`
+	UserGroups       []*UserGroup `gorm:"many2many:usergroup_users;"`
 	History          []*History   `gorm:"foreignkey:UserId"`
 	OwnCollection    []Collection `gorm:"foreignkey:Owner"`
 	SubscriptionTags []*Tag       `gorm:"many2many:user_subscriptions;"`
+}
+
+func (u *User) GetUserId() uint {
+	return u.ID
 }

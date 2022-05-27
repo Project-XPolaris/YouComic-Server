@@ -5,6 +5,7 @@ import (
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
 	"github.com/projectxpolaris/youcomic/auth"
 	ApiError "github.com/projectxpolaris/youcomic/error"
+	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/permission"
 	"github.com/projectxpolaris/youcomic/services"
 	"github.com/projectxpolaris/youcomic/utils"
@@ -12,8 +13,10 @@ import (
 )
 
 var GetPermissionListHandler haruka.RequestHandler = func(context *haruka.Context) {
-	claims, err := auth.ParseAuthHeader(context)
-	if err != nil {
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return
 	}
@@ -60,7 +63,10 @@ var GetPermissionListHandler haruka.RequestHandler = func(context *haruka.Contex
 	}
 
 	count, permissions, err := permissionQueryBuilder.ReadModels()
-
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
 	result := serializer.SerializeMultipleTemplate(permissions, &serializer.BasePermissionTemplate{}, nil)
 	responseBody := serializer.DefaultListContainer{}
 	responseBody.SerializeList(result, map[string]interface{}{
