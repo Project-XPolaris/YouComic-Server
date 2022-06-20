@@ -57,9 +57,10 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 	}
 	sign, err := auth.GenerateJWTSign(&user)
 	oauth := model.Oauth{
-		UserId:   user.ID,
-		Uid:      fmt.Sprintf("%d", user.ID),
-		Provider: ProviderSelf,
+		UserId:      user.ID,
+		Uid:         fmt.Sprintf("%d", user.ID),
+		Provider:    ProviderSelf,
+		AccessToken: sign,
 	}
 	err = database.Instance.Create(&oauth).Error
 	if err != nil {

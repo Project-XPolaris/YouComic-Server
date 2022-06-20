@@ -97,9 +97,9 @@ func GenerateJWTSign(user *model.User) (string, error) {
 	return tokenString, nil
 }
 
-func GetUserClaimsFromContext(context *haruka.Context) *UserClaims {
+func GetUserClaimsFromContext(context *haruka.Context) *model.User {
 	contextClaims, _ := context.Param["claim"]
-	claims := contextClaims.(*UserClaims)
+	claims := contextClaims.(*model.User)
 	return claims
 }
 func GetUserByYouPlusToken(accessToken string) (*model.User, error) {
@@ -126,6 +126,16 @@ func GetUserByYouAuthToken(accessToken string) (*model.User, error) {
 		return nil, err
 	}
 	_, err = youauthplugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(accessToken)
+	if err != nil {
+		return nil, err
+	}
+	return oauthRecord.User, nil
+}
+func GetUserByYouComicToken(accessToken string) (*model.User, error) {
+	var oauthRecord model.Oauth
+	err := database.Instance.Model(&model.Oauth{}).Preload("User").Where("access_token = ?", accessToken).
+		Where("provider = ?", "self").
+		Find(&oauthRecord).Error
 	if err != nil {
 		return nil, err
 	}

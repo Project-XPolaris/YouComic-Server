@@ -3,8 +3,8 @@ package httpapi
 import (
 	"github.com/allentom/haruka"
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
-	"github.com/projectxpolaris/youcomic/auth"
 	ApiError "github.com/projectxpolaris/youcomic/error"
+	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/services"
 	"github.com/sirupsen/logrus"
 )
@@ -12,7 +12,7 @@ import (
 var HistoryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	queryBuilder := &services.HistoryQueryBuilder{}
 	userClaimsInterface, _ := context.Param["claim"]
-	userClaim := userClaimsInterface.(auth.JwtClaims)
+	userClaim := userClaimsInterface.(*model.User)
 	queryBuilder.SetUserIdFilter(userClaim.GetUserId())
 
 	withBook := context.GetQueryString("withBook")
@@ -61,7 +61,7 @@ var DeleteHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 	// get user id
 	userClaimsInterface, _ := context.Param["claim"]
-	userClaim := userClaimsInterface.(auth.JwtClaims)
+	userClaim := userClaimsInterface.(*model.User)
 
 	//setup query builder
 	queryBuilder := &services.HistoryQueryBuilder{}

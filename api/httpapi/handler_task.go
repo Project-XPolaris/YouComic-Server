@@ -51,10 +51,10 @@ var NewScannerHandler haruka.RequestHandler = func(context *haruka.Context) {
 	claim := auth.GetUserClaimsFromContext(context)
 	if hasPermission := permission.CheckPermissionAndServerError(context,
 		&permission.StandardPermissionChecker{
-			PermissionName: permission.CreateLibraryPermissionName, UserId: claim.UserId,
+			PermissionName: permission.CreateLibraryPermissionName, UserId: claim.ID,
 		},
 		&permission.StandardPermissionChecker{
-			PermissionName: permission.CreateBookPermissionName, UserId: claim.UserId,
+			PermissionName: permission.CreateBookPermissionName, UserId: claim.ID,
 		},
 	); !hasPermission {
 		return
@@ -89,7 +89,7 @@ var NewRenameLibraryBookDirectoryHandler haruka.RequestHandler = func(context *h
 	userClaims := auth.GetUserClaimsFromContext(context)
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
-		UserId:         userClaims.UserId,
+		UserId:         userClaims.ID,
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
@@ -117,7 +117,7 @@ var NewMoveBookTaskHandler haruka.RequestHandler = func(context *haruka.Context)
 	userClaims := auth.GetUserClaimsFromContext(context)
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.UpdateBookPermissionName,
-		UserId:         userClaims.UserId,
+		UserId:         userClaims.ID,
 	}
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return

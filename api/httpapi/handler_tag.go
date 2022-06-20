@@ -231,7 +231,7 @@ var AddSubscriptionUser haruka.RequestHandler = func(context *haruka.Context) {
 	}
 	claims := auth.GetUserClaimsFromContext(context)
 
-	user := &model.User{Model: gorm.Model{ID: claims.UserId}}
+	user := &model.User{Model: gorm.Model{ID: claims.ID}}
 	err = services.AddTagSubscription(uint(id), user)
 	if err != nil {
 		logrus.Error(err)
@@ -256,7 +256,7 @@ var RemoveSubscriptionUser haruka.RequestHandler = func(context *haruka.Context)
 	}
 	claims := auth.GetUserClaimsFromContext(context)
 
-	user := &model.User{Model: gorm.Model{ID: claims.UserId}}
+	user := &model.User{Model: gorm.Model{ID: claims.ID}}
 	err = services.RemoveTagSubscription(uint(id), user)
 	if err != nil {
 		logrus.Error(err)

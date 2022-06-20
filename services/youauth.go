@@ -10,14 +10,14 @@ import (
 
 const YouAuthProvider = "youauth"
 
-func GenerateYouAuthToken(code string) (string, string, error) {
+func GenerateYouAuthToken(code string) (string, string, uint, error) {
 	tokens, err := youauthplugin.DefaultYouAuthOauthPlugin.Client.GetAccessToken(code)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 	currentUserResponse, err := youauthplugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(tokens.AccessToken)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 	// check if user exists
 	uid := fmt.Sprintf("%d", currentUserResponse.Id)
@@ -27,7 +27,7 @@ func GenerateYouAuthToken(code string) (string, string, error) {
 		Preload("User").
 		Find(&historyOauth).Error
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 	var user *model.User
 	if len(historyOauth) == 0 {
@@ -39,7 +39,7 @@ func GenerateYouAuthToken(code string) (string, string, error) {
 		}
 		err = database.Instance.Create(&user).Error
 		if err != nil {
-			return "", "", err
+			return "", "", 0, err
 		}
 	} else {
 		user = historyOauth[0].User
@@ -54,9 +54,9 @@ func GenerateYouAuthToken(code string) (string, string, error) {
 	}
 	err = database.Instance.Create(&oauthRecord).Error
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
-	return tokens.AccessToken, currentUserResponse.Username, nil
+	return tokens.AccessToken, currentUserResponse.Username, user.ID, nil
 }
 
 func refreshToken(accessToken string) (string, error) {

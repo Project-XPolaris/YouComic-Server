@@ -27,7 +27,7 @@ func (m AuthMiddleware) OnRequest(c *haruka.Context) {
 	}
 	claim, err := auth.ParseAuthHeader(c)
 	if err != nil {
-		c.Interrupt()
+		c.Abort()
 		logrus.Error(err)
 		ApiError.RaiseApiError(c, ApiError.UserAuthFailError, nil)
 		return

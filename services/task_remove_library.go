@@ -57,7 +57,17 @@ func (t *RemoveLibraryTask) Start() error {
 				t.AbortError(err)
 				return
 			}
+			err = database.Instance.Model(&book).Association("Collections").Clear()
+			if err != nil {
+				t.AbortError(err)
+				return
+			}
 			err = database.Instance.Unscoped().Delete(model.Page{}, "book_id = ?", book.ID).Error
+			if err != nil {
+				t.AbortError(err)
+				return
+			}
+			err = database.Instance.Unscoped().Delete(model.History{}, "book_id = ?", book.ID).Error
 			if err != nil {
 				t.AbortError(err)
 				return

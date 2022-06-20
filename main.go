@@ -51,6 +51,7 @@ func main() {
 	appEngine.UsePlugin(&plugin.DefaultRegisterPlugin)
 	module.CreateAuthModule()
 	appEngine.UsePlugin(&plugin.InitPlugin{})
+	plugin.CreateBaseAuthPlugin()
 	appEngine.HttpService = httpapi.GetEngine()
 	if err != nil {
 		logrus.Fatal(err)

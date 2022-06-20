@@ -99,12 +99,14 @@ var LoginUserHandler haruka.RequestHandler = func(context *haruka.Context) {
 			"data": haruka.JSON{
 				"accessToken": sign,
 				"username":    user.Username,
+				"id":          fmt.Sprintf("%d", user.ID),
 			},
 		}, http.StatusOK)
 	default:
 		context.JSONWithStatus(haruka.JSON{
 			"success": true,
 			"uid":     fmt.Sprintf("%d", user.ID),
+			"id":      fmt.Sprintf("%d", user.ID),
 			"token":   sign,
 		}, http.StatusOK)
 	}
@@ -142,12 +144,14 @@ var YouPlusLoginHandler haruka.RequestHandler = func(context *haruka.Context) {
 			"data": haruka.JSON{
 				"accessToken": sign,
 				"username":    user.Username,
+				"id":          fmt.Sprintf("%d", user.ID),
 			},
 		})
 	default:
 		context.JSONWithStatus(haruka.JSON{
 			"success": true,
 			"uid":     fmt.Sprintf("%d", user.ID),
+			"id":      fmt.Sprintf("%d", user.ID),
 			"token":   sign,
 		}, http.StatusOK)
 	}
@@ -399,7 +403,7 @@ var ChangeUserNicknameHandler haruka.RequestHandler = func(context *haruka.Conte
 var UserHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	queryBuilder := &services.HistoryQueryBuilder{}
 	userClaim := auth.GetUserClaimsFromContext(context)
-	queryBuilder.SetUserIdFilter(userClaim.UserId)
+	queryBuilder.SetUserIdFilter(userClaim.ID)
 
 	view := ListView{
 		Context:      context,
@@ -435,7 +439,7 @@ var UserHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 var DeleteUserHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	userClaim := auth.GetUserClaimsFromContext(context)
 	queryBuilder := services.HistoryQueryBuilder{}
-	queryBuilder.SetUserIdFilter(userClaim.UserId)
+	queryBuilder.SetUserIdFilter(userClaim.ID)
 	err := queryBuilder.DeleteModels(true)
 	if err == services.UserNotFoundError {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
@@ -446,7 +450,7 @@ var DeleteUserHistoryHandler haruka.RequestHandler = func(context *haruka.Contex
 
 var generateAccessCodeWithYouAuthHandler haruka.RequestHandler = func(context *haruka.Context) {
 	code := context.GetQueryString("code")
-	accessToken, username, err := services.GenerateYouAuthToken(code)
+	accessToken, username, uid, err := services.GenerateYouAuthToken(code)
 	if err != nil {
 		youlink.AbortErrorWithStatus(err, context, http.StatusInternalServerError)
 		return
@@ -456,6 +460,7 @@ var generateAccessCodeWithYouAuthHandler haruka.RequestHandler = func(context *h
 		"data": haruka.JSON{
 			"accessToken": accessToken,
 			"username":    username,
+			"id":          uid,
 		},
 	})
 }
