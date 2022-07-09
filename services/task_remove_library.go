@@ -1,13 +1,14 @@
 package services
 
 import (
+	context2 "context"
 	"fmt"
 	appconfig "github.com/projectxpolaris/youcomic/config"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/sirupsen/logrus"
-	"os"
-	"path/filepath"
+	"path"
 )
 
 type RemoveLibraryTaskOption struct {
@@ -85,9 +86,12 @@ func (t *RemoveLibraryTask) Start() error {
 			return
 		}
 		for _, book := range books {
-			err = os.RemoveAll(filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID)))
+			storage := plugin.GetDefaultStorage()
+			thumbnailExt := path.Ext(book.Cover)
+			thumbnail := path.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID), fmt.Sprintf("cover_thumbnail%s", thumbnailExt))
+			err := storage.Delete(context2.Background(), plugin.GetDefaultBucket(), thumbnail)
 			if err != nil {
-				t.AbortError(err)
+				logrus.Error(err)
 			}
 		}
 		t.Status = StatusComplete

@@ -1,8 +1,8 @@
-package youplus
+package plugin
 
 import (
 	"github.com/allentom/harukap/commons"
-	"github.com/allentom/harukap/youplus"
+	"github.com/allentom/harukap/plugins/youplus"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/module"

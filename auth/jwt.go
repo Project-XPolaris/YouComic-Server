@@ -7,8 +7,7 @@ import (
 	"github.com/projectxpolaris/youcomic/config"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
-	"github.com/projectxpolaris/youcomic/youauthplugin"
-	"github.com/projectxpolaris/youcomic/youplus"
+	"github.com/projectxpolaris/youcomic/plugin"
 )
 
 type JwtClaims interface {
@@ -110,7 +109,7 @@ func GetUserByYouPlusToken(accessToken string) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = youplus.DefaultYouPlusPlugin.Client.CheckAuth(accessToken)
+	_, err = plugin.DefaultYouPlusPlugin.Client.CheckAuth(accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +124,7 @@ func GetUserByYouAuthToken(accessToken string) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = youauthplugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(accessToken)
+	_, err = plugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(accessToken)
 	if err != nil {
 		return nil, err
 	}

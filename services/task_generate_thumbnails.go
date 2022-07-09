@@ -1,9 +1,11 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/sirupsen/logrus"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 
 type GenerateThumbnailTaskOption struct {
 	LibraryId   int
+	Force       bool
 	OnError     func(task *GenerateThumbnailTask, err error)
 	OnBookError func(task *GenerateThumbnailTask, err GenerateError)
 	OnDone      func(task *GenerateThumbnailTask)
@@ -80,7 +83,13 @@ func (t *GenerateThumbnailTask) Start() error {
 			t.Current += 1
 			thumbnailExt := filepath.Ext(book.Cover)
 			thumbnailPath := filepath.Join(utils.GetThumbnailStorePath(book.ID), fmt.Sprintf("%s%s", "cover_thumbnail", thumbnailExt))
-			if !utils.CheckFileExist(thumbnailPath) {
+			storage := plugin.GetDefaultStorage()
+			isExist, err := storage.IsExist(context.Background(), plugin.GetDefaultBucket(), thumbnailPath)
+			if err != nil {
+				t.AbortGenerateError(book, book.Cover, thumbnailPath, err)
+				continue
+			}
+			if !isExist || t.Option.Force {
 				bookCoverPath := filepath.Join(library.Path, book.Path, book.Cover)
 				option := ThumbnailTaskOption{
 					Input:   bookCoverPath,
@@ -90,7 +99,7 @@ func (t *GenerateThumbnailTask) Start() error {
 				DefaultThumbnailService.Resource <- option
 				err = <-option.ErrChan
 				if err != nil {
-
+					t.Err = err
 				}
 			} else {
 				t.Skip += 1

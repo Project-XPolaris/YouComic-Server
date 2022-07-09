@@ -51,6 +51,7 @@ type Config struct {
 	Store struct {
 		Root  string `json:"root"`
 		Books string `json:"books"`
+		Temp  string `json:"temp"`
 	} `json:"store"`
 	Security struct {
 		Salt      string `json:"salt"`
@@ -69,6 +70,7 @@ func ReadConfig(provider *config.Provider) {
 	configer.SetDefault("scanner.extensions", []string{".jpg", ".jpeg", ".png", ".bmp"})
 	configer.SetDefault("scanner.minWidth", 1)
 	configer.SetDefault("scanner.minHeight", 1)
+	configer.SetDefault("store.temp", "./temp")
 	Instance = Config{
 		AuthEnable: configer.GetBool("youplus.auth"),
 		Database:   configer.GetString("datasource"),
@@ -84,9 +86,11 @@ func ReadConfig(provider *config.Provider) {
 		Store: struct {
 			Root  string `json:"root"`
 			Books string `json:"books"`
+			Temp  string `json:"temp"`
 		}{
 			Root:  configer.GetString("store.root"),
 			Books: configer.GetString("store.books"),
+			Temp:  configer.GetString("store.temp"),
 		},
 		Security: struct {
 			Salt      string `json:"salt"`

@@ -13,7 +13,6 @@ func GetEngine() *haruka.Engine {
 	engine := haruka.NewEngine()
 	engine.UseCors(cors.AllowAll())
 	engine.UseMiddleware(middleware.NewLoggerMiddleware())
-	//engine.UseMiddleware(AuthMiddleware{})
 	module.Auth.AuthMiddleware.OnError = func(c *haruka.Context, err error) {
 		ApiError.RaiseApiError(c, err, nil)
 		c.Abort()

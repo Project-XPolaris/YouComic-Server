@@ -7,8 +7,8 @@ import (
 	"github.com/projectxpolaris/youcomic/auth"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/utils"
-	"github.com/projectxpolaris/youcomic/youplus"
 	"github.com/rs/xid"
 	"gorm.io/gorm"
 )
@@ -69,7 +69,7 @@ func UserLogin(username string, rawPassword string) (*model.User, string, error)
 	return &user, sign, nil
 }
 func YouPlusLogin(username string, rawPassword string) (*model.User, string, error) {
-	authResult, err := youplus.DefaultYouPlusPlugin.Client.FetchUserAuth(username, rawPassword)
+	authResult, err := plugin.DefaultYouPlusPlugin.Client.FetchUserAuth(username, rawPassword)
 	if err != nil {
 		return nil, "", err
 	}

@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
-	"github.com/projectxpolaris/youcomic/youauthplugin"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/rs/xid"
 )
 
 const YouAuthProvider = "youauth"
 
 func GenerateYouAuthToken(code string) (string, string, uint, error) {
-	tokens, err := youauthplugin.DefaultYouAuthOauthPlugin.Client.GetAccessToken(code)
+	tokens, err := plugin.DefaultYouAuthOauthPlugin.Client.GetAccessToken(code)
 	if err != nil {
 		return "", "", 0, err
 	}
-	currentUserResponse, err := youauthplugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(tokens.AccessToken)
+	currentUserResponse, err := plugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(tokens.AccessToken)
 	if err != nil {
 		return "", "", 0, err
 	}
@@ -65,7 +65,7 @@ func refreshToken(accessToken string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	token, err := youauthplugin.DefaultYouAuthOauthPlugin.Client.RefreshAccessToken(tokenRecord.RefreshToken)
+	token, err := plugin.DefaultYouAuthOauthPlugin.Client.RefreshAccessToken(tokenRecord.RefreshToken)
 	if err != nil {
 		return "", err
 	}

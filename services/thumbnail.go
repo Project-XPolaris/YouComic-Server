@@ -2,20 +2,17 @@ package services
 
 import (
 	"bufio"
-	"bytes"
+	"context"
 	"errors"
 	"fmt"
-	"github.com/allentom/harukap/thumbnail"
-	"github.com/nfnt/resize"
-	"github.com/projectxpolaris/youcomic/config"
-	thumbnail2 "github.com/projectxpolaris/youcomic/thumbnail"
+	"github.com/allentom/harukap/plugins/thumbnail"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"image"
 	_ "image/gif"
-	"image/jpeg"
 	_ "image/jpeg"
 	_ "image/png"
+	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 )
@@ -92,19 +89,6 @@ func (s *ThumbnailService) GetQueueStatus() *ThumbnailServiceStatus {
 	return &s.Status
 }
 
-func GetImageProcess() ImageProcessEngine {
-	var generator ImageProcessEngine
-	switch config.Instance.Thumbnail.Type {
-	case "vips":
-		generator = NewVipsThumbnailEngine(config.Instance.Thumbnail.Target)
-	case "thumbnailservice":
-		generator = &ThumbnailServiceEngine{}
-	default:
-		generator = &DefaultThumbnailsEngine{}
-	}
-	return generator
-}
-
 //generate thumbnail image
 func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string, error) {
 	var err error
@@ -119,24 +103,21 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 	}()
 	// setup image decoder
 	fileExt := filepath.Ext(coverImageFilePath)
-	// mkdir
-	err = os.MkdirAll(storePath, os.ModePerm)
-	if err != nil {
-		return "", err
-	}
 	thumbnailImagePath := filepath.Join(storePath, fmt.Sprintf("cover_thumbnail%s", fileExt))
-
-	abs, err := filepath.Abs(thumbnailImagePath)
-	generator := GetImageProcess()
+	coverSourceFile, err := os.Open(coverImageFilePath)
 	if err != nil {
 		return "", err
 	}
-	output, err := generator.GenerateThumbnail(coverImageFilePath, abs, 480)
+	out, err := plugin.ThumbnailEngine.Resize(context.Background(), coverSourceFile, thumbnail.ThumbnailOption{
+		MaxWidth:  480,
+		MaxHeight: 480,
+	})
+	storage := plugin.GetDefaultStorage()
+	err = storage.Upload(context.Background(), out, plugin.GetDefaultBucket(), thumbnailImagePath)
 	if err != nil {
-		generator = &DefaultThumbnailsEngine{}
-		return generator.GenerateThumbnail(coverImageFilePath, abs, 480)
+		return "", err
 	}
-	return output, err
+	return thumbnailImagePath, nil
 }
 func ResizeImageWithSizeCap(input string, targetSizeCap int64) ([]byte, error) {
 	sourceImageFile, err := os.Open(input)
@@ -166,116 +147,17 @@ func ResizeImageWithSizeCap(input string, targetSizeCap int64) ([]byte, error) {
 	reduceRatio := float64(targetSizeCap) / float64(fileSize)
 	reduceWidth := int(float64(imageConf.Width) * reduceRatio)
 	reduceHeight := int(float64(imageConf.Height) * reduceRatio)
-	process := GetImageProcess()
-	output, err := process.Resize(input, reduceWidth, reduceHeight)
-	if err != nil {
-		return nil, err
-	}
-	return output, nil
-}
-
-type ImageProcessEngine interface {
-	GenerateThumbnail(input string, output string, maxWidth int) (path string, err error)
-	Resize(input string, width int, height int) ([]byte, error)
-}
-
-type VipsThumbnailEngine struct {
-	Target string
-}
-
-func NewVipsThumbnailEngine(target string) *VipsThumbnailEngine {
-	return &VipsThumbnailEngine{Target: target}
-}
-
-func (e *VipsThumbnailEngine) GenerateThumbnail(input string, output string, maxWidth int) (string, error) {
-	cmd := exec.Command(e.Target, fmt.Sprintf("--size=%dx", maxWidth), input, "-o", output)
-	err := cmd.Run()
-	if err != nil {
-		return "", err
-	}
-	return output, nil
-}
-func (e *VipsThumbnailEngine) Resize(input string, width int, height int) ([]byte, error) {
-	engine := DefaultThumbnailsEngine{}
-	return engine.Resize(input, width, height)
-}
-
-type DefaultThumbnailsEngine struct {
-}
-
-func (e *DefaultThumbnailsEngine) loadImageFromFile(input string) (image.Image, error) {
-	thumbnailImageFile, err := os.Open(input)
-	defer thumbnailImageFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	thumbnailImage, _, err := image.Decode(thumbnailImageFile)
-	if err != nil {
-		return nil, err
-	}
-	return thumbnailImage, nil
-}
-func (e *DefaultThumbnailsEngine) GenerateThumbnail(input string, output string, maxWidth int) (path string, err error) {
-	thumbnailImage, err := e.loadImageFromFile(input)
-	if err != nil {
-		return "", err
-	}
-	// make thumbnail
-	resizeImage := resize.Thumbnail(uint(maxWidth), 480, thumbnailImage, resize.Lanczos3)
-
-	// mkdir
-	outputImage, err := os.Create(output)
-	if err != nil {
-		return "", err
-	}
-
-	defer outputImage.Close()
-
-	// save result
-	err = jpeg.Encode(outputImage, resizeImage, nil)
-	if err != nil {
-		return "", err
-	}
-	return output, nil
-}
-
-func (e *DefaultThumbnailsEngine) Resize(input string, width int, height int) ([]byte, error) {
-	sourceImage, err := e.loadImageFromFile(input)
-	if err != nil {
-		return nil, err
-	}
-
-	resizeImage := resize.Resize(uint(width), uint(height), sourceImage, resize.Lanczos3)
-	buf := new(bytes.Buffer)
-	err = jpeg.Encode(buf, resizeImage, nil)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-type ThumbnailServiceEngine struct {
-}
-
-func (t *ThumbnailServiceEngine) GenerateThumbnail(input string, output string, maxWidth int) (path string, err error) {
-	err = thumbnail2.DefaultThumbnailServicePlugin.Client.Generate(input, output, thumbnail.ThumbnailOption{
-		MaxWidth: maxWidth,
-		Mode:     "width",
-	})
-	if err != nil {
-		return "", err
-	}
-	return output, nil
-}
-
-func (t *ThumbnailServiceEngine) Resize(input string, width int, height int) ([]byte, error) {
-	out, err := thumbnail2.DefaultThumbnailServicePlugin.Client.Resize(input, thumbnail.ThumbnailOption{
-		MaxWidth:  width,
-		MaxHeight: height,
-		Mode:      "resize",
+	out, err := plugin.ThumbnailEngine.Resize(context.Background(), sourceImageFile, thumbnail.ThumbnailOption{
+		MaxWidth:  reduceWidth,
+		MaxHeight: reduceHeight,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+
+	output, err := ioutil.ReadAll(out)
+	if err != nil {
+		return nil, err
+	}
+	return output, nil
 }

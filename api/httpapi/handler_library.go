@@ -266,6 +266,10 @@ var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *ha
 		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
 		return
 	}
+	force := false
+	if len(context.GetQueryString("force")) > 0 {
+		force = true
+	}
 	rawUserClaims, _ := context.Param["claim"]
 	scanLibraryPermission := permission.StandardPermissionChecker{
 		PermissionName: permission.ScanLibraryPermissionName,
@@ -276,6 +280,7 @@ var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *ha
 	}
 	task, err := services.DefaultTaskPool.NewGenerateThumbnailTask(services.GenerateThumbnailTaskOption{
 		LibraryId: id,
+		Force:     force,
 		OnError: func(task *services.GenerateThumbnailTask, err error) {
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventGenerateThumbnailTaskError,

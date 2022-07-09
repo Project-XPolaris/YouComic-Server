@@ -10,10 +10,10 @@ import (
 	ApiError "github.com/projectxpolaris/youcomic/error"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/permission"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/services"
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/projectxpolaris/youcomic/validate"
-	"github.com/projectxpolaris/youcomic/youauthplugin"
 	"net/http"
 )
 
@@ -468,7 +468,7 @@ var generateAccessCodeWithYouAuthHandler haruka.RequestHandler = func(context *h
 var youAuthTokenHandler haruka.RequestHandler = func(context *haruka.Context) {
 	// check token is valid
 	token := context.GetQueryString("token")
-	_, err := youauthplugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(token)
+	_, err := plugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(token)
 	if err != nil {
 		ApiError.RaiseApiError(context, ApiError.UserAuthFailError, nil)
 		return

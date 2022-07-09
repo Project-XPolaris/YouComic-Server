@@ -1,4 +1,4 @@
-package plugin
+package boot
 
 import (
 	"fmt"
@@ -42,7 +42,7 @@ type InitPlugin struct {
 }
 
 func (p *InitPlugin) OnInit(e *harukap.HarukaAppEngine) error {
-	Logger = e.LoggerPlugin.Logger.NewScope("init")
+	Logger = e.LoggerPlugin.Logger.NewScope("boot")
 	err := SetupApplication()
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func InitApplication() (err error) {
 			return err
 		}
 	}
-	//init done close
+	//boot done close
 	return
 }
 
@@ -123,13 +123,13 @@ func CreateUserGroupIfNotExist(userGroupName string) (userGroup *model.UserGroup
 	return userGroup, nil
 }
 func SetupApplication() error {
-	// init service (only first start)
+	// boot service (only first start)
 	err := InitApplication()
 	if err != nil {
 		return err
 	}
 	// setup service
-	Logger.Info("init service,please wait")
+	Logger.Info("boot service,please wait")
 	err = initPermissions()
 	if err != nil {
 		return err
@@ -150,9 +150,9 @@ func SetupApplication() error {
 	return nil
 }
 
-// init permission
+// boot permission
 func initPermissions() error {
-	Logger.Info("init permissions")
+	Logger.Info("boot permissions")
 	//create permission if is NOT exist
 	for _, permissionName := range permissionNames {
 		builder := services.PermissionQueryBuilder{}
@@ -173,11 +173,11 @@ func initPermissions() error {
 	return nil
 }
 
-// init superuser group permission
+// boot superuser group permission
 //
 // superuser group will granted all permission
 func initSuperuserPermission() error {
-	Logger.Info("init super user permission")
+	Logger.Info("boot super user permission")
 	superUserGroupName := services.DefaultSuperUserGroupName
 	userGroupQueryBuilder := services.UserGroupQueryBuilder{}
 	userGroupQueryBuilder.SetPageFilter(1, 1)
@@ -215,13 +215,13 @@ func initSuperuserPermission() error {
 }
 
 func initStorePath() error {
-	// init app store
+	// boot app store
 	err := os.MkdirAll(appconfig.Instance.Store.Root, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// init default library path
+	// boot default library path
 	err = os.MkdirAll(appconfig.Instance.Store.Books, os.ModePerm)
 	if err != nil {
 		return err

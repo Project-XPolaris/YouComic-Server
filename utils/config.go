@@ -10,7 +10,7 @@ func ReadConfig(filename string) (*viper.Viper, error) {
 	config.SetConfigType("json")
 	configDir := os.Getenv("YOUCOMIC_INIT_CONFIG_DIR")
 	if configDir == "" {
-		configDir = "./init"
+		configDir = "./boot"
 	}
 	config.AddConfigPath(configDir)
 	config.SetConfigName(filename)

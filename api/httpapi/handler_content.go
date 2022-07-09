@@ -1,15 +1,20 @@
 package httpapi
 
 import (
+	"bytes"
+	context2 "context"
 	"fmt"
 	"github.com/allentom/haruka"
 	appconfig "github.com/projectxpolaris/youcomic/config"
 	ApiError "github.com/projectxpolaris/youcomic/error"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/services"
-	"github.com/projectxpolaris/youcomic/utils"
+	"io/ioutil"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 var BookContentHandler haruka.RequestHandler = func(context *haruka.Context) {
@@ -35,8 +40,24 @@ var BookContentHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if strings.Contains(fileName, "cover_thumbnail") {
 		thumbnailExt := path.Ext(book.Cover)
 		thumbnail := path.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID), fmt.Sprintf("cover_thumbnail%s", thumbnailExt))
-		if utils.CheckFileExist(thumbnail) {
-			http.ServeFile(context.Writer, context.Request, thumbnail)
+		storage := plugin.GetDefaultStorage()
+		isExist, err := storage.IsExist(context2.Background(), plugin.GetDefaultBucket(), thumbnail)
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
+		if isExist {
+			out, err := storage.Get(context2.Background(), plugin.GetDefaultBucket(), thumbnail)
+			if err != nil {
+				ApiError.RaiseApiError(context, err, nil)
+				return
+			}
+			data, err := ioutil.ReadAll(out)
+			if err != nil {
+				ApiError.RaiseApiError(context, err, nil)
+				return
+			}
+			http.ServeContent(context.Writer, context.Request, filepath.Base(thumbnail), time.Now(), bytes.NewReader(data))
 			return
 		}
 		// cover not generate,return original cover
