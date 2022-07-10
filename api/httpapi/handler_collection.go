@@ -283,7 +283,7 @@ var UpdateCollectionHandler haruka.RequestHandler = func(context *haruka.Context
 
 	err, collection := services.GetCollectionById(uint(id))
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 

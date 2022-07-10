@@ -76,7 +76,7 @@ var DeleteLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 		},
 	})
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	ServerSuccessResponse(context)
@@ -91,14 +91,14 @@ var LibraryObjectHandler haruka.RequestHandler = func(context *haruka.Context) {
 
 	library, err := services.GetLibraryById(uint(id))
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 
 	template := serializer.BaseLibraryTemplate{}
 	err = template.Serializer(library, nil)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	context.JSONWithStatus(template, http.StatusOK)
@@ -212,7 +212,7 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 		//},
 	})
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	context.JSONWithStatus(task, http.StatusOK)
@@ -253,7 +253,7 @@ var NewLibraryMatchTagHandler haruka.RequestHandler = func(context *haruka.Conte
 	}
 	task, err := services.DefaultTaskPool.NewMatchLibraryTagTask(uint(id), strategy)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	context.JSONWithStatus(task, http.StatusOK)
@@ -301,7 +301,7 @@ var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *ha
 		},
 	})
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	context.JSONWithStatus(task, http.StatusOK)

@@ -96,7 +96,7 @@ var NewRenameLibraryBookDirectoryHandler haruka.RequestHandler = func(context *h
 	}
 	task, err := services.DefaultTaskPool.NewRenameBookDirectoryLibraryTask(uint(id), requestBody.Pattern, requestBody.Slots)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	context.JSONWithStatus(task, http.StatusOK)
@@ -124,7 +124,7 @@ var NewMoveBookTaskHandler haruka.RequestHandler = func(context *haruka.Context)
 	}
 	task, err := services.DefaultTaskPool.NewMoveBookTask(requestBody.BookIds, requestBody.To)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	context.JSONWithStatus(task, http.StatusOK)
@@ -139,12 +139,12 @@ var WriteBookMetaTaskHandler haruka.RequestHandler = func(context *haruka.Contex
 	}
 	library, err := services.GetLibraryById(uint(id))
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	task, err := services.DefaultTaskPool.NewWriteBookMetaTask(&library)
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	context.JSONWithStatus(task, http.StatusOK)

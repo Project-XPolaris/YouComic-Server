@@ -12,7 +12,7 @@ var serviceInfoHandler haruka.RequestHandler = func(context *haruka.Context) {
 	// get oauth addr
 	authMaps, err := module.Auth.GetAuthConfig()
 	if err != nil {
-		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
 	configManager := config.DefaultConfigProvider.Manager
