@@ -224,7 +224,7 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 		}
 	}
 	var count int64 = 0
-	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Preload("Tags").Find(models).Offset(-1).Count(&count).Error
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Preload("Tags", "type in (?)", []string{"artist", "series", "theme", "translator"}).Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
 		return 0, nil
