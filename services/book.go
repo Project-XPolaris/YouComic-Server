@@ -84,6 +84,8 @@ type BooksQueryBuilder struct {
 	LibraryQueryFilter
 	DirectoryNameQueryFilter
 	RandomQueryFilter
+	TagNameSearch     string `hsource:"query" hname:"tagNameSearch"`
+	TagNameSearchType string `hsource:"query" hname:"tagNameSearchType"`
 }
 
 type EndTimeQueryFilter struct {
@@ -114,11 +116,9 @@ func (f RandomQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 }
 
 func (f *RandomQueryFilter) SetRandomQueryFilter(random interface{}) {
-
 	if len(random.(string)) > 0 {
 		f.random = true
 	}
-
 }
 
 type DirectoryNameQueryFilter struct {
@@ -221,6 +221,15 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 		}
 		if _, ok := query.Config.Dialector.(*sqlite.Dialector); ok {
 			query = query.Order("random()")
+		}
+	}
+	if len(b.TagNameSearch) > 0 {
+		query = query.
+			Joins("inner join book_tags on book_tags.book_id = books.id").
+			Joins("inner join tags on tags.id = book_tags.tag_id").
+			Where("tags.name like ?", fmt.Sprintf("%%%s%%", b.TagNameSearch))
+		if len(b.TagNameSearchType) > 0 {
+			query = query.Where("tags.type = ?", b.TagNameSearchType)
 		}
 	}
 	var count int64 = 0

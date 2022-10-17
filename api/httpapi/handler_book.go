@@ -177,7 +177,11 @@ var BookListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var books []model.Book
 	queryBuilder := services.BooksQueryBuilder{}
 	queryBuilder.SetPageFilter(pagination.Page, pagination.PageSize)
-
+	err := context.BindingInput(&queryBuilder)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
 	filterMapping := []FilterMapping{
 		{
 			Lookup: "id",
