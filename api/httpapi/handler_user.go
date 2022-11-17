@@ -460,11 +460,37 @@ var generateAccessCodeWithYouAuthHandler haruka.RequestHandler = func(context *h
 		"data": haruka.JSON{
 			"accessToken": accessToken,
 			"username":    username,
-			"id":          uid,
+			"id":          fmt.Sprintf("%d", uid),
 		},
 	})
 }
 
+type YouAuthLoginRequestBody struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+var generateYouAuthAccessWithPasswordHandler haruka.RequestHandler = func(context *haruka.Context) {
+	requestBody := YouAuthLoginRequestBody{}
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+	accessToken, username, uid, err := services.GenerateYouAuthTokenWithPassword(requestBody.Username, requestBody.Password)
+	if err != nil {
+		youlink.AbortErrorWithStatus(err, context, http.StatusInternalServerError)
+		return
+	}
+	context.JSON(haruka.JSON{
+		"success": true,
+		"data": haruka.JSON{
+			"accessToken": accessToken,
+			"username":    username,
+			"id":          fmt.Sprintf("%d", uid),
+		},
+	})
+
+}
 var youAuthTokenHandler haruka.RequestHandler = func(context *haruka.Context) {
 	// check token is valid
 	token := context.GetQueryString("token")

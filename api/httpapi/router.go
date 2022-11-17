@@ -84,6 +84,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.GET("/explore/read", ReadDirectoryHandler)
 	engine.Router.GET("/thumbnail/status", GetThumbnailGeneratorStatus)
 	engine.Router.GET("/oauth/youauth", generateAccessCodeWithYouAuthHandler)
+	engine.Router.POST("/oauth/youauth/password", generateYouAuthAccessWithPasswordHandler)
 	engine.Router.POST("/oauth/youplus", YouPlusLoginHandler)
 	engine.Router.GET("/oauth/token", youAuthTokenHandler)
 	engine.Router.GET("/info", serviceInfoHandler)

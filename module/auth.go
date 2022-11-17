@@ -20,6 +20,7 @@ func CreateAuthModule() {
 			"/user/auth",
 			"/user/auth2",
 			"/oauth/youauth",
+			"/oauth/youauth/password",
 			"/oauth/token",
 			"/info",
 			"/oauth/youplus",

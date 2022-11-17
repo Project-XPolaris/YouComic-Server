@@ -15,7 +15,8 @@ func CreateYouAuthPlugin() {
 	DefaultYouAuthOauthPlugin.AuthFromToken = func(token string) (commons.AuthUser, error) {
 		return GetUserByYouAuthToken(token)
 	}
-	module.Auth.Plugins = append(module.Auth.Plugins, DefaultYouAuthOauthPlugin)
+	DefaultYouAuthOauthPlugin.PasswordAuthUrl = "/oauth/youauth/password"
+	module.Auth.Plugins = append(module.Auth.Plugins, DefaultYouAuthOauthPlugin.GetOauthPlugin(), DefaultYouAuthOauthPlugin.GetPasswordPlugin())
 }
 func GetUserByYouAuthToken(accessToken string) (commons.AuthUser, error) {
 	var oauthRecord model.Oauth

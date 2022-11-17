@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"github.com/allentom/harukap/plugins/youauth"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/plugin"
@@ -15,6 +16,16 @@ func GenerateYouAuthToken(code string) (string, string, uint, error) {
 	if err != nil {
 		return "", "", 0, err
 	}
+	return LinkYouAuthAccount(tokens)
+}
+func GenerateYouAuthTokenWithPassword(username string, password string) (string, string, uint, error) {
+	tokens, err := plugin.DefaultYouAuthOauthPlugin.Client.GrantWithPassword(username, password)
+	if err != nil {
+		return "", "", 0, err
+	}
+	return LinkYouAuthAccount(tokens)
+}
+func LinkYouAuthAccount(tokens *youauth.GenerateTokenResponse) (string, string, uint, error) {
 	currentUserResponse, err := plugin.DefaultYouAuthOauthPlugin.Client.GetCurrentUser(tokens.AccessToken)
 	if err != nil {
 		return "", "", 0, err
@@ -58,7 +69,6 @@ func GenerateYouAuthToken(code string) (string, string, uint, error) {
 	}
 	return tokens.AccessToken, currentUserResponse.Username, user.ID, nil
 }
-
 func refreshToken(accessToken string) (string, error) {
 	tokenRecord := model.Oauth{}
 	err := database.Instance.Where("access_token = ?", accessToken).First(&tokenRecord).Error

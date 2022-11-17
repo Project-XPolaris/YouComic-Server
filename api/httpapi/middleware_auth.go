@@ -17,6 +17,7 @@ var NoAuthPaths = []string{
 	"/oauth/token",
 	"/info",
 	"/oauth/youplus",
+	"/oauth/youauth/password",
 }
 
 func (m AuthMiddleware) OnRequest(c *haruka.Context) {
