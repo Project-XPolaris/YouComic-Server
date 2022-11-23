@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
+	"github.com/allentom/harukap/module/task"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/module"
 	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/sirupsen/logrus"
@@ -26,16 +28,24 @@ type GenerateError struct {
 	Error    error  `json:"error"`
 }
 type GenerateThumbnailTask struct {
-	BaseTask
-	stopFlag   bool
+	*task.BaseTask
+	stopFlag bool
+
+	Library    *model.Library
+	Err        error
+	Option     GenerateThumbnailTaskOption
+	TaskOutput *GenerateThumbnailTaskOutput
+}
+type GenerateThumbnailTaskOutput struct {
 	LibraryId  int
 	Total      int64
 	Current    int64
 	Skip       int64
-	Library    *model.Library
-	Err        error
 	FileErrors []GenerateError
-	Option     GenerateThumbnailTaskOption
+}
+
+func (t *GenerateThumbnailTask) Output() (interface{}, error) {
+	return t.TaskOutput, nil
 }
 
 func (t *GenerateThumbnailTask) Stop() error {
@@ -58,15 +68,15 @@ func (t *GenerateThumbnailTask) AbortGenerateError(book model.Book, path string,
 		FilePath: coverPath,
 		Error:    err,
 	}
-	t.FileErrors = append(t.FileErrors, generateErr)
+	t.TaskOutput.FileErrors = append(t.TaskOutput.FileErrors, generateErr)
 	if t.Option.OnBookError != nil {
 		t.Option.OnBookError(t, generateErr)
 	}
 }
 func (t *GenerateThumbnailTask) Start() error {
 	go func() {
-		defer DefaultLibraryLockPool.TryToUnlock(uint(t.LibraryId))
-		library, err := GetLibraryById(uint(t.LibraryId))
+		defer DefaultLibraryLockPool.TryToUnlock(uint(t.TaskOutput.LibraryId))
+		library, err := GetLibraryById(uint(t.TaskOutput.LibraryId))
 		if err != nil {
 			t.AbortError(err)
 			return
@@ -78,9 +88,9 @@ func (t *GenerateThumbnailTask) Start() error {
 			t.AbortError(err)
 			return
 		}
-		t.Total = int64(len(books))
+		t.TaskOutput.Total = int64(len(books))
 		for _, book := range books {
-			t.Current += 1
+			t.TaskOutput.Current += 1
 			thumbnailExt := filepath.Ext(book.Cover)
 			thumbnailPath := filepath.Join(utils.GetThumbnailStorePath(book.ID), fmt.Sprintf("%s%s", "cover_thumbnail", thumbnailExt))
 			storage := plugin.GetDefaultStorage()
@@ -102,7 +112,7 @@ func (t *GenerateThumbnailTask) Start() error {
 					t.Err = err
 				}
 			} else {
-				t.Skip += 1
+				t.TaskOutput.Skip += 1
 			}
 		}
 		t.Status = StatusComplete
@@ -116,14 +126,16 @@ func (p *TaskPool) NewGenerateThumbnailTask(option GenerateThumbnailTaskOption) 
 	if !DefaultLibraryLockPool.TryToLock(uint(option.LibraryId)) {
 		return nil, LibraryLockError
 	}
+	info := task.NewBaseTask("GenerateThumbnail", "0", StatusRunning)
 	task := &GenerateThumbnailTask{
-		BaseTask:   NewBaseTask(),
-		LibraryId:  option.LibraryId,
-		Option:     option,
-		FileErrors: []GenerateError{},
+		BaseTask: info,
+		Option:   option,
+		TaskOutput: &GenerateThumbnailTaskOutput{
+			LibraryId:  option.LibraryId,
+			FileErrors: []GenerateError{},
+		},
 	}
 	task.Status = StatusRunning
-	p.AddTask(task)
-	task.Start()
+	module.Task.Pool.AddTask(task)
 	return task, nil
 }

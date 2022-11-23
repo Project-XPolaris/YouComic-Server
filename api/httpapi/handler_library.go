@@ -5,6 +5,7 @@ import (
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
 	ApiError "github.com/projectxpolaris/youcomic/error"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/module"
 	"github.com/projectxpolaris/youcomic/permission"
 	"github.com/projectxpolaris/youcomic/services"
 	"net/http"
@@ -60,18 +61,20 @@ var DeleteLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if hasPermission := permission.CheckPermissionAndServerError(context, &deleteLibraryPermission); !hasPermission {
 		return
 	}
-	_, err = services.DefaultTaskPool.NewRemoveLibraryTask(services.RemoveLibraryTaskOption{
+	task, err := services.DefaultTaskPool.NewRemoveLibraryTask(services.RemoveLibraryTaskOption{
 		LibraryId: id,
 		OnError: func(task *services.RemoveLibraryTask, taskError error) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventRemoveLibraryTaskError,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 		OnDone: func(task *services.RemoveLibraryTask) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventRemoveLibraryTaskDone,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 	})
@@ -79,6 +82,7 @@ var DeleteLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	go task.Start()
 	ServerSuccessResponse(context)
 }
 
@@ -187,21 +191,24 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 	task, err := services.ScanLibrary(uint(id), services.ScanLibraryOption{
 		OnDone: func(task *services.ScanTask) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventScanTaskDone,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 		OnError: func(task *services.ScanTask, err error) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventScanTaskError,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 		OnStop: func(task *services.ScanTask) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventScanTaskStop,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 		//OnDirError: func(task *services.ScanTask, syncErr services.SyncError) {
@@ -215,6 +222,7 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	go task.Start()
 	context.JSONWithStatus(task, http.StatusOK)
 }
 
@@ -256,6 +264,7 @@ var NewLibraryMatchTagHandler haruka.RequestHandler = func(context *haruka.Conte
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	go task.Start()
 	context.JSONWithStatus(task, http.StatusOK)
 }
 
@@ -282,21 +291,24 @@ var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *ha
 		LibraryId: id,
 		Force:     force,
 		OnError: func(task *services.GenerateThumbnailTask, err error) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventGenerateThumbnailTaskError,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 		OnBookError: func(task *services.GenerateThumbnailTask, err services.GenerateError) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventGenerateThumbnailTaskFileError,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 		OnDone: func(task *services.GenerateThumbnailTask) {
+			template, _ := module.Task.SerializerTemplate(task)
 			DefaultNotificationManager.sendJSONToAll(haruka.JSON{
 				"event": EventGenerateThumbnailTaskDone,
-				"data":  serializer.NewTaskTemplate(task),
+				"data":  template,
 			})
 		},
 	})
@@ -304,5 +316,6 @@ var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *ha
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	go task.Start()
 	context.JSONWithStatus(task, http.StatusOK)
 }

@@ -2,17 +2,27 @@ package services
 
 import (
 	"github.com/ahmetb/go-linq/v3"
+	"github.com/allentom/harukap/module/task"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/module"
 	"github.com/sirupsen/logrus"
 )
 
 type RemoveEmptyTagTask struct {
-	BaseTask
+	*task.BaseTask
+	stopFlag   bool
+	TaskOutput *RemoveEmptyTagTaskOutput
+}
+
+func (t *RemoveEmptyTagTask) Output() (interface{}, error) {
+	return t.TaskOutput, nil
+}
+
+type RemoveEmptyTagTaskOutput struct {
 	CurrentTag *model.Tag
 	Total      int
 	Current    int
-	stopFlag   bool
 }
 
 func (t *RemoveEmptyTagTask) Stop() error {
@@ -24,10 +34,10 @@ func (t *RemoveEmptyTagTask) Start() error {
 	go func() {
 		var tags []model.Tag
 		database.Instance.Find(&tags)
-		t.Total = len(tags)
+		t.TaskOutput.Total = len(tags)
 		for _, tag := range tags {
-			t.Current += 1
-			t.CurrentTag = &tag
+			t.TaskOutput.Current += 1
+			t.TaskOutput.CurrentTag = &tag
 			ass := database.Instance.Model(&tag).Association("Books")
 			if ass.Count() == 0 {
 				err := database.Instance.Unscoped().Delete(&tag).Error
@@ -52,11 +62,12 @@ func (p *TaskPool) NewRemoveEmptyTagTask() (*RemoveEmptyTagTask, error) {
 	if exist != nil {
 		return exist.(*RemoveEmptyTagTask), nil
 	}
+	info := task.NewBaseTask("RemoveEmptyTag", "0", StatusRunning)
 	task := &RemoveEmptyTagTask{
-		BaseTask: NewBaseTask(),
+		BaseTask:   info,
+		TaskOutput: &RemoveEmptyTagTaskOutput{},
 	}
 	task.Status = StatusRunning
-	p.AddTask(task)
-	task.Start()
+	module.Task.Pool.AddTask(task)
 	return task, nil
 }

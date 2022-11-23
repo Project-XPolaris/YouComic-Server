@@ -65,7 +65,12 @@ var NewScannerHandler haruka.RequestHandler = func(context *haruka.Context) {
 	if err != nil {
 		return
 	}
-	services.DefaultTaskPool.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath), services.ScanLibraryOption{})
+	task, err := services.NewLibraryAndScan(requestBody.DirPath, filepath.Base(requestBody.DirPath), services.ScanLibraryOption{})
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	go task.Start()
 	ServerSuccessResponse(context)
 }
 
@@ -122,11 +127,12 @@ var NewMoveBookTaskHandler haruka.RequestHandler = func(context *haruka.Context)
 	if hasPermission := permission.CheckPermissionAndServerError(context, &scanLibraryPermission); !hasPermission {
 		return
 	}
-	task, err := services.DefaultTaskPool.NewMoveBookTask(requestBody.BookIds, requestBody.To)
+	task, err := services.NewMoveBookTask(requestBody.BookIds, requestBody.To)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	go task.Start()
 	context.JSONWithStatus(task, http.StatusOK)
 }
 
@@ -142,10 +148,11 @@ var WriteBookMetaTaskHandler haruka.RequestHandler = func(context *haruka.Contex
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	task, err := services.DefaultTaskPool.NewWriteBookMetaTask(&library)
+	task, err := services.NewWriteBookMetaTask(&library)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	go task.Start()
 	context.JSONWithStatus(task, http.StatusOK)
 }

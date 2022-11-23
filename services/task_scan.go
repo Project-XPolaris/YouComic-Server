@@ -2,8 +2,10 @@ package services
 
 import (
 	"encoding/json"
+	"github.com/allentom/harukap/module/task"
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/module"
 	"github.com/projectxpolaris/youcomic/utils"
 	"io/ioutil"
 	"os"
@@ -23,35 +25,38 @@ type ScanLibraryOption struct {
 	OnStop     func(task *ScanTask)
 }
 
-func (p *TaskPool) NewLibraryAndScan(targetPath string, name string, option ScanLibraryOption) (*ScanTask, error) {
+func NewLibraryAndScan(targetPath string, name string, option ScanLibraryOption) (*ScanTask, error) {
 	library, err := CreateLibrary(name, targetPath)
 	if err != nil {
 		return nil, err
 	}
 	option.Library = library
-	return p.NewScanLibraryTask(option)
+	return NewScanLibraryTask(option)
 }
-func (p *TaskPool) NewScanLibraryTask(option ScanLibraryOption) (*ScanTask, error) {
+func NewScanLibraryTask(option ScanLibraryOption) (*ScanTask, error) {
 	lockSuccess := DefaultLibraryLockPool.TryToLock(option.Library.ID)
 	if !lockSuccess {
 		return nil, LibraryLockError
 	}
+	info := task.NewBaseTask("ScanLibrary", "all", TaskStatusInit)
 	task := &ScanTask{
-		BaseTask:  NewBaseTask(),
-		TargetDir: option.Library.Path,
-		LibraryId: option.Library.ID,
-		Name:      option.Library.Name,
-		Option:    &option,
-		SyncError: []SyncError{},
+		BaseTask: info,
+		Option:   &option,
+		TaskOutput: &ScanTaskOutput{
+			Id:        info.Id,
+			TargetDir: option.Library.Path,
+			LibraryId: option.Library.ID,
+			Name:      option.Library.Name,
+			SyncError: []SyncError{},
+		},
 	}
 	task.Status = ScanStatusAnalyze
-	p.AddTask(task)
-	task.Start()
+	module.Task.Pool.AddTask(task)
 	return task, nil
 }
 
-type ScanTask struct {
-	BaseTask
+type ScanTaskOutput struct {
+	Id         string
 	TargetDir  string
 	LibraryId  uint
 	Name       string
@@ -59,18 +64,23 @@ type ScanTask struct {
 	Current    int64
 	CurrentDir string
 	SyncError  []SyncError
+}
+type ScanTask struct {
+	*task.BaseTask
 	stopFlag   bool
-	Err        error
 	Option     *ScanLibraryOption
+	TaskOutput *ScanTaskOutput
+}
+
+func (t *ScanTask) Output() (interface{}, error) {
+	return t.TaskOutput, nil
 }
 
 func (t *ScanTask) Start() error {
-	go func() {
-		defer func() {
-			DefaultLibraryLockPool.TryToUnlock(t.LibraryId)
-		}()
-		t.scannerDir()
+	defer func() {
+		DefaultLibraryLockPool.TryToUnlock(t.TaskOutput.LibraryId)
 	}()
+	t.scannerDir()
 	return nil
 }
 func (t *ScanTask) Stop() error {
@@ -90,7 +100,7 @@ func (t *ScanTask) AbortFileError(path string, err error) {
 		Name:  filepath.Base(path),
 		Error: err,
 	}
-	t.SyncError = append(t.SyncError, syncError)
+	t.TaskOutput.SyncError = append(t.TaskOutput.SyncError, syncError)
 	if t.Option.OnDirError != nil {
 		t.Option.OnDirError(t, syncError)
 	}
@@ -98,7 +108,7 @@ func (t *ScanTask) AbortFileError(path string, err error) {
 func (t *ScanTask) scannerDir() {
 	// sync with exist book
 	var library model.Library
-	err := database.Instance.Where("id = ?", t.LibraryId).Preload("Books").Find(&library).Error
+	err := database.Instance.Where("id = ?", t.TaskOutput.LibraryId).Preload("Books").Find(&library).Error
 	if err != nil {
 		t.AbortTaskError(err)
 		return
@@ -117,13 +127,13 @@ func (t *ScanTask) scannerDir() {
 		}
 	}
 	scanner := utils.Scanner{
-		TargetPath: t.TargetDir,
+		TargetPath: t.TaskOutput.TargetDir,
 	}
 	var count int64 = 0
 	err = scanner.Scan(func(result utils.ScannerResult) {
 		count++
 	})
-	t.Total = count
+	t.TaskOutput.Total = count
 	if err != nil {
 		t.AbortTaskError(err)
 		return
@@ -137,9 +147,9 @@ func (t *ScanTask) scannerDir() {
 			}
 			return
 		}
-		t.Current += 1
-		t.CurrentDir = filepath.Base(item.DirPath)
-		relativePath, _ := filepath.Rel(t.TargetDir, item.DirPath)
+		t.TaskOutput.Current += 1
+		t.TaskOutput.CurrentDir = filepath.Base(item.DirPath)
+		relativePath, _ := filepath.Rel(t.TaskOutput.TargetDir, item.DirPath)
 		isExist := false
 		for _, book := range library.Books {
 			if book.Path == relativePath {
@@ -166,7 +176,7 @@ func (t *ScanTask) scannerDir() {
 		}
 		book := model.Book{
 			Name:      filepath.Base(item.DirPath),
-			LibraryId: t.LibraryId,
+			LibraryId: t.TaskOutput.LibraryId,
 			Path:      relativePath,
 			Cover:     item.CoverName,
 		}
@@ -185,7 +195,7 @@ func (t *ScanTask) scannerDir() {
 			return
 		}
 		thumbnailsSource := make([]string, 0)
-		thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TargetDir, book.Path, book.Cover))
+		thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TaskOutput.TargetDir, book.Path, book.Cover))
 		// for pages
 		savePages := make([]model.Page, 0)
 
@@ -195,7 +205,7 @@ func (t *ScanTask) scannerDir() {
 				BookId:    int(book.Model.ID),
 				PageOrder: idx + 1,
 			}
-			thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TargetDir, book.Path, pageName))
+			thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TaskOutput.TargetDir, book.Path, pageName))
 			savePages = append(savePages, page)
 
 		}

@@ -9,7 +9,7 @@ type TaskSerializer struct {
 	Status  string      `json:"status"`
 	Created string      `json:"created"`
 	Type    string      `json:"type"`
-	Data    interface{} `json:"data"`
+	Output  interface{} `json:"output"`
 }
 
 func NewTaskTemplate(dataModel interface{}) *TaskSerializer {
@@ -24,30 +24,30 @@ func (t *TaskSerializer) Serializer(dataModel interface{}, context map[string]in
 	t.Created = task.GetBaseInfo().Created.Format(timeFormat)
 	t.Status = task.GetBaseInfo().Status
 	switch dataModel.(type) {
-	case *services.ScanTask:
-		t.Data = SerializeScanTask(dataModel)
-		t.Type = "ScanLibrary"
-	case *services.MatchLibraryTagTask:
-		t.Data = SerializeMatchTask(dataModel)
-		t.Type = "MatchLibrary"
+	//case *services.ScanTask:
+	//	t.Output = SerializeScanTask(dataModel)
+	//	t.Type = "ScanLibrary"
+	//case *services.MatchLibraryTagTask:
+	//	t.Output = SerializeMatchTask(dataModel)
+	//	t.Type = "MatchLibrary"
 	case *services.RenameBookDirectoryTask:
-		t.Data = SerializeRenameTask(dataModel)
+		t.Output = SerializeRenameTask(dataModel)
 		t.Type = "RenameLibraryBookDirectory"
-	case *services.MoveBookTask:
-		t.Data = SerializeMoveBookTask(dataModel)
-		t.Type = "MoveBook"
-	case *services.RemoveEmptyTagTask:
-		t.Data = SerializeRemoveEmptyTagTask(dataModel)
-		t.Type = "RemoveEmptyTag"
-	case *services.WriteBookMetaTask:
-		t.Data = SerializeWriteBookMetaTask(dataModel)
-		t.Type = "WriteBookMeta"
-	case *services.RemoveLibraryTask:
-		t.Data = SerializeRemoveLibraryTask(dataModel)
-		t.Type = "RemoveLibrary"
-	case *services.GenerateThumbnailTask:
-		t.Data = SerializeGenerateThumbnailsTask(dataModel)
-		t.Type = "GenerateThumbnail"
+		//case *services.MoveBookTask:
+		//	t.Output = SerializeMoveBookTask(dataModel)
+		//	t.Type = "MoveBook"
+		//case *services.RemoveEmptyTagTask:
+		//	t.Output = SerializeRemoveEmptyTagTask(dataModel)
+		//	t.Type = "RemoveEmptyTag"
+		//case *services.WriteBookMetaTask:
+		//	t.Output = SerializeWriteBookMetaTask(dataModel)
+		//	t.Type = "WriteBookMeta"
+		//case *services.RemoveLibraryTask:
+		//	t.Output = SerializeRemoveLibraryTask(dataModel)
+		//	t.Type = "RemoveLibrary"
+		//case *services.GenerateThumbnailTask:
+		//	t.Output = SerializeGenerateThumbnailsTask(dataModel)
+		//	t.Type = "GenerateThumbnail"
 	}
 	return nil
 }
@@ -59,24 +59,19 @@ type ScanLibrarySerialize struct {
 	Total      int64                `json:"total"`
 	Current    int64                `json:"current"`
 	CurrentDir string               `json:"currentDir"`
-	Err        string               `json:"err"`
 	ErrorFile  []services.SyncError `json:"errorFiles"`
 }
 
-func SerializeScanTask(dataModel interface{}) ScanLibrarySerialize {
-	model := dataModel.(*services.ScanTask)
-	t := ScanLibrarySerialize{}
-	t.TargetDir = model.TargetDir
-	t.LibraryId = model.LibraryId
-	t.Name = model.Name
-	t.Total = model.Total
-	t.Current = model.Current
-	t.CurrentDir = model.CurrentDir
-	t.ErrorFile = model.SyncError
-	if model.Err != nil {
-		t.Err = model.Err.Error()
-	}
-	return t
+func NewScanLibraryDetail(output *services.ScanTaskOutput) (*ScanLibrarySerialize, error) {
+	return &ScanLibrarySerialize{
+		Name:       output.Name,
+		Total:      output.Total,
+		Current:    output.Current,
+		CurrentDir: output.CurrentDir,
+		ErrorFile:  output.SyncError,
+		LibraryId:  output.LibraryId,
+		TargetDir:  output.TargetDir,
+	}, nil
 }
 
 type MatchLibrarySerialize struct {
@@ -88,16 +83,30 @@ type MatchLibrarySerialize struct {
 	CurrentDir string `json:"currentDir"`
 }
 
-func SerializeMatchTask(dataModel interface{}) MatchLibrarySerialize {
-	model := dataModel.(*services.MatchLibraryTagTask)
-	t := MatchLibrarySerialize{}
-	t.TargetDir = model.TargetDir
-	t.LibraryId = model.LibraryId
-	t.Name = model.Name
-	t.Total = model.Total
-	t.Current = model.Current
-	t.CurrentDir = model.CurrentDir
-	return t
+func SerializeMatchTask(output *services.MatchLibraryTagTaskOutput) (*MatchLibrarySerialize, error) {
+	t := &MatchLibrarySerialize{}
+	t.TargetDir = output.TargetDir
+	t.LibraryId = output.LibraryId
+	t.Name = output.Name
+	t.Total = output.Total
+	t.Current = output.Current
+	t.CurrentDir = output.CurrentDir
+	return t, nil
+}
+
+type RemoveLibrarySerializer struct {
+	LibraryId int    `json:"libraryId"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+}
+
+func SerializeRemoveLibraryTask(output *services.RemoveLibraryTaskOutput) (*RemoveLibrarySerializer, error) {
+	t := &RemoveLibrarySerializer{
+		LibraryId: int(output.Library.ID),
+		Name:      output.Library.Name,
+		Path:      output.Library.Path,
+	}
+	return t, nil
 }
 
 type RenameLibraryBookDirectorySerialize struct {
@@ -127,13 +136,12 @@ type MoveBookSerializer struct {
 	Current    int    `json:"current"`
 }
 
-func SerializeMoveBookTask(dataModel interface{}) MoveBookSerializer {
-	model := dataModel.(*services.MoveBookTask)
+func SerializeMoveBookTask(output *services.MoveBookTaskOutput) (*MoveBookSerializer, error) {
 	t := MoveBookSerializer{}
-	t.Total = model.Total
-	t.Current = model.Current
-	t.CurrentDir = model.CurrentDir
-	return t
+	t.Total = output.Total
+	t.Current = output.Current
+	t.CurrentDir = output.CurrentDir
+	return &t, nil
 }
 
 type RemoveEmptyTagSerializer struct {
@@ -142,15 +150,15 @@ type RemoveEmptyTagSerializer struct {
 	Current        int    `json:"current"`
 }
 
-func SerializeRemoveEmptyTagTask(dataModel interface{}) RemoveEmptyTagSerializer {
-	model := dataModel.(*services.RemoveEmptyTagTask)
-	t := RemoveEmptyTagSerializer{}
-	t.Total = model.Total
-	t.Current = model.Current
-	if model.CurrentTag != nil {
-		t.CurrentTagName = model.CurrentTag.Name
+func SerializeRemoveEmptyTagTask(output *services.RemoveEmptyTagTaskOutput) (*RemoveEmptyTagSerializer, error) {
+	t := &RemoveEmptyTagSerializer{
+		Total:   output.Total,
+		Current: output.Current,
 	}
-	return t
+	if output.CurrentTag != nil {
+		t.CurrentTagName = output.CurrentTag.Name
+	}
+	return t, nil
 }
 
 type WriteBookMetaSerializer struct {
@@ -159,60 +167,31 @@ type WriteBookMetaSerializer struct {
 	CurrentBook string `json:"currentBook"`
 }
 
-func SerializeWriteBookMetaTask(dataModel interface{}) WriteBookMetaSerializer {
-	model := dataModel.(*services.WriteBookMetaTask)
-	t := WriteBookMetaSerializer{
-		Total:       model.Total,
-		Current:     model.Total,
-		CurrentBook: model.CurrentBook,
+func SerializeWriteBookMetaTask(output *services.WriteBookMetaTaskOutput) (*WriteBookMetaSerializer, error) {
+	t := &WriteBookMetaSerializer{
+		Total:       output.Total,
+		Current:     output.Total,
+		CurrentBook: output.CurrentBook,
 	}
-	return t
-}
-
-type RemoveLibrarySerializer struct {
-	LibraryId int    `json:"libraryId"`
-	Name      string `json:"name"`
-	Path      string `json:"path"`
-	Err       string `json:"err"`
-}
-
-func SerializeRemoveLibraryTask(dataModel interface{}) RemoveLibrarySerializer {
-	model := dataModel.(*services.RemoveLibraryTask)
-	t := RemoveLibrarySerializer{
-		LibraryId: model.LibraryId,
-	}
-	if model.Err != nil {
-		t.Err = model.Err.Error()
-	}
-	if model.Library != nil {
-		t.Name = model.Library.Name
-		t.Path = model.Library.Path
-	}
-	return t
+	return t, nil
 }
 
 type GenerateThumbnailsSerializer struct {
-	LibraryId   int                      `json:"libraryId"`
-	Total       int64                    `json:"total"`
-	Current     int64                    `json:"current"`
-	Skip        int64                    `json:"skip"`
-	Err         error                    `json:"err"`
-	FileErrors  []services.GenerateError `json:"fileErrors"`
-	LibraryName string                   `json:"libraryName"`
+	LibraryId  int                      `json:"libraryId"`
+	Total      int64                    `json:"total"`
+	Current    int64                    `json:"current"`
+	Skip       int64                    `json:"skip"`
+	Err        error                    `json:"err"`
+	FileErrors []services.GenerateError `json:"fileErrors"`
 }
 
-func SerializeGenerateThumbnailsTask(dataModel interface{}) GenerateThumbnailsSerializer {
-	model := dataModel.(*services.GenerateThumbnailTask)
-	t := GenerateThumbnailsSerializer{
-		LibraryId:  model.LibraryId,
-		Total:      model.Total,
-		Current:    model.Current,
-		Skip:       model.Skip,
-		Err:        model.Err,
-		FileErrors: model.FileErrors,
+func SerializeGenerateThumbnailsTask(output *services.GenerateThumbnailTaskOutput) (*GenerateThumbnailsSerializer, error) {
+	t := &GenerateThumbnailsSerializer{
+		LibraryId:  output.LibraryId,
+		Total:      output.Total,
+		Current:    output.Current,
+		Skip:       output.Skip,
+		FileErrors: output.FileErrors,
 	}
-	if model.Library != nil {
-		t.LibraryName = model.Library.Name
-	}
-	return t
+	return t, nil
 }

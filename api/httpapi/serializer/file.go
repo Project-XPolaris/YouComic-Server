@@ -17,13 +17,27 @@ func (t *FileItemSerializer) Serializer(dataModel interface{}, context map[strin
 	rootDir := context["root"].(string)
 	if data.IsDir() {
 		t.Type = "Directory"
-	}else{
+	} else {
 		t.Type = "File"
 	}
 	t.Ext = filepath.Ext(data.Name())
 	t.Name = data.Name()
-	t.Path = filepath.Join(rootDir,data.Name())
+	t.Path = filepath.Join(rootDir, data.Name())
 	return nil
 }
 
+type BaseFileItemTemplate struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
 
+func (t *BaseFileItemTemplate) Assign(info os.DirEntry, rootPath string) {
+	if info.IsDir() {
+		t.Type = "Directory"
+	} else {
+		t.Type = "File"
+	}
+	t.Name = info.Name()
+	t.Path = filepath.Join(rootPath, info.Name())
+}

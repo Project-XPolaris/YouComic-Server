@@ -327,10 +327,11 @@ var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Conte
 }
 
 var ClearEmptyTagHandler haruka.RequestHandler = func(context *haruka.Context) {
-	_, err := services.DefaultTaskPool.NewRemoveEmptyTagTask()
+	task, err := services.DefaultTaskPool.NewRemoveEmptyTagTask()
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
+	go task.Start()
 	ServerSuccessResponse(context)
 }

@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"github.com/allentom/haruka"
+	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
+	"github.com/projectxpolaris/youcomic/module"
 )
 
 func SetRouter(engine *haruka.Engine) {
@@ -81,6 +83,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.POST("/scan/tasks", NewScannerHandler)
 	engine.Router.POST("/scan/stop", StopLibraryScanHandler)
 	engine.Router.POST("/task/bookMove", NewMoveBookTaskHandler)
+	engine.Router.GET("/task", module.Task.ListHandler)
 	engine.Router.GET("/explore/read", ReadDirectoryHandler)
 	engine.Router.GET("/thumbnail/status", GetThumbnailGeneratorStatus)
 	engine.Router.GET("/oauth/youauth", generateAccessCodeWithYouAuthHandler)
@@ -89,4 +92,11 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.GET("/oauth/token", youAuthTokenHandler)
 	engine.Router.GET("/info", serviceInfoHandler)
 	engine.Router.GET("/ws", WShandler)
+	module.Task.AddConverter(serializer.NewScanLibraryDetail)
+	module.Task.AddConverter(serializer.SerializeMatchTask)
+	module.Task.AddConverter(serializer.SerializeRemoveLibraryTask)
+	module.Task.AddConverter(serializer.SerializeGenerateThumbnailsTask)
+	module.Task.AddConverter(serializer.SerializeMoveBookTask)
+	module.Task.AddConverter(serializer.SerializeWriteBookMetaTask)
+	module.Task.AddConverter(serializer.SerializeRemoveEmptyTagTask)
 }

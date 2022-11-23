@@ -167,5 +167,5 @@ func ScanLibrary(id uint, option ScanLibraryOption) (*ScanTask, error) {
 		return nil, err
 	}
 	option.Library = &library
-	return DefaultTaskPool.NewScanLibraryTask(option)
+	return NewScanLibraryTask(option)
 }
