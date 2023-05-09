@@ -10,3 +10,4 @@ scripts/
 *.exe
 release-linux/
 /pack-output
+._*

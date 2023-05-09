@@ -86,6 +86,8 @@ type BooksQueryBuilder struct {
 	RandomQueryFilter
 	TagNameSearch     string `hsource:"query" hname:"tagNameSearch"`
 	TagNameSearchType string `hsource:"query" hname:"tagNameSearchType"`
+	PageCountMax      int    `hsource:"query" hname:"pageMax"`
+	PageCountMin      int    `hsource:"query" hname:"pageMin"`
 }
 
 type EndTimeQueryFilter struct {
@@ -213,7 +215,7 @@ func (f *BookCollectionQueryFilter) SetCollectionQueryFilter(collectionIds ...in
 	}
 }
 func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
-	query := database.Instance
+	query := database.Instance.Table("books")
 	query = ApplyFilters(b, query)
 	if b.random {
 		if _, ok := query.Config.Dialector.(*mysql.Dialector); ok {
@@ -232,8 +234,19 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 			query = query.Where("tags.type = ?", b.TagNameSearchType)
 		}
 	}
+	if b.PageCountMax > 0 || b.PageCountMin > 0 {
+		if b.PageCountMax == 0 {
+			b.PageCountMax = 9999999
+		}
+		pageCountSubQuery := database.Instance.Table("pages").Select("book_id, count(pages.id) as page_count").Group("pages.book_id")
+		query.
+			Joins("left join (?) as pc on pc.book_id = books.id", pageCountSubQuery).
+			Where("pc.page_count >= ? and pc.page_count <= ?", b.PageCountMin, b.PageCountMax)
+	}
+	// add sub query for page_count
+
 	var count int64 = 0
-	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Preload("Tags", "type in (?)", []string{"artist", "series", "theme", "translator"}).Find(models).Offset(-1).Count(&count).Error
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Preload("Tags", "type in (?)", []string{"artist", "series", "theme", "translator"}).Preload("Page").Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
 		return 0, nil
