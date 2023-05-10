@@ -66,3 +66,28 @@ func (f UserIdFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 func (f *UserIdFilter) SetUserIdFilter(userIds ...interface{}) {
 	f.userId = append(f.userId, userIds...)
 }
+
+func CreateHistoryByBook(bookId uint, pagePos uint, userId uint) (*model.History, error) {
+	book := model.Book{}
+	database.Instance.First(&book, bookId)
+	if book.ID == 0 {
+		return nil, fmt.Errorf("book not found")
+	}
+	var history model.History
+	database.Instance.Where(&model.History{BookId: bookId, UserId: userId}).First(&history)
+	if history.ID != 0 {
+		database.Instance.Model(&history).Update("page_pos", pagePos)
+		return &history, nil
+	}
+	history = model.History{
+		BookId:  bookId,
+		PagePos: pagePos,
+		UserId:  userId,
+	}
+
+	err := database.Instance.Create(&history).Error
+	if err != nil {
+		return nil, err
+	}
+	return &history, nil
+}

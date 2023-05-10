@@ -29,6 +29,7 @@ type HistoryWithBookTemplate struct {
 	ID        uint             `json:"id"`
 	UserId    int              `json:"user_id"`
 	BookId    int              `json:"book_id"`
+	PagePos   int              `json:"page_pos"`
 	Book      BaseBookTemplate `json:"book"`
 	CreatedAt time.Time        `json:"created_at"`
 }

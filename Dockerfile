@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.18
+ARG GOLANG_VERSION=1.19
 FROM golang:${GOLANG_VERSION}-buster as builder
 ARG GOPROXY=https://goproxy.cn
 WORKDIR ${GOPATH}/src/github.com/projectxpolaris/youcomic

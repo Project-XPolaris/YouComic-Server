@@ -76,3 +76,33 @@ var DeleteHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 	ServerSuccessResponse(context)
 }
+
+type CreateHistoryRequestBody struct {
+	BookId  int `json:"bookId"`
+	PagePos int `json:"pagePos"`
+}
+
+var CreateHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var err error
+	// get user id
+	userClaimsInterface, _ := context.Param["claim"]
+	userClaim := userClaimsInterface.(*model.User)
+
+	// read request body
+	requestBody := &CreateHistoryRequestBody{}
+	err = context.ParseJson(requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.JsonParseError, nil)
+		return
+	}
+
+	history, err := services.CreateHistoryByBook(uint(requestBody.BookId), uint(requestBody.PagePos), userClaim.GetUserId())
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	serializer := serializer.HistoryWithBookTemplate{}
+	serializer.Serializer(*history, map[string]interface{}{})
+	context.JSON(serializer)
+
+}

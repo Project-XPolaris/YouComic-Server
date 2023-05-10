@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type History struct {
 	gorm.Model
-	BookId uint
-	UserId uint
+	BookId  uint
+	UserId  uint
+	PagePos uint
 }

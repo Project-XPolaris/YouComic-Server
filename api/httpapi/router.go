@@ -62,6 +62,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.PUT("/user/password", ChangeUserPasswordHandler)
 	engine.Router.PUT("/user/nickname", ChangeUserNicknameHandler)
 	engine.Router.GET("/histories", HistoryListHandler)
+	engine.Router.POST("/histories", CreateHistoryHandler)
 	engine.Router.DELETE("/history/{id:[0-9]+}", DeleteHistoryHandler)
 	engine.Router.GET("/account/histories", UserHistoryHandler)
 	engine.Router.DELETE("/account/histories", DeleteUserHistoryHandler)
