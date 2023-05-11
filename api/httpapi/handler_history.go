@@ -16,7 +16,12 @@ var HistoryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 	queryBuilder.SetUserIdFilter(userClaim.GetUserId())
 
 	withBook := context.GetQueryString("withBook")
-
+	err := context.BindingInput(queryBuilder)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
 	view := ListView{
 		Context:      context,
 		Pagination:   &DefaultPagination{},

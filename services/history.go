@@ -25,11 +25,15 @@ type HistoryQueryBuilder struct {
 	IdQueryFilter
 	OrderQueryFilter
 	UserIdFilter
+	BookId int `hsource:"query" hname:"bookId"`
 }
 
 func (b *HistoryQueryBuilder) ReadModels() (int64, interface{}, error) {
 	query := database.Instance
 	query = ApplyFilters(b, query)
+	if b.BookId != 0 {
+		query = query.Where("book_id = ?", b.BookId)
+	}
 	var count int64 = 0
 	md := make([]model.History, 0)
 	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Find(&md).Offset(-1).Count(&count).Error
