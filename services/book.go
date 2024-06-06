@@ -246,7 +246,7 @@ func (b *BooksQueryBuilder) ReadModels(models interface{}) (int64, error) {
 	// add sub query for page_count
 
 	var count int64 = 0
-	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Preload("Tags", "type in (?)", []string{"artist", "series", "theme", "translator"}).Preload("Page").Find(models).Offset(-1).Count(&count).Error
+	err := query.Limit(b.getLimit()).Offset(b.getOffset()).Preload("Tags", "type not in (?)", []string{"title"}).Preload("Page").Find(models).Offset(-1).Count(&count).Error
 
 	if err == sql.ErrNoRows {
 		return 0, nil

@@ -89,7 +89,7 @@ func (s *ThumbnailService) GetQueueStatus() *ThumbnailServiceStatus {
 	return &s.Status
 }
 
-//generate thumbnail image
+// generate thumbnail image
 func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string, error) {
 	var err error
 	defer func() {
@@ -119,6 +119,21 @@ func GenerateCoverThumbnail(coverImageFilePath string, storePath string) (string
 	}
 	return thumbnailImagePath, nil
 }
+
+func DirectUploadCoverThumbnail(coverFilePath string) (string, error) {
+	coverSourceFile, err := os.Open(coverFilePath)
+	if err != nil {
+		return "", err
+	}
+	storage := plugin.GetDefaultStorage()
+	thumbnailImagePath := fmt.Sprintf("cover_thumbnail%s", filepath.Ext(coverFilePath))
+	err = storage.Upload(context.Background(), coverSourceFile, plugin.GetDefaultBucket(), thumbnailImagePath)
+	if err != nil {
+		return "", err
+	}
+	return thumbnailImagePath, nil
+}
+
 func ResizeImageWithSizeCap(input string, targetSizeCap int64) ([]byte, error) {
 	sourceImageFile, err := os.Open(input)
 	if err != nil {

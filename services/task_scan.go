@@ -12,6 +12,29 @@ import (
 	"path/filepath"
 )
 
+type BookFolderMeta struct {
+	OriginalName string               `json:"originalName"`
+	Title        string               `json:"title"`
+	Cover        string               `json:"cover"`
+	Tags         []interface{}        `json:"tags"`
+	Pages        []BookFolderMetaPage `json:"pages"`
+	Tagger       []struct {
+		TokenString string  `json:"token_string"`
+		Label       string  `json:"label"`
+		AverageProb float64 `json:"average_prob"`
+		StartOffset int     `json:"start_offset"`
+		EndOffset   int     `json:"end_offset"`
+	} `json:"tagger"`
+}
+type BookFolderMetaPage struct {
+	Original  string `json:"original"`
+	Thumbnail struct {
+		Large  string `json:"large"`
+		Medium string `json:"medium"`
+		Small  string `json:"small"`
+	} `json:"thumbnail,omitempty"`
+	Dimensions []int `json:"dimensions"`
+}
 type SyncError struct {
 	Path  string `json:"path"`
 	Name  string `json:"name"`
@@ -150,6 +173,7 @@ func (t *ScanTask) scannerDir() {
 		t.TaskOutput.Current += 1
 		t.TaskOutput.CurrentDir = filepath.Base(item.DirPath)
 		relativePath, _ := filepath.Rel(t.TaskOutput.TargetDir, item.DirPath)
+		// if the book is exist
 		isExist := false
 		for _, book := range library.Books {
 			if book.Path == relativePath {
@@ -160,19 +184,38 @@ func (t *ScanTask) scannerDir() {
 		if isExist {
 			return
 		}
-		// try to find out meta file
-		metaFilePath := filepath.Join(item.DirPath, "youcomic_meta.json")
 		meta := BookMeta{}
-		if utils.CheckFileExist(metaFilePath) {
-			jsonFile, err := os.Open(metaFilePath)
-			byteValue, _ := ioutil.ReadAll(jsonFile)
-			err = json.Unmarshal(byteValue, &meta)
-			if err != nil {
-				t.AbortFileError(item.DirPath, err)
+		metaFolder := BookFolderMeta{}
+
+		// if it has meta folder
+		meta_folder_path := filepath.Join(item.DirPath, "youcomic_meta")
+		if utils.CheckFileExist(meta_folder_path) {
+			metaFolderFilePath := filepath.Join(meta_folder_path, "youcomic_meta.json")
+			if utils.CheckFileExist(metaFolderFilePath) {
+				jsonFile, err := os.Open(metaFolderFilePath)
+				byteValue, _ := ioutil.ReadAll(jsonFile)
+				err = json.Unmarshal(byteValue, &metaFolder)
+				if err != nil {
+					t.AbortFileError(item.DirPath, err)
+					jsonFile.Close()
+					return
+				}
 				jsonFile.Close()
-				return
 			}
-			jsonFile.Close()
+		} else {
+			// try to find out meta file
+			metaFilePath := filepath.Join(item.DirPath, "youcomic_meta.json")
+			if utils.CheckFileExist(metaFilePath) {
+				jsonFile, err := os.Open(metaFilePath)
+				byteValue, _ := ioutil.ReadAll(jsonFile)
+				err = json.Unmarshal(byteValue, &meta)
+				if err != nil {
+					t.AbortFileError(item.DirPath, err)
+					jsonFile.Close()
+					return
+				}
+				jsonFile.Close()
+			}
 		}
 		book := model.Book{
 			Name:      filepath.Base(item.DirPath),
@@ -183,29 +226,37 @@ func (t *ScanTask) scannerDir() {
 		if len(meta.OriginalName) > 0 {
 			book.OriginalName = meta.OriginalName
 		}
+		if len(metaFolder.OriginalName) > 0 {
+			book.OriginalName = metaFolder.OriginalName
+		}
 		if len(meta.Cover) > 0 && utils.CheckFileExist(filepath.Join(item.DirPath, meta.Cover)) {
 			book.Cover = meta.Cover
 		}
+		if len(metaFolder.Cover) > 0 && utils.CheckFileExist(filepath.Join(item.DirPath, metaFolder.Cover)) {
+			book.Cover = metaFolder.Cover
+		}
 		if len(meta.Title) > 0 {
 			book.Name = meta.Title
+		}
+		if len(metaFolder.Title) > 0 {
+			book.Name = metaFolder.Title
 		}
 		err = database.Instance.Save(&book).Error
 		if err != nil {
 			t.AbortFileError(item.DirPath, err)
 			return
 		}
-		thumbnailsSource := make([]string, 0)
-		thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TaskOutput.TargetDir, book.Path, book.Cover))
+		//thumbnailsSource := make([]string, 0)
+		//thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TaskOutput.TargetDir, book.Path, book.Cover))
 		// for pages
 		savePages := make([]model.Page, 0)
-
 		for idx, pageName := range item.Pages {
 			page := model.Page{
 				Path:      pageName,
 				BookId:    int(book.Model.ID),
 				PageOrder: idx + 1,
 			}
-			thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TaskOutput.TargetDir, book.Path, pageName))
+			//thumbnailsSource = append(thumbnailsSource, filepath.Join(t.TaskOutput.TargetDir, book.Path, pageName))
 			savePages = append(savePages, page)
 
 		}
@@ -214,7 +265,7 @@ func (t *ScanTask) scannerDir() {
 			t.AbortFileError(item.DirPath, err)
 			return
 		}
-		// for tags
+		// for meta tags
 		if meta.Tags != nil && len(meta.Tags) > 0 {
 			tags := make([]*model.Tag, 0)
 			for _, metaTag := range meta.Tags {
@@ -229,14 +280,44 @@ func (t *ScanTask) scannerDir() {
 				return
 			}
 		}
-
-		coverThumbnailStorePath := utils.GetThumbnailStorePath(book.ID)
-		for _, sourcePath := range thumbnailsSource {
-			_, err := GenerateCoverThumbnail(sourcePath, coverThumbnailStorePath)
-			if err == nil {
-				break
+		// for folder meta
+		if metaFolder.Tagger != nil && len(metaFolder.Tagger) > 0 {
+			tags := make([]*model.Tag, 0)
+			for _, metaTag := range metaFolder.Tagger {
+				tags = append(tags, &model.Tag{
+					Name: metaTag.TokenString,
+					Type: metaTag.Label,
+				})
+			}
+			err = AddOrCreateTagToBook(&book, tags, FillEmpty)
+			if err != nil {
+				t.AbortFileError(item.DirPath, err)
+				return
 			}
 		}
+
+		existedCoverThumbnailPath := ""
+
+		if metaFolder.Cover != "" {
+			var coverPageInfo *BookFolderMetaPage
+			for _, page := range metaFolder.Pages {
+				if page.Original == metaFolder.Cover {
+					coverPageInfo = &page
+					break
+				}
+			}
+			if coverPageInfo != nil && coverPageInfo.Thumbnail.Large != "" {
+				existedCoverThumbnailPath = filepath.Join(item.DirPath, coverPageInfo.Thumbnail.Large)
+			}
+		}
+		if existedCoverThumbnailPath != "" {
+			DirectUploadCoverThumbnail(existedCoverThumbnailPath)
+		} else {
+			coverThumbnailStorePath := utils.GetThumbnailStorePath(book.ID)
+			sourcePath := filepath.Join(t.TaskOutput.TargetDir, book.Path, book.Cover)
+			GenerateCoverThumbnail(sourcePath, coverThumbnailStorePath)
+		}
+
 	})
 	t.Status = StatusComplete
 	if t.Option.OnDone != nil {

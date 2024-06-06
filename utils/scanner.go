@@ -22,6 +22,10 @@ func (s *Scanner) Scan(onScan func(result ScannerResult)) error {
 	err := godirwalk.Walk(s.TargetPath, &godirwalk.Options{
 		AllowNonDirectory: false,
 		PostChildrenCallback: func(osPathname string, directoryEntry *godirwalk.Dirent) error {
+			// if has youcomic_meta folder
+			if strings.Index(osPathname, "youcomic_meta") != -1 {
+				return godirwalk.SkipThis
+			}
 			fileNames, _ := ioutil.ReadDir(osPathname)
 			targetCount := 0
 			coverName := ""

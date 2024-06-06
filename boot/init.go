@@ -147,6 +147,10 @@ func SetupApplication() error {
 		return err
 	}
 	// check thumbnails
+	err = services.InitAiTaggerService()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

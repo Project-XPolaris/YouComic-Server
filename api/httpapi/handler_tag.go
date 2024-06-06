@@ -311,8 +311,9 @@ var AddTagBooksToTag haruka.RequestHandler = func(context *haruka.Context) {
 }
 
 type AnalyzeTagFromTextRequestBody struct {
-	Text    string `json:"text"`
-	Pattern string `json:"pattern"`
+	Text    string   `json:"text"`
+	Pattern string   `json:"pattern"`
+	Texts   []string `json:"texts"`
 }
 
 var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Context) {
@@ -323,6 +324,17 @@ var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Conte
 		return
 	}
 	tags := services.MatchTag(requestBody.Text, requestBody.Pattern)
+	context.JSONWithStatus(tags, http.StatusOK)
+}
+
+var BatchAnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var requestBody AnalyzeTagFromTextRequestBody
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	tags := services.BatchMatchTag(requestBody.Texts, requestBody.Pattern)
 	context.JSONWithStatus(tags, http.StatusOK)
 }
 

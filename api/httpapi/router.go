@@ -36,6 +36,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.DELETE("/tag/{id:[0-9]+}/subscription", RemoveSubscriptionUser)
 	engine.Router.DELETE("/tag/{id:[0-9]+}/books", RemoveBooksFromTagHandler)
 	engine.Router.POST("/tags/match", AnalyzeTagFromTextHandler)
+	engine.Router.POST("/tags/batch-match", BatchAnalyzeTagFromTextHandler)
 	engine.Router.POST("/tags/clean", ClearEmptyTagHandler)
 	engine.Router.GET("/tag/{id:[0-9]+}", GetTag)
 	engine.Router.POST("/user/register", RegisterUserHandler)

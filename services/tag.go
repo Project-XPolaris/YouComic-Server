@@ -12,6 +12,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"regexp"
+	"strings"
 )
 
 type TagQueryBuilder struct {
@@ -203,7 +204,7 @@ func RemoveTagSubscription(tagId uint, users ...interface{}) error {
 	return err
 }
 
-//get tag with tag id
+// get tag with tag id
 func GetTagById(id uint) (*model.Tag, error) {
 	tag := &model.Tag{Model: gorm.Model{ID: id}}
 	err := database.Instance.Find(tag).Error
@@ -292,6 +293,14 @@ func TagAdd(fromTagId uint, toTargetId uint) error {
 	return nil
 }
 
+type MatchRule struct {
+	Scope  string `json:"scope"`
+	Value1 string `json:"value1"`
+	Value2 string `json:"value2"`
+	Value3 string `json:"value3"`
+	Action string `json:"action"`
+}
+
 type RawTag struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
@@ -299,12 +308,23 @@ type RawTag struct {
 	Source string `json:"source"`
 }
 
+var AiTagMapping = map[string]string{
+	"ART": "artist",
+	"SOC": "societies",
+	"SER": "series",
+	"THE": "theme",
+	"TRA": "translator",
+	"TIT": "name",
+	"TPE": "type",
+	"LNG": "lang",
+	"MAG": "magazine",
+}
+
 func MatchTag(raw string, pattern string) []*RawTag {
 	var result *utils.MatchTagResult
 	if len(pattern) > 0 {
 		rex := regexp.MustCompile(pattern)
 		result = utils.MatchAllResult(rex, raw)
-
 	} else {
 		result = utils.MatchName(raw)
 	}
@@ -363,7 +383,60 @@ func MatchTag(raw string, pattern string) []*RawTag {
 	for _, tagString := range rawTagStrings {
 		tags = append(tags, &RawTag{Name: tagString, Type: "", Source: "raw", ID: xid.New().String()})
 	}
+	if AiTaggerInstance != nil {
+		response, err := AiTaggerInstance.predict(raw)
+		if err != nil {
+			logrus.Info(err)
+		}
+		if response != nil {
+			for _, tag := range response {
+				text := tag.Text
+				text = strings.TrimSpace(text)
+				label := tag.Label
+				// if label not in mapping
+				if _, ok := AiTagMapping[label]; !ok {
+					continue
+				}
+				tags = append(tags, &RawTag{Name: text, Type: AiTagMapping[label], Source: "ai", ID: xid.New().String()})
+			}
+		}
+	}
 	return tags
+}
+
+type BatchMatchResult struct {
+	Result []*RawTag `json:"result"`
+	Text   string    `json:"text"`
+}
+
+func BatchMatchTag(raws []string, pattern string) []*BatchMatchResult {
+	var results = make([]*BatchMatchResult, 0)
+	if AiTaggerInstance != nil {
+		for _, raw := range raws {
+			resultItem := &BatchMatchResult{
+				Text:   raw,
+				Result: []*RawTag{},
+			}
+			response, err := AiTaggerInstance.predict(raw)
+			if err != nil {
+				logrus.Info(err)
+			}
+			if response != nil {
+				for _, tag := range response {
+					text := tag.Text
+					text = strings.TrimSpace(text)
+					label := tag.Label
+					// if label not in mapping
+					if _, ok := AiTagMapping[label]; !ok {
+						continue
+					}
+					resultItem.Result = append(resultItem.Result, &RawTag{Name: text, Type: AiTagMapping[label], Source: "ai", ID: xid.New().String()})
+				}
+			}
+			results = append(results, resultItem)
+		}
+	}
+	return results
 }
 
 func ClearEmptyTag() error {
