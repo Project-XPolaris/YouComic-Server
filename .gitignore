@@ -11,3 +11,4 @@ scripts/
 release-linux/
 /pack-output
 ._*
+data/storage/

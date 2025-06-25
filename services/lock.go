@@ -2,18 +2,20 @@ package services
 
 import (
 	"errors"
-	"github.com/ahmetb/go-linq/v3"
 	"sync"
+
+	"github.com/ahmetb/go-linq/v3"
 )
 
 var DefaultLibraryLockPool = LibraryLock{LockLibraryIds: []uint{}}
 var LibraryLockError = errors.New("library is locked")
+
 type LibraryLock struct {
 	LockLibraryIds []uint
 	sync.Mutex
 }
 
-func (l *LibraryLock) TryToLock(libraryId uint) bool{
+func (l *LibraryLock) TryToLock(libraryId uint) bool {
 	l.Lock()
 	defer l.Unlock()
 	for _, id := range l.LockLibraryIds {

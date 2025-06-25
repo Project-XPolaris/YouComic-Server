@@ -14,6 +14,7 @@ type User struct {
 	History          []*History   `gorm:"foreignkey:UserId"`
 	OwnCollection    []Collection `gorm:"foreignkey:Owner"`
 	SubscriptionTags []*Tag       `gorm:"many2many:user_subscriptions;"`
+	Uid              string
 }
 
 func (u *User) GetUserId() uint {
