@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/allentom/harukap"
 	"github.com/allentom/harukap/cli"
+	"github.com/allentom/harukap/plugins/nacos"
 	"github.com/projectxpolaris/youcomic/api/httpapi"
 	"github.com/projectxpolaris/youcomic/boot"
 	"github.com/projectxpolaris/youcomic/config"
@@ -28,6 +30,15 @@ func main() {
 	plugin.CreateDefaultYouPlusPlugin()
 	appEngine.UsePlugin(plugin.DefaultYouPlusPlugin)
 	appEngine.UsePlugin(database.DefaultPlugin)
+	// init nacos (optional) BEFORE youauth plugins, so they can discover it
+	logger := plugin.DefaultYouLogPlugin.Logger.NewScope("main")
+	nacosPlugin, err := nacos.NewNacosPluginFromYAML(appEngine.ConfigProvider, appEngine.ConfigProvider.Manager.GetString("application"), 7600)
+	if err == nil && nacosPlugin != nil {
+		plugin.DefaultNacosPlugin = nacosPlugin
+		appEngine.UsePlugin(nacosPlugin)
+	} else if err != nil {
+		logger.Info(fmt.Sprintf("init nacos plugin failed: %v", err))
+	}
 	rawAuth := config.DefaultConfigProvider.Manager.GetStringMap("auth")
 	for key, _ := range rawAuth {
 		rawAuthContent := config.DefaultConfigProvider.Manager.GetString(fmt.Sprintf("auth.%s.type", key))
