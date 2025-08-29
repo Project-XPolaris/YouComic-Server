@@ -69,6 +69,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.DELETE("/account/histories", DeleteUserHistoryHandler)
 	engine.Router.GET("/content/book/{id:[0-9]+}/{fileName}", BookContentHandler)
 	engine.Router.POST("/libraries", CreateLibraryHandler)
+	engine.Router.POST("/libraries/batchCreate", LibrariesBatchCreateHandler)
 	engine.Router.POST("/library/import", ImportLibraryHandler)
 	engine.Router.POST("/library/batch", LibraryBatchHandler)
 	engine.Router.DELETE("/library/{id:[0-9]+}", DeleteLibraryHandler)
@@ -78,6 +79,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.POST("/library/{id:[0-9]+}/task/writemeta", WriteBookMetaTaskHandler)
 	engine.Router.PUT("/library/{id:[0-9]+}/books/rename", NewRenameLibraryBookDirectoryHandler)
 	engine.Router.GET("/library/{id:[0-9]+}", LibraryObjectHandler)
+	engine.Router.GET("/library/{id:[0-9]+}/scan/histories", ListLibraryScanHistories)
 	engine.Router.GET("/libraries", LibraryListHandler)
 	engine.Router.GET("/dashboard/book/daily", BookCountDailySummaryHandler)
 	engine.Router.GET("/dashboard/tag/books", TagBooksCountHandler)
@@ -94,6 +96,19 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.GET("/oauth/token", youAuthTokenHandler)
 	engine.Router.GET("/info", serviceInfoHandler)
 	engine.Router.GET("/ws", WShandler)
+
+	// LLM配置管理API
+	engine.Router.GET("/llm/config", GetLLMConfigHandler)
+	engine.Router.PUT("/llm/config", UpdateLLMConfigHandler)
+	engine.Router.POST("/llm/config/reload", ReloadLLMConfigHandler)
+	engine.Router.POST("/llm/config/save", SaveLLMConfigHandler)
+	engine.Router.GET("/llm/status", GetLLMStatusHandler)
+	engine.Router.POST("/llm/test", TestLLMConnectionHandler)
+
+	// LLM模板渲染API
+	engine.Router.POST("/llm/render", RenderTemplateHandler)
+	engine.Router.GET("/llm/scenarios", GetScenariosHandler)
+
 	module.Task.AddConverter(serializer.NewScanLibraryDetail)
 	module.Task.AddConverter(serializer.SerializeMatchTask)
 	module.Task.AddConverter(serializer.SerializeRemoveLibraryTask)

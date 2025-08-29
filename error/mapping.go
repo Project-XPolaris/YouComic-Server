@@ -5,7 +5,7 @@ import (
 	"github.com/projectxpolaris/youcomic/services"
 )
 
-//error => ApiError
+// error => ApiError
 var errorMapping = map[error]ApiError{
 	JsonParseError:                  parseJsonApiError,
 	UserAuthFailError:               userAuthFailedApiError,
@@ -13,16 +13,19 @@ var errorMapping = map[error]ApiError{
 	RequestPathError:                requestPathApiError,
 	services.UserPasswordInvalidate: invalidatePasswordApiError,
 	services.RecordNotFoundError:    recordNotFoundApiError,
+	LLMPluginNotAvailableError:      llmPluginNotAvailableApiError,
+	LLMConfigNotFoundError:          llmConfigNotFoundApiError,
+	LLMConfigInvalidError:           llmConfigInvalidApiError,
 }
 
-//add error => ApiError mapping
+// add error => ApiError mapping
 func RegisterApiError(err error, apiError ApiError) {
 	errorMapping[err] = apiError
 }
 
-//error + context => ApiError
+// error + context => ApiError
 //
-//generate api error and server response
+// generate api error and server response
 func RaiseApiError(ctx *haruka.Context, err error, context map[string]interface{}) {
 	apiError, exists := errorMapping[err]
 	if !exists {

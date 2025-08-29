@@ -2,6 +2,8 @@ package boot
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/allentom/harukap"
 	youlog2 "github.com/project-xpolaris/youplustoolkit/youlog"
 	"github.com/projectxpolaris/youcomic/application"
@@ -9,7 +11,6 @@ import (
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/services"
-	"os"
 )
 
 var permissionNames = []string{

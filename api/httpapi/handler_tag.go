@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"net/http"
+
 	"github.com/allentom/haruka"
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
 	"github.com/projectxpolaris/youcomic/auth"
@@ -11,7 +13,6 @@ import (
 	"github.com/projectxpolaris/youcomic/validate"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 type CreateTagRequestBody struct {
@@ -311,9 +312,11 @@ var AddTagBooksToTag haruka.RequestHandler = func(context *haruka.Context) {
 }
 
 type AnalyzeTagFromTextRequestBody struct {
-	Text    string   `json:"text"`
-	Pattern string   `json:"pattern"`
-	Texts   []string `json:"texts"`
+	Text         string   `json:"text"`
+	Pattern      string   `json:"pattern"`
+	Texts        []string `json:"texts"`
+	UseLLM       bool     `json:"useLLM"`
+	CustomPrompt string   `json:"customPrompt,omitempty"` // 可选的自定义prompt
 }
 
 var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Context) {
@@ -323,7 +326,7 @@ var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Conte
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	tags := services.MatchTag(requestBody.Text, requestBody.Pattern)
+	tags := services.MatchTag(requestBody.Text, requestBody.Pattern, requestBody.UseLLM, requestBody.CustomPrompt)
 	context.JSONWithStatus(tags, http.StatusOK)
 }
 
@@ -334,7 +337,7 @@ var BatchAnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	tags := services.BatchMatchTag(requestBody.Texts, requestBody.Pattern)
+	tags := services.BatchMatchTag(requestBody.Texts, requestBody.Pattern, requestBody.UseLLM, requestBody.CustomPrompt)
 	context.JSONWithStatus(tags, http.StatusOK)
 }
 

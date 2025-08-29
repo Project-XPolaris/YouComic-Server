@@ -51,6 +51,7 @@ func main() {
 	appEngine.UsePlugin(&plugin.DefaultRegisterPlugin)
 	module.CreateAuthModule()
 	appEngine.UsePlugin(&boot.InitPlugin{})
+	appEngine.UsePlugin(plugin.LLM)
 	appEngine.UsePlugin(plugin.StorageEngine)
 	appEngine.UsePlugin(plugin.ThumbnailEngine)
 	plugin.CreateBaseAuthPlugin()

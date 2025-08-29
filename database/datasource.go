@@ -20,6 +20,7 @@ var DefaultPlugin = &datasource.Plugin{
 			&model.Permission{},
 			&model.History{},
 			&model.Oauth{},
+			&model.ScanHistory{},
 		)
 	},
 }

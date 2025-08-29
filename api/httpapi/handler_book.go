@@ -1,9 +1,20 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"time"
+
 	"github.com/allentom/haruka"
 	"github.com/jinzhu/copier"
 	serializer2 "github.com/projectxpolaris/youcomic/api/httpapi/serializer"
@@ -13,19 +24,12 @@ import (
 	ApplicationError "github.com/projectxpolaris/youcomic/error"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/permission"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/services"
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/projectxpolaris/youcomic/validate"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"io"
-	"mime/multipart"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"regexp"
-	"strconv"
 )
 
 type CreateBookRequestBody struct {
@@ -836,4 +840,366 @@ var GenerateCoverThumbnail haruka.RequestHandler = func(context *haruka.Context)
 		return
 	}
 	ServerSuccessResponse(context)
+}
+
+type AnalyzeBookFolderRequestBody struct {
+	UpdateFields []string `json:"updateFields"` // 指定要更新的字段，如 ["name", "tags"]
+}
+
+type AnalyzeBookFolderResponseBody struct {
+	ID         uint                `json:"id"`
+	FolderName string              `json:"folderName"`
+	Analysis   *BookAnalysisResult `json:"analysis"`
+	MatchTags  []MatchTagResult    `json:"matchTags"`
+	Success    bool                `json:"success"`
+	Message    string              `json:"message"`
+}
+
+type MatchTagResult struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Source string `json:"source"`
+}
+
+type BookAnalysisResult struct {
+	Title      string   `json:"title"`
+	Author     string   `json:"author"`
+	Series     string   `json:"series"`
+	Tags       []string `json:"tags"`
+	Genre      string   `json:"genre"`
+	Volume     string   `json:"volume"`
+	Chapter    string   `json:"chapter"`
+	Language   string   `json:"language"`
+	Publisher  string   `json:"publisher"`
+	Year       string   `json:"year"`
+	Confidence float64  `json:"confidence"`
+	Reasoning  string   `json:"reasoning"`
+}
+
+// analyze book folder name using LLM
+//
+// path: /book/:id/analyze-folder
+//
+// method: post
+var AnalyzeBookFolderHandler haruka.RequestHandler = func(harukaCtx *haruka.Context) {
+	id, err := GetLookUpId(harukaCtx, "id")
+	if err != nil {
+		ApiError.RaiseApiError(harukaCtx, ApiError.RequestPathError, nil)
+		return
+	}
+
+	var claims auth.JwtClaims
+	if _, ok := harukaCtx.Param["claim"]; ok {
+		claims = harukaCtx.Param["claim"].(*model.User)
+	} else {
+		ApiError.RaiseApiError(harukaCtx, ApplicationError.UserAuthFailError, nil)
+		return
+	}
+
+	// 检查权限 - 需要更新书籍的权限
+	if hasPermission := permission.CheckPermissionAndServerError(harukaCtx,
+		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.GetUserId()},
+	); !hasPermission {
+		return
+	}
+
+	var requestBody AnalyzeBookFolderRequestBody
+	err = DecodeJsonBody(harukaCtx, &requestBody)
+	if err != nil {
+		return
+	}
+
+	// 获取书籍信息
+	book := &model.Book{Model: gorm.Model{ID: uint(id)}}
+	err = services.GetBook(book)
+	if err != nil {
+		logrus.Error(err)
+		ApiError.RaiseApiError(harukaCtx, err, nil)
+		return
+	}
+
+	// 获取LLM客户端
+	llmClient, err := plugin.LLM.GetClient()
+	if err != nil {
+		logrus.Error("LLM plugin not available:", err)
+		harukaCtx.JSONWithStatus(AnalyzeBookFolderResponseBody{
+			ID:         book.ID,
+			FolderName: filepath.Base(book.Path),
+			MatchTags:  []MatchTagResult{},
+			Success:    false,
+			Message:    "LLM功能不可用，请检查配置",
+		}, http.StatusServiceUnavailable)
+		return
+	}
+
+	// 构建LLM分析提示
+	folderName := filepath.Base(book.Path)
+	if folderName == "" || folderName == "." {
+		folderName = book.OriginalName
+	}
+	if folderName == "" {
+		folderName = book.Name
+	}
+
+	prompt := fmt.Sprintf(`请分析以下漫画/书籍文件夹名，提取相关信息。请以JSON格式返回结果，包含以下字段：
+
+文件夹名: %s
+
+请返回JSON格式的分析结果，包含这些字段：
+{
+  "title": "标题",
+  "author": "作者",
+  "series": "系列名",
+  "tags": ["标签1", "标签2"],
+  "genre": "类型/题材",
+  "volume": "卷数",
+  "chapter": "章节",
+  "language": "语言",
+  "publisher": "出版社",
+  "year": "年份",
+  "confidence": 0.8,
+  "reasoning": "分析推理过程"
+}
+
+注意：
+1. 如果某个字段无法确定，请设为空字符串或空数组
+2. confidence表示分析的置信度(0-1之间)
+3. reasoning字段说明你的分析推理过程
+4. 标签应该包括题材、风格、内容特征等
+5. 请尽量从文件夹名中提取有用信息，即使信息不完整也要尽力分析`, folderName)
+
+	// 调用LLM
+	ctx := harukaCtx.Request.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	llmResponse, err := llmClient.GenerateText(ctx, prompt)
+	if err != nil {
+		logrus.Error("LLM analysis failed:", err)
+		harukaCtx.JSONWithStatus(AnalyzeBookFolderResponseBody{
+			ID:         book.ID,
+			FolderName: folderName,
+			MatchTags:  []MatchTagResult{},
+			Success:    false,
+			Message:    fmt.Sprintf("LLM分析失败: %v", err),
+		}, http.StatusInternalServerError)
+		return
+	}
+
+	// 解析LLM响应
+	var analysisResult BookAnalysisResult
+	err = json.Unmarshal([]byte(llmResponse), &analysisResult)
+	if err != nil {
+		// 如果JSON解析失败，尝试从响应中提取JSON
+		jsonStart := -1
+		jsonEnd := -1
+		for i, r := range llmResponse {
+			if r == '{' && jsonStart == -1 {
+				jsonStart = i
+			}
+			if r == '}' {
+				jsonEnd = i + 1
+			}
+		}
+
+		if jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart {
+			jsonStr := llmResponse[jsonStart:jsonEnd]
+			err = json.Unmarshal([]byte(jsonStr), &analysisResult)
+		}
+
+		if err != nil {
+			logrus.Error("Failed to parse LLM response:", err)
+			logrus.Error("LLM response:", llmResponse)
+			harukaCtx.JSONWithStatus(AnalyzeBookFolderResponseBody{
+				ID:         book.ID,
+				FolderName: folderName,
+				MatchTags:  []MatchTagResult{},
+				Success:    false,
+				Message:    "LLM响应解析失败，请检查响应格式",
+			}, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// 更新书籍信息（如果请求中指定了要更新的字段）
+	if len(requestBody.UpdateFields) > 0 {
+		updateColumns := make([]string, 0)
+
+		for _, field := range requestBody.UpdateFields {
+			switch field {
+			case "name":
+				if analysisResult.Title != "" {
+					book.Name = analysisResult.Title
+					updateColumns = append(updateColumns, "Name")
+				}
+			}
+		}
+
+		// 更新书籍基本信息
+		if len(updateColumns) > 0 {
+			err = services.UpdateBook(book, updateColumns...)
+			if err != nil {
+				logrus.Error("Failed to update book:", err)
+				harukaCtx.JSONWithStatus(AnalyzeBookFolderResponseBody{
+					ID:         book.ID,
+					FolderName: folderName,
+					Analysis:   &analysisResult,
+					MatchTags:  []MatchTagResult{},
+					Success:    false,
+					Message:    fmt.Sprintf("更新书籍信息失败: %v", err),
+				}, http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// 处理标签更新
+		if contains(requestBody.UpdateFields, "tags") && len(analysisResult.Tags) > 0 {
+			tags := make([]*model.Tag, 0)
+			for _, tagName := range analysisResult.Tags {
+				if tagName != "" {
+					tags = append(tags, &model.Tag{Name: tagName, Type: "genre"})
+				}
+			}
+			if len(tags) > 0 {
+				err = services.AddOrCreateTagToBook(book, tags, services.Overwrite)
+				if err != nil {
+					logrus.Error("Failed to update book tags:", err)
+				}
+			}
+		}
+	}
+
+	// 生成MatchTags
+	matchTags := generateMatchTags(&analysisResult)
+
+	// 返回成功响应
+	harukaCtx.JSONWithStatus(AnalyzeBookFolderResponseBody{
+		ID:         book.ID,
+		FolderName: folderName,
+		Analysis:   &analysisResult,
+		MatchTags:  matchTags,
+		Success:    true,
+		Message:    "分析完成",
+	}, http.StatusOK)
+}
+
+// 辅助函数：检查切片是否包含指定元素
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+// 生成MatchTag结果的辅助函数
+func generateMatchTags(analysis *BookAnalysisResult) []MatchTagResult {
+	var matchTags []MatchTagResult
+
+	// 添加标题
+	if analysis.Title != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   analysis.Title,
+			Type:   "name",
+			Source: "ai",
+		})
+	}
+
+	// 添加作者
+	if analysis.Author != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   analysis.Author,
+			Type:   "artist",
+			Source: "ai",
+		})
+	}
+
+	// 添加系列
+	if analysis.Series != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   analysis.Series,
+			Type:   "series",
+			Source: "ai",
+		})
+	}
+
+	// 添加标签（作为theme处理）
+	for _, tag := range analysis.Tags {
+		if tag != "" {
+			matchTags = append(matchTags, MatchTagResult{
+				ID:     generateTagId(),
+				Name:   tag,
+				Type:   "theme",
+				Source: "ai",
+			})
+		}
+	}
+
+	// 添加其他信息作为原始标签
+	if analysis.Genre != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   analysis.Genre,
+			Type:   "theme",
+			Source: "ai",
+		})
+	}
+
+	if analysis.Volume != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   "Vol." + analysis.Volume,
+			Type:   "theme",
+			Source: "ai",
+		})
+	}
+
+	if analysis.Chapter != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   "Ch." + analysis.Chapter,
+			Type:   "theme",
+			Source: "ai",
+		})
+	}
+
+	if analysis.Publisher != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   analysis.Publisher,
+			Type:   "theme",
+			Source: "ai",
+		})
+	}
+
+	if analysis.Year != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   analysis.Year,
+			Type:   "theme",
+			Source: "ai",
+		})
+	}
+
+	if analysis.Language != "" {
+		matchTags = append(matchTags, MatchTagResult{
+			ID:     generateTagId(),
+			Name:   analysis.Language,
+			Type:   "theme",
+			Source: "ai",
+		})
+	}
+
+	return matchTags
+}
+
+// 生成唯一ID的辅助函数
+func generateTagId() string {
+	return fmt.Sprintf("llm_%d", time.Now().UnixNano())
 }

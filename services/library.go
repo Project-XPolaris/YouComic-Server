@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	appconfig "github.com/projectxpolaris/youcomic/config"
-	"github.com/projectxpolaris/youcomic/database"
-	"github.com/projectxpolaris/youcomic/model"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+
+	appconfig "github.com/projectxpolaris/youcomic/config"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
 )
 
 func GetLibraryById(id uint) (model.Library, error) {
@@ -168,4 +169,17 @@ func ScanLibrary(id uint, option ScanLibraryOption) (*ScanTask, error) {
 	}
 	option.Library = &library
 	return NewScanLibraryTask(option)
+}
+
+// list scan histories by library id
+func ListScanHistories(libraryId uint, page int, pageSize int) (int64, []model.ScanHistory, error) {
+	var count int64
+	result := make([]model.ScanHistory, 0)
+	query := database.Instance.Where("library_id = ?", libraryId)
+	err := query.Model(&model.ScanHistory{}).Count(&count).Error
+	if err != nil {
+		return 0, nil, err
+	}
+	err = query.Order("id desc").Limit(pageSize).Offset((page - 1) * pageSize).Find(&result).Error
+	return count, result, err
 }

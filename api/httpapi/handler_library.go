@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"net/http"
+
 	"github.com/allentom/haruka"
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
 	ApiError "github.com/projectxpolaris/youcomic/error"
@@ -8,7 +10,6 @@ import (
 	"github.com/projectxpolaris/youcomic/module"
 	"github.com/projectxpolaris/youcomic/permission"
 	"github.com/projectxpolaris/youcomic/services"
-	"net/http"
 )
 
 type CreateLibraryRequestBody struct {
@@ -147,9 +148,7 @@ var LibraryBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 		AllowUpdateField: []string{
 			"path",
 		},
-		AllowOperations: []BatchOperation{
-			Create, Update,
-		},
+		AllowOperations: []BatchOperation{Create, Update, Delete},
 		CreateModel: func() interface{} {
 			return &model.Library{}
 		},
@@ -174,6 +173,64 @@ var LibraryBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 	view.Run()
 }
 
+type BatchCreateLibrariesRequest struct {
+	Libraries []struct {
+		Name string `json:"name"`
+		Path string `json:"path"`
+	} `json:"libraries"`
+	Scan bool `json:"scan"`
+}
+
+type BatchCreateLibrariesResponse struct {
+	Libraries []serializer.BaseLibraryTemplate `json:"libraries"`
+}
+
+var LibrariesBatchCreateHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var requestBody BatchCreateLibrariesRequest
+
+	rawUserClaims, _ := context.Param["claim"]
+	createLibraryPermission := permission.StandardPermissionChecker{
+		PermissionName: permission.CreateLibraryPermissionName,
+		UserId:         (rawUserClaims.(*model.User)).GetUserId(),
+	}
+	if hasPermission := permission.CheckPermissionAndServerError(context, &createLibraryPermission); !hasPermission {
+		return
+	}
+
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		return
+	}
+
+	created := make([]*model.Library, 0)
+	for _, item := range requestBody.Libraries {
+		if len(item.Name) == 0 || len(item.Path) == 0 {
+			continue
+		}
+		lib, err := services.CreateLibrary(item.Name, item.Path)
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
+		created = append(created, lib)
+	}
+
+	if requestBody.Scan {
+		for _, lib := range created {
+			go services.ScanLibrary(lib.ID, services.ScanLibraryOption{})
+		}
+	}
+
+	templates := make([]serializer.BaseLibraryTemplate, 0)
+	for _, lib := range created {
+		t := serializer.BaseLibraryTemplate{}
+		if err := t.Serializer(*lib, nil); err == nil {
+			templates = append(templates, t)
+		}
+	}
+	context.JSONWithStatus(BatchCreateLibrariesResponse{Libraries: templates}, http.StatusOK)
+}
+
 var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
@@ -196,6 +253,7 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 				"event": EventScanTaskDone,
 				"data":  template,
 			})
+			services.SaveScanHistory(task)
 		},
 		OnError: func(task *services.ScanTask, err error) {
 			template, _ := module.Task.SerializerTemplate(task)
@@ -203,6 +261,7 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 				"event": EventScanTaskError,
 				"data":  template,
 			})
+			services.SaveScanHistory(task)
 		},
 		OnStop: func(task *services.ScanTask) {
 			template, _ := module.Task.SerializerTemplate(task)
@@ -210,6 +269,7 @@ var ScanLibraryHandler haruka.RequestHandler = func(context *haruka.Context) {
 				"event": EventScanTaskStop,
 				"data":  template,
 			})
+			services.SaveScanHistory(task)
 		},
 		//OnDirError: func(task *services.ScanTask, syncErr services.SyncError) {
 		//	DefaultNotificationManager.sendJSONToAll(haruka.JSON{
@@ -318,4 +378,25 @@ var NewLibraryGenerateThumbnailsHandler haruka.RequestHandler = func(context *ha
 	}
 	go task.Start()
 	context.JSONWithStatus(task, http.StatusOK)
+}
+
+var ListLibraryScanHistories haruka.RequestHandler = func(context *haruka.Context) {
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, ApiError.RequestPathError, nil)
+		return
+	}
+	pageReader := &DefaultPagination{}
+	page, pageSize := pageReader.Read(context)
+	count, list, err := services.ListScanHistories(uint(id), page, pageSize)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	context.JSONWithStatus(haruka.JSON{
+		"page":     page,
+		"pageSize": pageSize,
+		"count":    count,
+		"result":   list,
+	}, http.StatusOK)
 }

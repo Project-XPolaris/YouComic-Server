@@ -1,18 +1,22 @@
 package services
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/plugin"
 	"github.com/projectxpolaris/youcomic/utils"
 	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"regexp"
-	"strings"
 )
 
 type TagQueryBuilder struct {
@@ -320,7 +324,7 @@ var AiTagMapping = map[string]string{
 	"MAG": "magazine",
 }
 
-func MatchTag(raw string, pattern string) []*RawTag {
+func MatchTag(raw string, pattern string, useLLM bool, customPrompt ...string) []*RawTag {
 	var result *utils.MatchTagResult
 	if len(pattern) > 0 {
 		rex := regexp.MustCompile(pattern)
@@ -401,7 +405,215 @@ func MatchTag(raw string, pattern string) []*RawTag {
 			}
 		}
 	}
+
+	// 添加LLM分析（仅当启用时）
+	if useLLM {
+		var prompt string
+		if len(customPrompt) > 0 && customPrompt[0] != "" {
+			prompt = customPrompt[0]
+		}
+		llmTags := extractTagsWithLLMCustomPrompt(raw, prompt)
+		tags = append(tags, llmTags...)
+	}
 	return tags
+}
+
+// LLMTagResponse LLM返回的标签结构
+type LLMTagResponse struct {
+	Tags []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"tags"`
+}
+
+// extractTagsWithLLM 使用LLM分析文本提取标签
+func extractTagsWithLLM(rawText string) []*RawTag {
+	var result []*RawTag
+
+	// 检查LLM插件是否可用
+	if plugin.LLM == nil {
+		return result
+	}
+
+	client, err := plugin.LLM.GetClient()
+	if err != nil {
+		logrus.WithError(err).Warn("无法获取LLM客户端")
+		return result
+	}
+
+	// 构建LLM分析prompt
+	prompt := buildTagAnalysisPrompt(rawText, "")
+
+	ctx := context.Background()
+	response, err := client.GenerateText(ctx, prompt)
+	if err != nil {
+		logrus.WithError(err).Warn("LLM标签分析失败")
+		return result
+	}
+
+	// 解析LLM响应
+	llmTags := parseLLMTagResponse(response)
+	for _, tag := range llmTags {
+		result = append(result, &RawTag{
+			ID:     xid.New().String(),
+			Name:   tag.Name,
+			Type:   tag.Type,
+			Source: "llm",
+		})
+	}
+
+	return result
+}
+
+// extractTagsWithLLMCustomPrompt 使用LLM分析文本提取标签（支持自定义prompt）
+func extractTagsWithLLMCustomPrompt(rawText string, customPrompt string) []*RawTag {
+	var result []*RawTag
+
+	// 检查LLM插件是否可用
+	if plugin.LLM == nil {
+		return result
+	}
+
+	client, err := plugin.LLM.GetClient()
+	if err != nil {
+		logrus.WithError(err).Warn("无法获取LLM客户端")
+		return result
+	}
+
+	// 构建LLM分析prompt
+	prompt := buildTagAnalysisPrompt(rawText, customPrompt)
+
+	ctx := context.Background()
+	response, err := client.GenerateText(ctx, prompt)
+	if err != nil {
+		logrus.WithError(err).Warn("LLM标签分析失败")
+		return result
+	}
+
+	// 解析LLM响应
+	llmTags := parseLLMTagResponse(response)
+	for _, tag := range llmTags {
+		result = append(result, &RawTag{
+			ID:     xid.New().String(),
+			Name:   tag.Name,
+			Type:   tag.Type,
+			Source: "llm",
+		})
+	}
+
+	return result
+}
+
+// buildTagAnalysisPrompt 构建标签分析prompt
+func buildTagAnalysisPrompt(rawText string, customPrompt string) string {
+	// 如果提供了自定义prompt，使用自定义的
+	if customPrompt != "" {
+		// 对于自定义prompt，使用简单的字符串替换，保持向后兼容
+		// 先尝试新格式 {{content}}，如果没有则尝试旧格式 %s
+		if strings.Contains(customPrompt, "{{content}}") {
+			return strings.ReplaceAll(customPrompt, "{{content}}", rawText)
+		} else {
+			return fmt.Sprintf(customPrompt, rawText)
+		}
+	}
+
+	// 使用LLM插件的模板渲染功能
+	if plugin.LLM != nil {
+		// 准备变量映射
+		variables := map[string]string{
+			"content": rawText,
+			"text":    rawText, // 兼容性别名
+		}
+
+		// 尝试渲染标签分析场景的模板
+		if rendered, err := plugin.LLM.RenderTemplate("tag_analysis", variables); err == nil {
+			return rendered
+		}
+	}
+
+	// 最后fallback：获取默认模板并用新方式渲染
+	promptTemplate := getDefaultTagPromptTemplate()
+	return strings.ReplaceAll(promptTemplate, "{{content}}", rawText)
+}
+
+// getDefaultTagPromptTemplate 获取默认的prompt模板
+func getDefaultTagPromptTemplate() string {
+	return `你是一个专业的漫画标签分析助手。请分析以下文本，提取出漫画相关的标签信息。
+
+文本内容："{{content}}"
+
+请从文本中提取以下类型的标签：
+- artist: 画师/作者名称
+- series: 系列/作品名称  
+- name: 漫画标题/名称
+- theme: 主题/题材标签
+- translator: 翻译者
+- type: 漫画类型(如CG、同人志等)
+- lang: 语言
+- magazine: 杂志名称
+- societies: 社团名称
+
+请以JSON格式返回结果，格式如下：
+{
+  "tags": [
+    {"name": "标签名称", "type": "标签类型"},
+    {"name": "标签名称", "type": "标签类型"}
+  ]
+}
+
+要求：
+1. 只提取确实存在于文本中的信息
+2. 标签名称要准确，去除多余符号
+3. 如果无法确定标签类型，可以留空
+4. 不要添加文本中不存在的信息
+5. 返回纯JSON，不要其他说明文字`
+}
+
+// parseLLMTagResponse 解析LLM返回的标签响应
+func parseLLMTagResponse(response string) []struct{ Name, Type string } {
+	var result []struct{ Name, Type string }
+
+	// 尝试提取JSON部分
+	jsonStr := extractJSONFromResponse(response)
+	if jsonStr == "" {
+		logrus.Warn("无法从LLM响应中提取JSON")
+		return result
+	}
+
+	var llmResponse LLMTagResponse
+	err := json.Unmarshal([]byte(jsonStr), &llmResponse)
+	if err != nil {
+		logrus.WithError(err).Warn("解析LLM标签响应失败")
+		return result
+	}
+
+	for _, tag := range llmResponse.Tags {
+		if len(strings.TrimSpace(tag.Name)) > 0 {
+			result = append(result, struct{ Name, Type string }{
+				Name: strings.TrimSpace(tag.Name),
+				Type: strings.TrimSpace(tag.Type),
+			})
+		}
+	}
+
+	return result
+}
+
+// extractJSONFromResponse 从响应中提取JSON部分
+func extractJSONFromResponse(response string) string {
+	// 查找JSON开始和结束位置
+	start := strings.Index(response, "{")
+	if start == -1 {
+		return ""
+	}
+
+	// 从后往前查找最后一个}
+	end := strings.LastIndex(response, "}")
+	if end == -1 || end <= start {
+		return ""
+	}
+
+	return response[start : end+1]
 }
 
 type BatchMatchResult struct {
@@ -409,14 +621,17 @@ type BatchMatchResult struct {
 	Text   string    `json:"text"`
 }
 
-func BatchMatchTag(raws []string, pattern string) []*BatchMatchResult {
+func BatchMatchTag(raws []string, pattern string, useLLM bool, customPrompt ...string) []*BatchMatchResult {
 	var results = make([]*BatchMatchResult, 0)
-	if AiTaggerInstance != nil {
-		for _, raw := range raws {
-			resultItem := &BatchMatchResult{
-				Text:   raw,
-				Result: []*RawTag{},
-			}
+
+	for _, raw := range raws {
+		resultItem := &BatchMatchResult{
+			Text:   raw,
+			Result: []*RawTag{},
+		}
+
+		// AI标签器分析
+		if AiTaggerInstance != nil {
 			response, err := AiTaggerInstance.predict(raw)
 			if err != nil {
 				logrus.Info(err)
@@ -433,8 +648,19 @@ func BatchMatchTag(raws []string, pattern string) []*BatchMatchResult {
 					resultItem.Result = append(resultItem.Result, &RawTag{Name: text, Type: AiTagMapping[label], Source: "ai", ID: xid.New().String()})
 				}
 			}
-			results = append(results, resultItem)
 		}
+
+		// LLM分析（仅当启用时）
+		if useLLM {
+			var prompt string
+			if len(customPrompt) > 0 && customPrompt[0] != "" {
+				prompt = customPrompt[0]
+			}
+			llmTags := extractTagsWithLLMCustomPrompt(raw, prompt)
+			resultItem.Result = append(resultItem.Result, llmTags...)
+		}
+
+		results = append(results, resultItem)
 	}
 	return results
 }
