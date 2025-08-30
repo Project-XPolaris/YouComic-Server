@@ -131,6 +131,16 @@ var LibraryListHandler haruka.RequestHandler = func(context *haruka.Context) {
 				Method: "SetNameFilter",
 				Many:   true,
 			},
+			{
+				Lookup: "nameSearch",
+				Method: "SetNameSearchQueryFilter",
+				Many:   false,
+			},
+			{
+				Lookup: "pathSearch",
+				Method: "SetPathSearchQueryFilter",
+				Many:   false,
+			},
 		},
 		GetContainer: func() serializer.ListContainerSerializer {
 			return &serializer.DefaultListContainer{}

@@ -2,15 +2,16 @@ package services
 
 import (
 	"fmt"
+	"os"
+	"reflect"
+
 	"github.com/projectxpolaris/youcomic/database"
 	"github.com/projectxpolaris/youcomic/model"
 	"github.com/projectxpolaris/youcomic/utils"
 	"gorm.io/gorm"
-	"os"
-	"reflect"
 )
 
-//page filter
+// page filter
 type PageFilter interface {
 	SetPageFilter(page int, pageSize int)
 	getOffset() int
@@ -38,22 +39,22 @@ func (b *DefaultPageFilter) getLimit() int {
 	}
 }
 
-//order filter
+// order filter
 type OrderFilter interface {
 	SetOrderFilter(order string)
 }
 
-//read models from database
+// read models from database
 type ModelsReader interface {
 	ReadModels() (int64, interface{}, error)
 }
 
-//delete model by model's id
+// delete model by model's id
 func DeleteById(model interface{}) error {
 	return database.Instance.Delete(model).Error
 }
 
-//update models with allow fields
+// update models with allow fields
 func UpdateModel(model interface{}, allowFields ...string) error {
 	updateMap := make(map[string]interface{})
 	r := reflect.ValueOf(model)
@@ -66,7 +67,7 @@ func UpdateModel(model interface{}, allowFields ...string) error {
 	return err
 }
 
-//get model by id
+// get model by id
 func GetModelById(model interface{}, id int) error {
 	err := database.Instance.First(model, id).Error
 	if err != nil {
@@ -75,12 +76,12 @@ func GetModelById(model interface{}, id int) error {
 	return nil
 }
 
-//combine query filter and gorm db query
+// combine query filter and gorm db query
 type GORMFilter interface {
 	ApplyQuery(db *gorm.DB) *gorm.DB
 }
 
-//apply query builder inner filters that implement GORMFilter
+// apply query builder inner filters that implement GORMFilter
 func ApplyFilters(queryBuilder interface{}, db *gorm.DB) *gorm.DB {
 
 	query := db
@@ -97,7 +98,7 @@ func ApplyFilters(queryBuilder interface{}, db *gorm.DB) *gorm.DB {
 	return query
 }
 
-//Ids filter
+// Ids filter
 type IdQueryFilter struct {
 	Ids []interface{}
 }
@@ -119,7 +120,7 @@ func (f *IdQueryFilter) InId(ids ...interface{}) {
 
 }
 
-//order filter
+// order filter
 type OrderQueryFilter struct {
 	Order string
 }
@@ -168,6 +169,23 @@ func (f NameSearchQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
 func (f *NameSearchQueryFilter) SetNameSearchQueryFilter(nameSearch interface{}) {
 	if len(nameSearch.(string)) > 0 {
 		f.nameSearch = nameSearch
+	}
+}
+
+type PathSearchQueryFilter struct {
+	pathSearch interface{}
+}
+
+func (f PathSearchQueryFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	if f.pathSearch != nil && len(f.pathSearch.(string)) != 0 {
+		return db.Where("path like ?", fmt.Sprintf("%%%s%%", f.pathSearch))
+	}
+	return db
+}
+
+func (f *PathSearchQueryFilter) SetPathSearchQueryFilter(pathSearch interface{}) {
+	if len(pathSearch.(string)) > 0 {
+		f.pathSearch = pathSearch
 	}
 }
 func CreateModels(models []interface{}) error {

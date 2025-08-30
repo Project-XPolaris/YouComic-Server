@@ -137,6 +137,8 @@ type LibraryQueryBuilder struct {
 	IdQueryFilter
 	OrderQueryFilter
 	NameQueryFilter
+	NameSearchQueryFilter
+	PathSearchQueryFilter
 }
 
 func (b *LibraryQueryBuilder) SetId(id interface{}) {
