@@ -2,25 +2,27 @@ package serializer
 
 import (
 	"fmt"
-	"github.com/jinzhu/copier"
-	"github.com/projectxpolaris/youcomic/model"
 	"path"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/jinzhu/copier"
+	"github.com/projectxpolaris/youcomic/model"
 )
 
 type BaseBookTemplate struct {
-	ID           uint        `json:"id"`
-	CreatedAt    time.Time   `json:"created_at"`
-	UpdatedAt    time.Time   `json:"updated_at"`
-	Name         string      `json:"name"`
-	Cover        string      `json:"cover"`
-	LibraryId    uint        `json:"library_id"`
-	Tags         interface{} `json:"tags"`
-	DirName      string      `json:"dirName"`
-	OriginalName string      `json:"originalName"`
-	PageCount    int         `json:"pageCount"`
+	ID                uint              `json:"id"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
+	Name              string            `json:"name"`
+	Cover             string            `json:"cover"`
+	LibraryId         uint              `json:"library_id"`
+	Tags              interface{}       `json:"tags"`
+	DirName           string            `json:"dirName"`
+	OriginalName      string            `json:"originalName"`
+	PageCount         int               `json:"pageCount"`
+	TitleTranslations map[string]string `json:"titleTranslations"`
 }
 
 func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]interface{}) error {

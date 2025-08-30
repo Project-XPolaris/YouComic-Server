@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/allentom/haruka"
@@ -20,6 +21,7 @@ import (
 	serializer2 "github.com/projectxpolaris/youcomic/api/httpapi/serializer"
 	"github.com/projectxpolaris/youcomic/auth"
 	appconfig "github.com/projectxpolaris/youcomic/config"
+	"github.com/projectxpolaris/youcomic/database"
 	ApiError "github.com/projectxpolaris/youcomic/error"
 	ApplicationError "github.com/projectxpolaris/youcomic/error"
 	"github.com/projectxpolaris/youcomic/model"
@@ -81,9 +83,11 @@ var CreateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 }
 
 type UpdateBookRequestBody struct {
-	Id         int
-	Name       string `form:"name" json:"name" xml:"name"  binding:"required"`
-	UpdateTags []struct {
+	Id                int
+	Name              string            `form:"name" json:"name" xml:"name"`
+	Cover             string            `form:"cover" json:"cover" xml:"cover"` // 添加封面字段
+	TitleTranslations map[string]string `json:"titleTranslations"`
+	UpdateTags        []struct {
 		Name string `json:"name"`
 		Type string `json:"type"`
 	} `json:"updateTags"`
@@ -125,10 +129,18 @@ var UpdateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 
 	//validate
-	if isValidate := validate.RunValidatorsAndRaiseApiError(context,
-		&validate.StringLengthValidator{Value: requestBody.Name, LessThan: 256, GreaterThan: 0, FieldName: "BookName"},
-	); !isValidate {
+	// 至少要提供名称、封面或标签中的一个
+	if requestBody.Name == "" && requestBody.Cover == "" && requestBody.UpdateTags == nil {
+		ApiError.RaiseApiError(context, errors.New("至少要提供名称、封面或标签中的一个字段进行更新"), nil)
 		return
+	}
+
+	if requestBody.Name != "" {
+		if isValidate := validate.RunValidatorsAndRaiseApiError(context,
+			&validate.StringLengthValidator{Value: requestBody.Name, LessThan: 256, GreaterThan: 0, FieldName: "BookName"},
+		); !isValidate {
+			return
+		}
 	}
 
 	book := &model.Book{}
@@ -139,7 +151,64 @@ var UpdateBookHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 	book.ID = uint(id)
 
-	err = services.UpdateBook(book, "Name")
+	// 确定要更新的字段
+	fieldsToUpdate := []string{}
+
+	// 只有在提供了名称时才更新名称
+	if requestBody.Name != "" {
+		fieldsToUpdate = append(fieldsToUpdate, "Name")
+	}
+
+	// 提供了标题翻译时更新
+	if requestBody.TitleTranslations != nil {
+		book.TitleTranslations = requestBody.TitleTranslations
+		fieldsToUpdate = append(fieldsToUpdate, "TitleTranslations")
+	}
+
+	// 处理封面更新
+	if requestBody.Cover != "" {
+		// 验证文件名格式
+		if strings.Contains(requestBody.Cover, "?") || strings.Contains(requestBody.Cover, "#") {
+			logrus.Errorf("封面文件名包含非法字符: '%s'", requestBody.Cover)
+			ApiError.RaiseApiError(context, errors.New("封面文件名不能包含URL参数或片段标识符: "+requestBody.Cover), nil)
+			return
+		}
+
+		// 验证书籍是否存在
+		err = services.GetBook(book)
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
+
+		// 获取书籍路径并验证封面文件是否存在
+		err, storePath := services.GetBookPath(book.Path, book.LibraryId)
+		if err != nil {
+			ApiError.RaiseApiError(context, err, nil)
+			return
+		}
+
+		coverFilePath := filepath.Join(storePath, requestBody.Cover)
+		if _, err := os.Stat(coverFilePath); os.IsNotExist(err) {
+			logrus.Errorf("封面文件不存在: 请求的文件名='%s', 完整路径='%s'", requestBody.Cover, coverFilePath)
+			ApiError.RaiseApiError(context, errors.New("封面文件不存在，请确认文件名正确: "+requestBody.Cover), nil)
+			return
+		}
+
+		// 设置新的封面文件名
+		book.Cover = requestBody.Cover
+		fieldsToUpdate = append(fieldsToUpdate, "Cover")
+
+		// 重新生成缩略图
+		coverThumbnailStorePath := filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+		_, err = services.GenerateCoverThumbnail(coverFilePath, coverThumbnailStorePath)
+		if err != nil {
+			logrus.Error("生成缩略图失败:", err)
+			// 不阻断流程，只记录错误
+		}
+	}
+
+	err = services.UpdateBook(book, fieldsToUpdate...)
 	if err != nil {
 		ApiError.RaiseApiError(context, err, nil)
 		return
@@ -382,17 +451,75 @@ var BookBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 		}
 		book.ID = uint(updateBook.Id)
 
-		err = services.UpdateBook(book, "Name")
+		// 确定要更新的字段
+		fieldsToUpdate := []string{}
+
+		// 只有在提供了名称时才更新名称
+		if updateBook.Name != "" {
+			fieldsToUpdate = append(fieldsToUpdate, "Name")
+		}
+
+		// 提供了标题翻译时更新
+		if updateBook.TitleTranslations != nil {
+			book.TitleTranslations = updateBook.TitleTranslations
+			fieldsToUpdate = append(fieldsToUpdate, "TitleTranslations")
+		}
+
+		// 处理封面更新
+		if updateBook.Cover != "" {
+			// 验证文件名格式
+			if strings.Contains(updateBook.Cover, "?") || strings.Contains(updateBook.Cover, "#") {
+				logrus.Errorf("封面文件名包含非法字符: '%s'", updateBook.Cover)
+				ApiError.RaiseApiError(context, errors.New("封面文件名不能包含URL参数或片段标识符: "+updateBook.Cover), nil)
+				return
+			}
+
+			// 验证书籍是否存在
+			err = services.GetBook(book)
+			if err != nil {
+				ApiError.RaiseApiError(context, err, nil)
+				return
+			}
+
+			// 获取书籍路径并验证封面文件是否存在
+			err, storePath := services.GetBookPath(book.Path, book.LibraryId)
+			if err != nil {
+				ApiError.RaiseApiError(context, err, nil)
+				return
+			}
+
+			coverFilePath := filepath.Join(storePath, updateBook.Cover)
+			if _, err := os.Stat(coverFilePath); os.IsNotExist(err) {
+				logrus.Errorf("封面文件不存在: 请求的文件名='%s', 完整路径='%s'", updateBook.Cover, coverFilePath)
+				ApiError.RaiseApiError(context, errors.New("封面文件不存在，请确认文件名正确: "+updateBook.Cover), nil)
+				return
+			}
+
+			// 设置新的封面文件名
+			book.Cover = updateBook.Cover
+			fieldsToUpdate = append(fieldsToUpdate, "Cover")
+
+			// 重新生成缩略图
+			coverThumbnailStorePath := filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+			_, err = services.GenerateCoverThumbnail(coverFilePath, coverThumbnailStorePath)
+			if err != nil {
+				logrus.Error("生成缩略图失败:", err)
+				// 不阻断流程，只记录错误
+			}
+		} else {
+			err = services.GetBook(book)
+			if err != nil {
+				ApiError.RaiseApiError(context, err, nil)
+				return
+			}
+		}
+
+		err = services.UpdateBook(book, fieldsToUpdate...)
 		if err != nil {
 			ApiError.RaiseApiError(context, err, nil)
 			return
 		}
 
-		err = services.GetBook(book)
-		if err != nil {
-			ApiError.RaiseApiError(context, err, nil)
-			return
-		}
 		booksToUpdate = append(booksToUpdate, *book)
 
 		// update tags
@@ -408,11 +535,7 @@ var BookBatchHandler haruka.RequestHandler = func(context *haruka.Context) {
 			}
 		}
 	}
-	err = services.UpdateBooks(booksToUpdate, "Name")
-	if err != nil {
-		ApiError.RaiseApiError(context, err, nil)
-		return
-	}
+	// 不需要再次批量更新，因为已经在循环中单独更新了每本书
 
 	//delete
 	if hasPermission := permission.CheckPermissionAndServerError(context,
@@ -468,6 +591,34 @@ func SaveCover(book model.Book, file multipart.File, header *multipart.FileHeade
 	return nil, coverImageFilePath
 }
 
+// generateUniqueFileName generates a unique filename by adding suffix if file already exists
+func generateUniqueFileName(storePath, fileName string) string {
+	fullPath := filepath.Join(storePath, fileName)
+
+	// If file doesn't exist, return original filename
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return fileName
+	}
+
+	// Extract name and extension
+	ext := filepath.Ext(fileName)
+	nameWithoutExt := strings.TrimSuffix(fileName, ext)
+
+	// Try different suffixes
+	for i := 1; i < 1000; i++ {
+		newFileName := fmt.Sprintf("%s_%d%s", nameWithoutExt, i, ext)
+		newFullPath := filepath.Join(storePath, newFileName)
+
+		if _, err := os.Stat(newFullPath); os.IsNotExist(err) {
+			return newFileName
+		}
+	}
+
+	// If still can't find unique name, use timestamp
+	timestamp := time.Now().Unix()
+	return fmt.Sprintf("%s_%d%s", nameWithoutExt, timestamp, ext)
+}
+
 var AddBookCover haruka.RequestHandler = func(context *haruka.Context) {
 	var err error
 	id, err := GetLookUpId(context, "id")
@@ -514,6 +665,109 @@ var AddBookCover haruka.RequestHandler = func(context *haruka.Context) {
 	}
 
 	// render response
+	template := &serializer2.BaseBookTemplate{}
+	RenderTemplate(context, template, book)
+	context.JSONWithStatus(template, http.StatusOK)
+}
+
+// CropBookCoverHandler handles cover image cropping and saves the result
+var CropBookCoverHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var err error
+	id, err := GetLookUpId(context, "id")
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	// Get form file
+	file, header, err := context.Request.FormFile("file")
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	if header == nil {
+		ApiError.RaiseApiError(context, errors.New("form not found"), nil)
+		return
+	}
+	if file == nil {
+		ApiError.RaiseApiError(context, errors.New("no such file in form"), nil)
+		return
+	}
+	defer file.Close()
+
+	// Get filename parameter
+	fileName := context.Request.FormValue("fileName")
+	if fileName == "" {
+		ApiError.RaiseApiError(context, errors.New("fileName parameter is required"), nil)
+		return
+	}
+
+	// Get book information
+	book := model.Book{Model: gorm.Model{ID: uint(id)}}
+	err = services.GetBook(&book)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	// Get book storage path
+	err, storePath := services.GetBookPath(book.Path, book.LibraryId)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	// Generate unique filename to avoid conflicts
+	finalFileName := generateUniqueFileName(storePath, fileName)
+	coverImageFilePath := filepath.Join(storePath, finalFileName)
+
+	// Save the cropped image file
+	f, err := os.OpenFile(coverImageFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, file)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	// Generate thumbnail for the new cover
+	coverThumbnailStorePath := filepath.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID))
+	_, err = services.GenerateCoverThumbnail(coverImageFilePath, coverThumbnailStorePath)
+	if err != nil {
+		// Log the error but don't fail the entire operation
+		fmt.Printf("Warning: Failed to generate thumbnail for cropped cover: %v\n", err)
+	}
+
+	// Update book cover in database
+	book.Cover = finalFileName
+	err = services.UpdateModel(&book, "Cover")
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	// Create a new page for the cropped cover
+	var maxPageOrder int
+	database.Instance.Model(&model.Page{}).Where("book_id = ?", book.ID).Select("COALESCE(MAX(page_order), 0)").Scan(&maxPageOrder)
+
+	newPage := &model.Page{
+		Path:      finalFileName,
+		PageOrder: maxPageOrder + 1,
+		BookId:    int(book.ID),
+	}
+
+	err = services.CreatePage(newPage)
+	if err != nil {
+		// Log the error but don't fail the entire operation since cover was already saved
+		fmt.Printf("Warning: Failed to create page for cropped cover: %v\n", err)
+	}
+
+	// Return success response
 	template := &serializer2.BaseBookTemplate{}
 	RenderTemplate(context, template, book)
 	context.JSONWithStatus(template, http.StatusOK)
@@ -1202,4 +1456,98 @@ func generateMatchTags(analysis *BookAnalysisResult) []MatchTagResult {
 // 生成唯一ID的辅助函数
 func generateTagId() string {
 	return fmt.Sprintf("llm_%d", time.Now().UnixNano())
+}
+
+// Request and handler for translating book titles using LLM
+type TranslateBookTitleRequest struct {
+	BookIDs         []uint   `json:"bookIds"`
+	TargetLanguages []string `json:"targetLanguages"`
+	DryRun          bool     `json:"dryRun"`
+}
+
+var TranslateBookTitleHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var req TranslateBookTitleRequest
+	if err := DecodeJsonBody(context, &req); err != nil {
+		return
+	}
+
+	if len(req.BookIDs) == 0 || len(req.TargetLanguages) == 0 {
+		ApiError.RaiseApiError(context, errors.New("bookIds 与 targetLanguages 不能为空"), nil)
+		return
+	}
+
+	var claims auth.JwtClaims
+	if _, ok := context.Param["claim"]; ok {
+		claims = context.Param["claim"].(*model.User)
+	} else {
+		ApiError.RaiseApiError(context, ApplicationError.UserAuthFailError, nil)
+		return
+	}
+
+	if hasPermission := permission.CheckPermissionAndServerError(context,
+		&permission.StandardPermissionChecker{PermissionName: permission.UpdateBookPermissionName, UserId: claims.GetUserId()},
+	); !hasPermission {
+		return
+	}
+
+	// LLM client
+	llmClient, err := plugin.LLM.GetClient()
+	if err != nil {
+		ApiError.RaiseApiError(context, errors.New("LLM 功能不可用"), nil)
+		return
+	}
+
+	type ItemResult struct {
+		ID      uint              `json:"id"`
+		Success bool              `json:"success"`
+		Error   string            `json:"error,omitempty"`
+		Data    map[string]string `json:"data,omitempty"`
+	}
+
+	results := make([]ItemResult, 0)
+
+	for _, id := range req.BookIDs {
+		book := &model.Book{Model: gorm.Model{ID: id}}
+		if err := services.GetBook(book); err != nil {
+			results = append(results, ItemResult{ID: id, Success: false, Error: err.Error()})
+			continue
+		}
+
+		if book.TitleTranslations == nil {
+			book.TitleTranslations = make(map[string]string)
+		}
+
+		// Translate for each target language
+		itemData := make(map[string]string)
+		for _, lang := range req.TargetLanguages {
+			if strings.TrimSpace(lang) == "" {
+				continue
+			}
+			prompt := fmt.Sprintf("Translate the following title into %s. Output only the translated title without quotes or extra text.\n\nTitle: %s", lang, book.Name)
+			resp, err := llmClient.GenerateText(context.Request.Context(), prompt)
+			if err != nil {
+				continue
+			}
+			translated := strings.TrimSpace(resp)
+			if translated != "" {
+				itemData[lang] = translated
+				if !req.DryRun {
+					book.TitleTranslations[lang] = translated
+				}
+			}
+		}
+
+		if !req.DryRun {
+			if err := services.UpdateBook(book, "TitleTranslations"); err != nil {
+				results = append(results, ItemResult{ID: id, Success: false, Error: err.Error()})
+				continue
+			}
+		}
+
+		results = append(results, ItemResult{ID: id, Success: true, Data: itemData})
+	}
+
+	context.JSON(map[string]interface{}{
+		"results": results,
+	})
 }
