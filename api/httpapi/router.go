@@ -38,6 +38,7 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.POST("/tags/match", AnalyzeTagFromTextHandler)
 	engine.Router.POST("/tags/batch-match", BatchAnalyzeTagFromTextHandler)
 	engine.Router.POST("/tags/clean", ClearEmptyTagHandler)
+	engine.Router.POST("/tags/llm-history", GetLLMTagHistoryHandler)
 	engine.Router.GET("/tag/{id:[0-9]+}", GetTag)
 	engine.Router.POST("/user/register", RegisterUserHandler)
 	engine.Router.POST("/user/auth", LoginUserHandler)
@@ -104,10 +105,6 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.POST("/llm/config/save", SaveLLMConfigHandler)
 	engine.Router.GET("/llm/status", GetLLMStatusHandler)
 	engine.Router.POST("/llm/test", TestLLMConnectionHandler)
-
-	// LLM模板渲染API
-	engine.Router.POST("/llm/render", RenderTemplateHandler)
-	engine.Router.GET("/llm/scenarios", GetScenariosHandler)
 
 	module.Task.AddConverter(serializer.NewScanLibraryDetail)
 	module.Task.AddConverter(serializer.SerializeMatchTask)

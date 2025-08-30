@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/allentom/haruka"
 	"github.com/projectxpolaris/youcomic/api/httpapi/serializer"
@@ -312,11 +313,12 @@ var AddTagBooksToTag haruka.RequestHandler = func(context *haruka.Context) {
 }
 
 type AnalyzeTagFromTextRequestBody struct {
-	Text         string   `json:"text"`
-	Pattern      string   `json:"pattern"`
-	Texts        []string `json:"texts"`
-	UseLLM       bool     `json:"useLLM"`
-	CustomPrompt string   `json:"customPrompt,omitempty"` // 可选的自定义prompt
+	Text           string   `json:"text"`
+	Pattern        string   `json:"pattern"`
+	Texts          []string `json:"texts"`
+	UseLLM         bool     `json:"useLLM"`
+	CustomPrompt   string   `json:"customPrompt,omitempty"`   // 可选的自定义prompt
+	ForceReprocess bool     `json:"forceReprocess,omitempty"` // 强制重新处理，忽略历史记录
 }
 
 var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Context) {
@@ -326,7 +328,7 @@ var AnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.Conte
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	tags := services.MatchTag(requestBody.Text, requestBody.Pattern, requestBody.UseLLM, requestBody.CustomPrompt)
+	tags := services.MatchTagWithHistory(requestBody.Text, requestBody.Pattern, requestBody.UseLLM, requestBody.ForceReprocess, requestBody.CustomPrompt)
 	context.JSONWithStatus(tags, http.StatusOK)
 }
 
@@ -337,7 +339,7 @@ var BatchAnalyzeTagFromTextHandler haruka.RequestHandler = func(context *haruka.
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	tags := services.BatchMatchTag(requestBody.Texts, requestBody.Pattern, requestBody.UseLLM, requestBody.CustomPrompt)
+	tags := services.BatchMatchTagWithHistory(requestBody.Texts, requestBody.Pattern, requestBody.UseLLM, requestBody.ForceReprocess, requestBody.CustomPrompt)
 	context.JSONWithStatus(tags, http.StatusOK)
 }
 
@@ -349,4 +351,101 @@ var ClearEmptyTagHandler haruka.RequestHandler = func(context *haruka.Context) {
 	}
 	go task.Start()
 	ServerSuccessResponse(context)
+}
+
+// GetLLMTagHistoryRequestBody LLM标签历史记录查询请求体
+type GetLLMTagHistoryRequestBody struct {
+	Page     int    `json:"page"`
+	PageSize int    `json:"pageSize"`
+	Search   string `json:"search,omitempty"` // 搜索原始文本
+}
+
+// LLMTagHistoryResponseItem LLM标签历史记录响应项
+type LLMTagHistoryResponseItem struct {
+	ID           uint   `json:"id"`
+	OriginalText string `json:"originalText"`
+	ModelName    string `json:"modelName"`
+	ModelVersion string `json:"modelVersion"`
+	CustomPrompt string `json:"customPrompt"`
+	Results      []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"results"`
+	ProcessingTimeMs int64      `json:"processingTimeMs"`
+	Success          bool       `json:"success"`
+	UsageCount       int        `json:"usageCount"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	LastUsedAt       *time.Time `json:"lastUsedAt,omitempty"`
+}
+
+// LLMTagHistoryListResponse LLM标签历史记录列表响应
+type LLMTagHistoryListResponse struct {
+	Count int                         `json:"count"`
+	Data  []LLMTagHistoryResponseItem `json:"data"`
+}
+
+var GetLLMTagHistoryHandler haruka.RequestHandler = func(context *haruka.Context) {
+	var requestBody GetLLMTagHistoryRequestBody
+	err := DecodeJsonBody(context, &requestBody)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	// 默认值设置
+	if requestBody.Page <= 0 {
+		requestBody.Page = 1
+	}
+	if requestBody.PageSize <= 0 {
+		requestBody.PageSize = 20
+	}
+	if requestBody.PageSize > 100 {
+		requestBody.PageSize = 100 // 限制最大页面大小
+	}
+
+	count, histories, err := services.GetLLMTagHistoryList(requestBody.Page, requestBody.PageSize, requestBody.Search)
+	if err != nil {
+		ApiError.RaiseApiError(context, err, nil)
+		return
+	}
+
+	// 转换为响应格式
+	responseData := make([]LLMTagHistoryResponseItem, len(histories))
+	for i, history := range histories {
+		results := make([]struct {
+			Name string `json:"name"`
+			Type string `json:"type"`
+		}, len(history.Results))
+
+		for j, result := range history.Results {
+			results[j] = struct {
+				Name string `json:"name"`
+				Type string `json:"type"`
+			}{
+				Name: result.Name,
+				Type: result.Type,
+			}
+		}
+
+		responseData[i] = LLMTagHistoryResponseItem{
+			ID:               history.ID,
+			OriginalText:     history.OriginalText,
+			ModelName:        history.ModelName,
+			ModelVersion:     history.ModelVersion,
+			CustomPrompt:     history.CustomPrompt,
+			Results:          results,
+			ProcessingTimeMs: history.ProcessingTimeMs,
+			Success:          history.Success,
+			UsageCount:       history.UsageCount,
+			CreatedAt:        history.CreatedAt,
+			LastUsedAt:       history.LastUsedAt,
+		}
+	}
+
+	response := LLMTagHistoryListResponse{
+		Count: int(count),
+		Data:  responseData,
+	}
+
+	context.JSONWithStatus(response, http.StatusOK)
 }

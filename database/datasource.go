@@ -21,6 +21,7 @@ var DefaultPlugin = &datasource.Plugin{
 			&model.History{},
 			&model.Oauth{},
 			&model.ScanHistory{},
+			&model.LLMTagHistory{},
 		)
 	},
 }
