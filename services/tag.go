@@ -786,8 +786,12 @@ func buildTagAnalysisPrompt(rawText string, customPrompt string) string {
 		}
 	}
 
-	// 直接使用写死的prompt
-	promptTemplate := getDefaultTagPromptTemplate()
+	// 从数据库获取默认模板
+	promptTemplate, err := GetDefaultTagPromptTemplate()
+	if err != nil {
+		logrus.WithError(err).Warn("获取默认标签提示模板失败，使用硬编码版本")
+		promptTemplate = getDefaultTagPromptTemplateContent()
+	}
 	return fmt.Sprintf(promptTemplate, rawText)
 }
 
@@ -809,8 +813,12 @@ func buildBatchTagAnalysisPrompt(rawTexts []string, customPrompt string) string 
 		}
 	}
 
-	// 使用批量处理的默认prompt模板
-	promptTemplate := getBatchTagPromptTemplate()
+	// 从数据库获取批量处理的默认prompt模板
+	promptTemplate, err := GetBatchTagPromptTemplate()
+	if err != nil {
+		logrus.WithError(err).Warn("获取默认批量标签提示模板失败，使用硬编码版本")
+		promptTemplate = getBatchTagPromptTemplateContent()
+	}
 
 	// 构建文本列表
 	var textList strings.Builder
@@ -819,94 +827,6 @@ func buildBatchTagAnalysisPrompt(rawTexts []string, customPrompt string) string 
 	}
 
 	return fmt.Sprintf(promptTemplate, textList.String())
-}
-
-// getBatchTagPromptTemplate 获取批量处理的默认prompt模板
-func getBatchTagPromptTemplate() string {
-	return `你是一个专业的漫画标签分析助手。请分析以下多个文本，为每个文本提取出漫画相关的标签信息。
-
-文本列表：
-%s
-
-请从每个文本中提取以下类型的标签：
-- artist: 画师/作者名称
-- series: 贩售的会场（如Comic Market、Comic Market Online等）
-- name: 漫画标题/名称
-- theme: 主题(一般是某个动画或者游戏等的名字)
-- translator: 翻译者
-- type: 漫画类型(如CG、同人志等)
-- lang: 语言(如日语、中文、英语等),如果有翻译，则记录翻译的语言
-- magazine: 杂志名称
-- societies: 画师所在的社团名称
-- original-lang: 原语言(如日语、中文、英语等)
-- chapter: 章节名称(如"第一章"、"序章"、"最终话"等)
-- chapter_number: 章节序号(如"01"、"1"、"final"等，提取数字或序号)
-
-请以JSON格式返回结果，格式如下：
-{
-  "results": [
-    {
-      "text_index": 1,
-      "tags": [
-        {"name": "标签名称", "type": "标签类型"},
-        {"name": "标签名称", "type": "标签类型"}
-      ]
-    },
-    {
-      "text_index": 2,
-      "tags": [
-        {"name": "标签名称", "type": "标签类型"},
-        {"name": "标签名称", "type": "标签类型"}
-      ]
-    }
-  ]
-}
-
-要求：
-1. 为每个文本都提供一个结果项，即使没有识别到标签
-2. text_index对应文本列表中的编号（从1开始）
-3. 只提取确实存在于文本中的信息
-4. 标签名称要准确，去除多余符号
-5. 如果无法确定标签类型，可以留空
-6. 不要添加文本中不存在的信息
-7. 返回纯JSON，不要其他说明文字`
-}
-
-// getDefaultTagPromptTemplate 获取默认的prompt模板
-func getDefaultTagPromptTemplate() string {
-	return `你是一个专业的漫画标签分析助手。请分析以下文本，提取出漫画相关的标签信息。
-
-文本内容："%s"
-
-请从文本中提取以下类型的标签：
-- artist: 画师/作者名称
-- series: 贩售的会场（如Comic Market、Comic Market Online等）
-- name: 漫画标题/名称
-- theme: 主题(一般是某个动画或者游戏等的名字)
-- translator: 翻译者
-- type: 漫画类型(如CG、同人志等)
-- lang: 语言(如日语、中文、英语等),如果有翻译，则记录翻译的语言
-- magazine: 杂志名称
-- societies: 画师所在的社团名称
-- original-lang: 原语言(如日语、中文、英语等)
-- chapter: 章节名称(如"第一章"、"序章"、"最终话"等)
-- chapter_number: 章节序号(如"01"、"1"、"final"等，提取数字或序号)
-
-
-请以JSON格式返回结果，格式如下：
-{
-  "tags": [
-    {"name": "标签名称", "type": "标签类型"},
-    {"name": "标签名称", "type": "标签类型"}
-  ]
-}
-
-要求：
-1. 只提取确实存在于文本中的信息
-2. 标签名称要准确，去除多余符号
-3. 如果无法确定标签类型，可以留空
-4. 不要添加文本中不存在的信息
-5. 返回纯JSON，不要其他说明文字`
 }
 
 // parseLLMTagResponse 解析LLM返回的标签响应

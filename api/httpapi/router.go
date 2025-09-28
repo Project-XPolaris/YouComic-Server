@@ -108,6 +108,14 @@ func SetRouter(engine *haruka.Engine) {
 	engine.Router.GET("/llm/status", GetLLMStatusHandler)
 	engine.Router.POST("/llm/test", TestLLMConnectionHandler)
 
+	// 模板管理API
+	engine.Router.GET("/templates", TemplateListHandler)
+	engine.Router.GET("/template/{id:[0-9]+}", TemplateDetailHandler)
+	engine.Router.POST("/templates", TemplateCreateHandler)
+	engine.Router.PUT("/template/{id:[0-9]+}", TemplateUpdateHandler)
+	engine.Router.DELETE("/template/{id:[0-9]+}", TemplateDeleteHandler)
+	engine.Router.GET("/template/types", TemplateTypesHandler)
+
 	module.Task.AddConverter(serializer.NewScanLibraryDetail)
 	module.Task.AddConverter(serializer.SerializeMatchTask)
 	module.Task.AddConverter(serializer.SerializeRemoveLibraryTask)

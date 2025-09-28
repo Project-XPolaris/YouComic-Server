@@ -152,6 +152,15 @@ func SetupApplication() error {
 	if err != nil {
 		return err
 	}
+	// 初始化默认模板
+	Logger.Info("初始化默认模板...")
+	err = services.InitDefaultTemplates()
+	if err != nil {
+		Logger.Warn(fmt.Sprintf("初始化默认模板失败: %v", err))
+		// 不返回错误，因为模板初始化失败不应该阻止应用启动
+	} else {
+		Logger.Info("默认模板初始化成功")
+	}
 	return nil
 }
 
