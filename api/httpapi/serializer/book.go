@@ -9,6 +9,7 @@ import (
 
 	"github.com/jinzhu/copier"
 	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/services"
 )
 
 type BaseBookTemplate struct {
@@ -17,12 +18,14 @@ type BaseBookTemplate struct {
 	UpdatedAt         time.Time         `json:"updated_at"`
 	Name              string            `json:"name"`
 	Cover             string            `json:"cover"`
+	CoverThumbnail    string            `json:"coverThumbnail"`
 	LibraryId         uint              `json:"library_id"`
 	Tags              interface{}       `json:"tags"`
 	DirName           string            `json:"dirName"`
 	OriginalName      string            `json:"originalName"`
 	PageCount         int               `json:"pageCount"`
 	TitleTranslations map[string]string `json:"titleTranslations"`
+	HasThumbnail      bool              `json:"hasThumbnail"`
 }
 
 func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]interface{}) error {
@@ -32,6 +35,7 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 		return err
 	}
 	if len(b.Cover) != 0 {
+		// 原图URL
 		b.Cover = fmt.Sprintf("%s?t=%d",
 			path.Join("/", "content", "book", strconv.Itoa(int(serializerModel.ID)), serializerModel.Cover),
 			time.Now().Unix(),
@@ -53,6 +57,21 @@ func (b *BaseBookTemplate) Serializer(dataModel interface{}, context map[string]
 	if serializerModel.Page != nil {
 		b.PageCount = len(serializerModel.Page)
 	}
+
+	// 检查缩略图是否存在，如果存在则生成缩略图URL
+	b.HasThumbnail = services.CheckBookThumbnailExists(serializerModel.ID, serializerModel.Cover)
+	if b.HasThumbnail && len(serializerModel.Cover) > 0 {
+		// 只有缩略图存在时才生成缩略图URL
+		thumbnailExt := filepath.Ext(serializerModel.Cover)
+		if thumbnailExt == "" {
+			thumbnailExt = ".jpg" // 默认扩展名
+		}
+		b.CoverThumbnail = fmt.Sprintf("%s?t=%d",
+			path.Join("/", "content", "book", strconv.Itoa(int(serializerModel.ID)), fmt.Sprintf("cover_thumbnail%s", thumbnailExt)),
+			time.Now().Unix(),
+		)
+	}
+
 	return nil
 }
 

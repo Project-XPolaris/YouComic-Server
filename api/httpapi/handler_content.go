@@ -4,17 +4,18 @@ import (
 	"bytes"
 	context2 "context"
 	"fmt"
-	"github.com/allentom/haruka"
-	appconfig "github.com/projectxpolaris/youcomic/config"
-	ApiError "github.com/projectxpolaris/youcomic/error"
-	"github.com/projectxpolaris/youcomic/plugin"
-	"github.com/projectxpolaris/youcomic/services"
 	"io/ioutil"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/allentom/haruka"
+	appconfig "github.com/projectxpolaris/youcomic/config"
+	ApiError "github.com/projectxpolaris/youcomic/error"
+	"github.com/projectxpolaris/youcomic/plugin"
+	"github.com/projectxpolaris/youcomic/services"
 )
 
 var BookContentHandler haruka.RequestHandler = func(context *haruka.Context) {
@@ -36,7 +37,7 @@ var BookContentHandler haruka.RequestHandler = func(context *haruka.Context) {
 		ApiError.RaiseApiError(context, err, nil)
 		return
 	}
-	// handle with cover thumbnail
+	// handle with cover thumbnail - 显式请求缩略图
 	if strings.Contains(fileName, "cover_thumbnail") {
 		thumbnailExt := path.Ext(book.Cover)
 		thumbnail := path.Join(appconfig.Instance.Store.Root, "generate", fmt.Sprintf("%d", book.ID), fmt.Sprintf("cover_thumbnail%s", thumbnailExt))

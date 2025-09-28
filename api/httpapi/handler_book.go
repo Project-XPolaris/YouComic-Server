@@ -311,6 +311,11 @@ var BookListHandler haruka.RequestHandler = func(context *haruka.Context) {
 			Method: "SetRandomQueryFilter",
 			Many:   false,
 		},
+		{
+			Lookup: "noTags",
+			Method: "SetNoTagsFilter",
+			Many:   false,
+		},
 	}
 	for _, filter := range filterMapping {
 		utils.FilterByParam(context, filter.Lookup, &queryBuilder, filter.Method, filter.Many)

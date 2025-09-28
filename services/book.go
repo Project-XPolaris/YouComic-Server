@@ -1,22 +1,25 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ahmetb/go-linq/v3"
-	"github.com/projectxpolaris/youcomic/application"
-	"github.com/projectxpolaris/youcomic/database"
-	"github.com/projectxpolaris/youcomic/model"
-	"github.com/projectxpolaris/youcomic/utils"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"os"
 	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"github.com/ahmetb/go-linq/v3"
+	"github.com/projectxpolaris/youcomic/application"
+	"github.com/projectxpolaris/youcomic/database"
+	"github.com/projectxpolaris/youcomic/model"
+	"github.com/projectxpolaris/youcomic/plugin"
+	"github.com/projectxpolaris/youcomic/utils"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var (
@@ -84,6 +87,7 @@ type BooksQueryBuilder struct {
 	LibraryQueryFilter
 	DirectoryNameQueryFilter
 	RandomQueryFilter
+	NoTagsFilter
 	TagNameSearch     string `hsource:"query" hname:"tagNameSearch"`
 	TagNameSearchType string `hsource:"query" hname:"tagNameSearchType"`
 	PageCountMax      int    `hsource:"query" hname:"pageMax"`
@@ -192,6 +196,33 @@ func (f *TagQueryFilter) SetTagQueryFilter(tagIds ...interface{}) {
 	for _, tagId := range tagIds {
 		if len(tagId.(string)) > 0 {
 			f.tags = append(f.tags, tagId)
+		}
+	}
+}
+
+type NoTagsFilter struct {
+	noTagsMode string // "all", "only", "exclude"
+}
+
+func (f NoTagsFilter) ApplyQuery(db *gorm.DB) *gorm.DB {
+	switch f.noTagsMode {
+	case "only":
+		// 只显示无标签的书籍
+		return db.Where("books.id NOT IN (SELECT DISTINCT book_id FROM book_tags)")
+	case "exclude":
+		// 不显示无标签的书籍
+		return db.Where("books.id IN (SELECT DISTINCT book_id FROM book_tags)")
+	default:
+		// "all" 或其他值：显示全部，不做过滤
+		return db
+	}
+}
+
+func (f *NoTagsFilter) SetNoTagsFilter(mode interface{}) {
+	if mode != nil {
+		modeStr := mode.(string)
+		if modeStr == "only" || modeStr == "exclude" || modeStr == "all" {
+			f.noTagsMode = modeStr
 		}
 	}
 }
@@ -513,4 +544,30 @@ func GenerateBookCoverById(id uint) error {
 		}
 	}
 	return err
+}
+
+// CheckBookThumbnailExists 检查书籍缩略图是否存在
+func CheckBookThumbnailExists(bookId uint, coverFileName string) bool {
+	if coverFileName == "" {
+		return false
+	}
+
+	// 获取缩略图文件扩展名
+	thumbnailExt := filepath.Ext(coverFileName)
+	if thumbnailExt == "" {
+		// 如果没有扩展名，尝试常见的图片格式
+		thumbnailExt = ".jpg"
+	}
+
+	// 构建缩略图路径
+	thumbnailPath := filepath.Join(utils.GetThumbnailStorePath(bookId), fmt.Sprintf("cover_thumbnail%s", thumbnailExt))
+
+	// 检查存储中是否存在缩略图
+	storage := plugin.GetDefaultStorage()
+	isExist, err := storage.IsExist(context.Background(), plugin.GetDefaultBucket(), thumbnailPath)
+	if err != nil {
+		return false
+	}
+
+	return isExist
 }
